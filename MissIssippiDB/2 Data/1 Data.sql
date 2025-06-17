@@ -1,4 +1,6 @@
-use MissIssippiDB
+-- use MissIssippiDB
+-- go
+delete Inventory 
 go
 delete StyleColor
 go
@@ -189,10 +191,9 @@ union select StyleNumber = '704', ColorName = 'Plum'
 union select StyleNumber = '704', ColorName = 'Ivory'
 union select StyleNumber = '704', ColorName = 'Kelly'
 union select StyleNumber = '705', ColorName = 'Black'
-union select StyleNumber = '705', ColorName = 'Black             '
 union select StyleNumber = '705B', ColorName = 'Black'
 union select StyleNumber = '705', ColorName = 'Ivory'
-union select StyleNumber = '705B', ColorName = 'Ivory      '
+union select StyleNumber = '705B', ColorName = 'Ivory'
 union select StyleNumber = '706', ColorName = 'Royal'
 union select StyleNumber = '706', ColorName = 'Fuchsia'
 union select StyleNumber = '706', ColorName = 'Kelly'
@@ -241,7 +242,6 @@ union select StyleNumber = '723', ColorName = 'Ivory'
 union select StyleNumber = '723', ColorName = 'Wine'
 union select StyleNumber = '724', ColorName = 'Grey'
 union select StyleNumber = '724', ColorName = 'Port Wine'
-union select StyleNumber = '724', ColorName = 'Royal     '
 union select StyleNumber = '724', ColorName = 'Ivory'
 union select StyleNumber = '724', ColorName = 'Royal'
 union select StyleNumber = '725', ColorName = 'Black'
@@ -251,11 +251,10 @@ union select StyleNumber = '725', ColorName = 'Ivory'
 union select StyleNumber = '740', ColorName = 'Black'
 union select StyleNumber = '740', ColorName = 'Teal'
 union select StyleNumber = '741', ColorName = 'Black'
-union select StyleNumber = '741', ColorName = 'Black '
 union select StyleNumber = '741', ColorName = 'Dark Burgundy'
 union select StyleNumber = '741', ColorName = 'Eggplant '
-union select StyleNumber = '741', ColorName = 'Olive '
-union select StyleNumber = '741', ColorName = 'Teal '
+union select StyleNumber = '741', ColorName = 'Olive'
+union select StyleNumber = '741', ColorName = 'Teal'
 union select StyleNumber = '742', ColorName = 'Black'
 union select StyleNumber = '742', ColorName = 'Teal'
 union select StyleNumber = '743', ColorName = 'Black'
@@ -379,8 +378,6 @@ union select StyleNumber = '854', ColorName = 'Ivory'
 union select StyleNumber = '854', ColorName = 'Black'
 union select StyleNumber = '855', ColorName = 'Black'
 union select StyleNumber = '855', ColorName = 'Ivory'
-union select StyleNumber = '855', ColorName = 'Ivory                        '
-union select StyleNumber = '855', ColorName = 'Ivory                          '
 union select StyleNumber = '855', ColorName = 'Burgundy'
 union select StyleNumber = '856', ColorName = 'Black'
 union select StyleNumber = '856', ColorName = 'Ivory'
@@ -392,4 +389,382 @@ join Style s
 on x.StyleNumber = s.StyleNumber 
 join Color c 
 on x.ColorName = c.ColorName
+
+
+;with x as ( 
+    select StyleNumber = '702', ColorName = 'Kelly', SizeName='XXS', Qty = 1
+union select StyleNumber = '702', ColorName = 'Kelly', SizeName='XS', Qty = 2
+union select StyleNumber = '702', ColorName = 'Kelly', SizeName='S', Qty = 3
+union select StyleNumber = '702', ColorName = 'Kelly', SizeName='M', Qty = 4
+union select StyleNumber = '702', ColorName = 'Kelly', SizeName='L', Qty = 5
+union select StyleNumber = '702', ColorName = 'Kelly', SizeName='XL', Qty = 6
+union select StyleNumber = '702', ColorName = 'Navy', SizeName='12', Qty = 7
+union select StyleNumber = '702', ColorName = 'Navy', SizeName='XXS', Qty = 8
+union select StyleNumber = '702', ColorName = 'Navy', SizeName='XS', Qty = 9
+union select StyleNumber = '702', ColorName = 'Navy', SizeName='S', Qty = 10
+union select StyleNumber = '702', ColorName = 'Navy', SizeName='M', Qty = 1
+union select StyleNumber = '702', ColorName = 'Navy', SizeName='L', Qty = 2
+union select StyleNumber = '702', ColorName = 'Navy', SizeName='XL', Qty = 3
+union select StyleNumber = '717', ColorName = 'Black', SizeName='12', Qty = 4
+union select StyleNumber = '717', ColorName = 'Black', SizeName='XXS', Qty = 5
+union select StyleNumber = '717', ColorName = 'Black', SizeName='XS', Qty = 6
+union select StyleNumber = '717', ColorName = 'Black', SizeName='S', Qty = 7
+union select StyleNumber = '717', ColorName = 'Black', SizeName='M', Qty = 8
+union select StyleNumber = '717', ColorName = 'Black', SizeName='L', Qty = 9
+union select StyleNumber = '717', ColorName = 'Black', SizeName='XL', Qty = 10
+union select StyleNumber = '717', ColorName = 'Corn Blue', SizeName='12', Qty = 11
+union select StyleNumber = '717', ColorName = 'Corn Blue', SizeName='XXS', Qty = 12
+union select StyleNumber = '717', ColorName = 'Corn Blue', SizeName='XS', Qty = 13
+union select StyleNumber = '717', ColorName = 'Corn Blue', SizeName='S', Qty = 1
+union select StyleNumber = '717', ColorName = 'Corn Blue', SizeName='M', Qty = 2
+union select StyleNumber = '717', ColorName = 'Corn Blue', SizeName='L', Qty = 3
+union select StyleNumber = '717', ColorName = 'Corn Blue', SizeName='XL', Qty = 4
+union select StyleNumber = '717', ColorName = 'Eggplant', SizeName='12', Qty = 5
+union select StyleNumber = '717', ColorName = 'Eggplant', SizeName='XXS', Qty = 6
+union select StyleNumber = '717', ColorName = 'Eggplant', SizeName='XS', Qty = 7
+union select StyleNumber = '717', ColorName = 'Eggplant', SizeName='S', Qty = 8
+union select StyleNumber = '717', ColorName = 'Eggplant', SizeName='M', Qty = 9
+union select StyleNumber = '717', ColorName = 'Eggplant', SizeName='L', Qty = 10
+union select StyleNumber = '717', ColorName = 'Eggplant', SizeName='XL', Qty = 11
+union select StyleNumber = '719', ColorName = 'Corn Blue', SizeName='12', Qty = 12
+union select StyleNumber = '719', ColorName = 'Corn Blue', SizeName='XXS', Qty = 13
+union select StyleNumber = '719', ColorName = 'Corn Blue', SizeName='XS', Qty = 1
+union select StyleNumber = '719', ColorName = 'Corn Blue', SizeName='S', Qty = 2
+union select StyleNumber = '719', ColorName = 'Corn Blue', SizeName='M', Qty = 3
+union select StyleNumber = '719', ColorName = 'Corn Blue', SizeName='L', Qty = 4
+union select StyleNumber = '719', ColorName = 'Corn Blue', SizeName='XL', Qty = 5
+union select StyleNumber = '719', ColorName = 'Mint', SizeName='12', Qty = 6
+union select StyleNumber = '719', ColorName = 'Mint', SizeName='XXS', Qty = 7
+union select StyleNumber = '719', ColorName = 'Mint', SizeName='XS', Qty = 8
+union select StyleNumber = '719', ColorName = 'Mint', SizeName='S', Qty = 9
+union select StyleNumber = '719', ColorName = 'Mint', SizeName='M', Qty = 10
+union select StyleNumber = '719', ColorName = 'Mint', SizeName='L', Qty = 11
+union select StyleNumber = '719', ColorName = 'Mint', SizeName='XL', Qty = 12
+union select StyleNumber = '719', ColorName = 'Mint/Fuchsia', SizeName='12', Qty = 13
+union select StyleNumber = '719', ColorName = 'Mint/Fuchsia', SizeName='XXS', Qty = 1
+union select StyleNumber = '719', ColorName = 'Mint/Fuchsia', SizeName='XS', Qty = 2
+union select StyleNumber = '719', ColorName = 'Mint/Fuchsia', SizeName='S', Qty = 3
+union select StyleNumber = '719', ColorName = 'Mint/Fuchsia', SizeName='M', Qty = 4
+union select StyleNumber = '719', ColorName = 'Mint/Fuchsia', SizeName='L', Qty = 5
+union select StyleNumber = '719', ColorName = 'Mint/Fuchsia', SizeName='XL', Qty = 6
+union select StyleNumber = '720', ColorName = 'Burgundy', SizeName='12', Qty = 7
+union select StyleNumber = '720', ColorName = 'Burgundy', SizeName='XXS', Qty = 8
+union select StyleNumber = '720', ColorName = 'Burgundy', SizeName='XS', Qty = 9
+union select StyleNumber = '720', ColorName = 'Burgundy', SizeName='S', Qty = 10
+union select StyleNumber = '720', ColorName = 'Burgundy', SizeName='M', Qty = 11
+union select StyleNumber = '720', ColorName = 'Burgundy', SizeName='L', Qty = 12
+union select StyleNumber = '720', ColorName = 'Burgundy', SizeName='XL', Qty = 13
+union select StyleNumber = '720', ColorName = 'Eggplant', SizeName='12', Qty = 1
+union select StyleNumber = '720', ColorName = 'Eggplant', SizeName='XXS', Qty = 2
+union select StyleNumber = '720', ColorName = 'Eggplant', SizeName='XS', Qty = 3
+union select StyleNumber = '720', ColorName = 'Eggplant', SizeName='S', Qty = 4
+union select StyleNumber = '720', ColorName = 'Eggplant', SizeName='M', Qty = 5
+union select StyleNumber = '720', ColorName = 'Eggplant', SizeName='L', Qty = 6
+union select StyleNumber = '720', ColorName = 'Eggplant', SizeName='XL', Qty = 7
+union select StyleNumber = '720', ColorName = 'Ivory', SizeName='12', Qty = 8
+union select StyleNumber = '720', ColorName = 'Ivory', SizeName='XXS', Qty = 9
+union select StyleNumber = '720', ColorName = 'Ivory', SizeName='XS', Qty = 10
+union select StyleNumber = '720', ColorName = 'Ivory', SizeName='S', Qty = 11
+union select StyleNumber = '720', ColorName = 'Ivory', SizeName='M', Qty = 12
+union select StyleNumber = '720', ColorName = 'Ivory', SizeName='L', Qty = 13
+union select StyleNumber = '720', ColorName = 'Ivory', SizeName='XL', Qty = 1
+union select StyleNumber = '720', ColorName = 'Mustard', SizeName='12', Qty = 2
+union select StyleNumber = '720', ColorName = 'Mustard', SizeName='XXS', Qty = 3
+union select StyleNumber = '720', ColorName = 'Mustard', SizeName='XS', Qty = 4
+union select StyleNumber = '720', ColorName = 'Mustard', SizeName='S', Qty = 5
+union select StyleNumber = '720', ColorName = 'Mustard', SizeName='M', Qty = 6
+union select StyleNumber = '720', ColorName = 'Mustard', SizeName='L', Qty = 7
+union select StyleNumber = '720', ColorName = 'Mustard', SizeName='XL', Qty = 8
+union select StyleNumber = '722', ColorName = 'Ivory', SizeName='12', Qty = 9
+union select StyleNumber = '722', ColorName = 'Ivory', SizeName='XXS', Qty = 10
+union select StyleNumber = '722', ColorName = 'Ivory', SizeName='XS', Qty = 11
+union select StyleNumber = '722', ColorName = 'Ivory', SizeName='S', Qty = 12
+union select StyleNumber = '722', ColorName = 'Ivory', SizeName='M', Qty = 13
+union select StyleNumber = '722', ColorName = 'Ivory', SizeName='L', Qty = 1
+union select StyleNumber = '722', ColorName = 'Ivory', SizeName='XL', Qty = 2
+union select StyleNumber = '722', ColorName = 'Kelly', SizeName='12', Qty = 3
+union select StyleNumber = '722', ColorName = 'Kelly', SizeName='XXS', Qty = 4
+union select StyleNumber = '722', ColorName = 'Kelly', SizeName='XS', Qty = 5
+union select StyleNumber = '722', ColorName = 'Kelly', SizeName='S', Qty = 6
+union select StyleNumber = '722', ColorName = 'Kelly', SizeName='M', Qty = 7
+union select StyleNumber = '722', ColorName = 'Kelly', SizeName='L', Qty = 8
+union select StyleNumber = '722', ColorName = 'Kelly', SizeName='XL', Qty = 9
+union select StyleNumber = '722', ColorName = 'Mustard', SizeName='12', Qty = 10
+union select StyleNumber = '722', ColorName = 'Mustard', SizeName='XXS', Qty = 11
+union select StyleNumber = '722', ColorName = 'Mustard', SizeName='XS', Qty = 12
+union select StyleNumber = '722', ColorName = 'Mustard', SizeName='S', Qty = 13
+union select StyleNumber = '722', ColorName = 'Mustard', SizeName='M', Qty = 1
+union select StyleNumber = '722', ColorName = 'Mustard', SizeName='L', Qty = 2
+union select StyleNumber = '722', ColorName = 'Mustard', SizeName='XL', Qty = 3
+union select StyleNumber = '722', ColorName = 'Royal', SizeName='12', Qty = 4
+union select StyleNumber = '722', ColorName = 'Royal', SizeName='XXS', Qty = 5
+union select StyleNumber = '722', ColorName = 'Royal', SizeName='XS', Qty = 6
+union select StyleNumber = '722', ColorName = 'Royal', SizeName='S', Qty = 7
+union select StyleNumber = '722', ColorName = 'Royal', SizeName='M', Qty = 8
+union select StyleNumber = '722', ColorName = 'Royal', SizeName='L', Qty = 9
+union select StyleNumber = '722', ColorName = 'Royal', SizeName='XL', Qty = 10
+union select StyleNumber = '724', ColorName = 'Grey', SizeName='12', Qty = 11
+union select StyleNumber = '724', ColorName = 'Grey', SizeName='XXS', Qty = 12
+union select StyleNumber = '724', ColorName = 'Grey', SizeName='XS', Qty = 13
+union select StyleNumber = '724', ColorName = 'Grey', SizeName='S', Qty = 1
+union select StyleNumber = '724', ColorName = 'Grey', SizeName='M', Qty = 2
+union select StyleNumber = '724', ColorName = 'Grey', SizeName='L', Qty = 3
+union select StyleNumber = '724', ColorName = 'Grey', SizeName='XL', Qty = 4
+union select StyleNumber = '724', ColorName = 'Port Wine', SizeName='12', Qty = 5
+union select StyleNumber = '724', ColorName = 'Port Wine', SizeName='XXS', Qty = 6
+union select StyleNumber = '724', ColorName = 'Port Wine', SizeName='XS', Qty = 7
+union select StyleNumber = '724', ColorName = 'Port Wine', SizeName='S', Qty = 8
+union select StyleNumber = '724', ColorName = 'Port Wine', SizeName='M', Qty = 9
+union select StyleNumber = '724', ColorName = 'Port Wine', SizeName='L', Qty = 10
+union select StyleNumber = '724', ColorName = 'Port Wine', SizeName='XL', Qty = 11
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='12', Qty = 12
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='XXS', Qty = 13
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='XS', Qty = 1
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='S', Qty = 2
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='M', Qty = 3
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='L', Qty = 4
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='XL', Qty = 5
+union select StyleNumber = '724', ColorName = 'Ivory', SizeName='12', Qty = 6
+union select StyleNumber = '724', ColorName = 'Ivory', SizeName='XXS', Qty = 7
+union select StyleNumber = '724', ColorName = 'Ivory', SizeName='XS', Qty = 8
+union select StyleNumber = '724', ColorName = 'Ivory', SizeName='S', Qty = 9
+union select StyleNumber = '724', ColorName = 'Ivory', SizeName='M', Qty = 10
+union select StyleNumber = '724', ColorName = 'Ivory', SizeName='L', Qty = 11
+union select StyleNumber = '724', ColorName = 'Ivory', SizeName='XL', Qty = 12
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='12', Qty = 13
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='XXS', Qty = 1
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='XS', Qty = 2
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='S', Qty = 3
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='M', Qty = 4
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='L', Qty = 5
+union select StyleNumber = '724', ColorName = 'Royal', SizeName='XL', Qty = 6
+union select StyleNumber = '725', ColorName = 'Black', SizeName='12', Qty = 7
+union select StyleNumber = '725', ColorName = 'Black', SizeName='XXS', Qty = 8
+union select StyleNumber = '725', ColorName = 'Black', SizeName='XS', Qty = 9
+union select StyleNumber = '725', ColorName = 'Black', SizeName='S', Qty = 10
+union select StyleNumber = '725', ColorName = 'Black', SizeName='M', Qty = 11
+union select StyleNumber = '725', ColorName = 'Black', SizeName='L', Qty = 12
+union select StyleNumber = '725', ColorName = 'Black', SizeName='XL', Qty = 13
+union select StyleNumber = '725', ColorName = 'Grey', SizeName='12', Qty = 1
+
+union select StyleNumber = '725', ColorName = 'Grey', SizeName='XXS', Qty = 2
+
+union select StyleNumber = '725', ColorName = 'Grey', SizeName='XS', Qty = 3
+
+union select StyleNumber = '725', ColorName = 'Grey', SizeName='S', Qty = 4
+
+union select StyleNumber = '725', ColorName = 'Grey', SizeName='M', Qty = 5
+
+union select StyleNumber = '725', ColorName = 'Grey', SizeName='L', Qty = 6
+
+union select StyleNumber = '725', ColorName = 'Grey', SizeName='XL', Qty = 7
+
+union select StyleNumber = '725', ColorName = 'Navy', SizeName='12', Qty = 8
+
+union select StyleNumber = '725', ColorName = 'Navy', SizeName='XXS', Qty = 9
+
+union select StyleNumber = '725', ColorName = 'Navy', SizeName='XS', Qty = 10
+
+union select StyleNumber = '725', ColorName = 'Navy', SizeName='S', Qty = 11
+
+union select StyleNumber = '725', ColorName = 'Navy', SizeName='M', Qty = 12
+
+union select StyleNumber = '725', ColorName = 'Navy', SizeName='L', Qty = 13
+
+union select StyleNumber = '725', ColorName = 'Navy', SizeName='XL', Qty = 1
+
+union select StyleNumber = '725', ColorName = 'Ivory', SizeName='12', Qty = 2
+
+union select StyleNumber = '725', ColorName = 'Ivory', SizeName='XXS', Qty = 3
+
+union select StyleNumber = '725', ColorName = 'Ivory', SizeName='XS', Qty = 4
+
+union select StyleNumber = '725', ColorName = 'Ivory', SizeName='S', Qty = 5
+
+union select StyleNumber = '725', ColorName = 'Ivory', SizeName='M', Qty = 6
+
+union select StyleNumber = '725', ColorName = 'Ivory', SizeName='L', Qty = 7
+
+union select StyleNumber = '725', ColorName = 'Ivory', SizeName='XL', Qty = 8
+
+union select StyleNumber = '818', ColorName = 'Navy', SizeName='12', Qty = 9
+
+union select StyleNumber = '818', ColorName = 'Navy', SizeName='XXS', Qty = 10
+
+union select StyleNumber = '818', ColorName = 'Navy', SizeName='XS', Qty = 11
+
+union select StyleNumber = '818', ColorName = 'Navy', SizeName='S', Qty = 12
+
+union select StyleNumber = '818', ColorName = 'Navy', SizeName='M', Qty = 13
+
+union select StyleNumber = '818', ColorName = 'Navy', SizeName='L', Qty = 1
+
+union select StyleNumber = '818', ColorName = 'Navy', SizeName='XL', Qty = 2
+
+union select StyleNumber = '818', ColorName = 'Admiral Blue', SizeName='12', Qty = 3
+
+union select StyleNumber = '818', ColorName = 'Admiral Blue', SizeName='XXS', Qty = 4
+
+union select StyleNumber = '818', ColorName = 'Admiral Blue', SizeName='XS', Qty = 5
+
+union select StyleNumber = '818', ColorName = 'Admiral Blue', SizeName='S', Qty = 6
+
+union select StyleNumber = '818', ColorName = 'Admiral Blue', SizeName='M', Qty = 7
+
+union select StyleNumber = '818', ColorName = 'Admiral Blue', SizeName='L', Qty = 8
+
+union select StyleNumber = '818', ColorName = 'Admiral Blue', SizeName='XL', Qty = 9
+
+union select StyleNumber = '818', ColorName = 'Eggplant', SizeName='12', Qty = 10
+
+union select StyleNumber = '818', ColorName = 'Eggplant', SizeName='XXS', Qty = 11
+
+union select StyleNumber = '818', ColorName = 'Eggplant', SizeName='XS', Qty = 12
+
+union select StyleNumber = '818', ColorName = 'Eggplant', SizeName='S', Qty = 13
+
+union select StyleNumber = '818', ColorName = 'Eggplant', SizeName='M', Qty = 1
+
+union select StyleNumber = '818', ColorName = 'Eggplant', SizeName='L', Qty = 2
+
+union select StyleNumber = '818', ColorName = 'Eggplant', SizeName='XL', Qty = 3
+
+union select StyleNumber = '818', ColorName = 'Port Wine', SizeName='12', Qty = 4
+
+union select StyleNumber = '818', ColorName = 'Port Wine', SizeName='XXS', Qty = 5
+
+union select StyleNumber = '818', ColorName = 'Port Wine', SizeName='XS', Qty = 6
+
+union select StyleNumber = '818', ColorName = 'Port Wine', SizeName='S', Qty = 7
+
+union select StyleNumber = '818', ColorName = 'Port Wine', SizeName='M', Qty = 8
+
+union select StyleNumber = '818', ColorName = 'Port Wine', SizeName='L', Qty = 9
+
+union select StyleNumber = '818', ColorName = 'Port Wine', SizeName='XL', Qty = 10
+
+union select StyleNumber = '820', ColorName = 'Dark Rust', SizeName='12', Qty = 11
+
+union select StyleNumber = '820', ColorName = 'Dark Rust', SizeName='XXS', Qty = 12
+
+union select StyleNumber = '820', ColorName = 'Dark Rust', SizeName='XS', Qty = 13
+
+union select StyleNumber = '820', ColorName = 'Dark Rust', SizeName='S', Qty = 1
+
+union select StyleNumber = '820', ColorName = 'Dark Rust', SizeName='M', Qty = 2
+
+union select StyleNumber = '820', ColorName = 'Dark Rust', SizeName='L', Qty = 3
+
+union select StyleNumber = '820', ColorName = 'Dark Rust', SizeName='XL', Qty = 4
+
+union select StyleNumber = '820', ColorName = 'Natural', SizeName='12', Qty = 5
+
+union select StyleNumber = '820', ColorName = 'Natural', SizeName='XXS', Qty = 6
+
+union select StyleNumber = '820', ColorName = 'Natural', SizeName='XS', Qty = 7
+
+union select StyleNumber = '820', ColorName = 'Natural', SizeName='S', Qty = 8
+
+union select StyleNumber = '820', ColorName = 'Natural', SizeName='M', Qty = 9
+
+union select StyleNumber = '820', ColorName = 'Natural', SizeName='L', Qty = 10
+
+union select StyleNumber = '820', ColorName = 'Natural', SizeName='XL', Qty = 11
+
+union select StyleNumber = '820', ColorName = 'Port Wine', SizeName='12', Qty = 12
+
+union select StyleNumber = '820', ColorName = 'Port Wine', SizeName='XXS', Qty = 13
+
+union select StyleNumber = '820', ColorName = 'Port Wine', SizeName='XS', Qty = 1
+
+union select StyleNumber = '820', ColorName = 'Port Wine', SizeName='S', Qty = 2
+
+union select StyleNumber = '820', ColorName = 'Port Wine', SizeName='M', Qty = 3
+
+union select StyleNumber = '820', ColorName = 'Port Wine', SizeName='L', Qty = 4
+
+union select StyleNumber = '820', ColorName = 'Port Wine', SizeName='XL', Qty = 5
+
+union select StyleNumber = '822', ColorName = 'Admiral', SizeName='12', Qty = 6
+
+union select StyleNumber = '822', ColorName = 'Admiral', SizeName='XXS', Qty = 7
+
+union select StyleNumber = '822', ColorName = 'Admiral', SizeName='XS', Qty = 8
+
+union select StyleNumber = '822', ColorName = 'Admiral', SizeName='S', Qty = 9
+
+union select StyleNumber = '822', ColorName = 'Admiral', SizeName='M', Qty = 10
+
+union select StyleNumber = '822', ColorName = 'Admiral', SizeName='L', Qty = 11
+
+union select StyleNumber = '822', ColorName = 'Admiral', SizeName='XL', Qty = 12
+
+union select StyleNumber = '822', ColorName = 'Black', SizeName='12', Qty = 13
+
+union select StyleNumber = '822', ColorName = 'Black', SizeName='XXS', Qty = 1
+
+union select StyleNumber = '822', ColorName = 'Black', SizeName='XS', Qty = 2
+
+union select StyleNumber = '822', ColorName = 'Black', SizeName='S', Qty = 3
+
+union select StyleNumber = '822', ColorName = 'Black', SizeName='M', Qty = 4
+
+union select StyleNumber = '822', ColorName = 'Black', SizeName='L', Qty = 5
+
+union select StyleNumber = '822', ColorName = 'Black', SizeName='XL', Qty = 6
+
+union select StyleNumber = '822', ColorName = 'Ivory', SizeName='12', Qty = 7
+
+union select StyleNumber = '822', ColorName = 'Ivory', SizeName='XXS', Qty = 8
+
+union select StyleNumber = '822', ColorName = 'Ivory', SizeName='XS', Qty = 9
+
+union select StyleNumber = '822', ColorName = 'Ivory', SizeName='S', Qty = 10
+
+union select StyleNumber = '822', ColorName = 'Ivory', SizeName='M', Qty = 11
+
+union select StyleNumber = '822', ColorName = 'Ivory', SizeName='L', Qty = 12
+
+union select StyleNumber = '822', ColorName = 'Ivory', SizeName='XL', Qty = 13
+
+union select StyleNumber = '822', ColorName = 'Eggplant', SizeName='12', Qty = 1
+
+union select StyleNumber = '822', ColorName = 'Eggplant', SizeName='XXS', Qty = 2
+
+union select StyleNumber = '822', ColorName = 'Eggplant', SizeName='XS', Qty = 3
+
+union select StyleNumber = '822', ColorName = 'Eggplant', SizeName='S', Qty = 4
+
+union select StyleNumber = '822', ColorName = 'Eggplant', SizeName='M', Qty = 5
+
+union select StyleNumber = '822', ColorName = 'Eggplant', SizeName='L', Qty = 6
+
+union select StyleNumber = '822', ColorName = 'Eggplant', SizeName='XL', Qty = 7
+
+union select StyleNumber = '822', ColorName = 'Port Wine', SizeName='12', Qty = 8
+
+union select StyleNumber = '822', ColorName = 'Port Wine', SizeName='XXS', Qty = 9
+
+union select StyleNumber = '822', ColorName = 'Port Wine', SizeName='XS', Qty = 10
+
+union select StyleNumber = '822', ColorName = 'Port Wine', SizeName='S', Qty = 11
+
+union select StyleNumber = '822', ColorName = 'Port Wine', SizeName='M', Qty = 12
+
+union select StyleNumber = '822', ColorName = 'Port Wine', SizeName='L', Qty = 13
+
+union select StyleNumber = '822', ColorName = 'Port Wine', SizeName='XL', Qty = 1
+)
+insert into Inventory(StyleColorId, SizeId, Qty)
+select sc.StyleColorId, sz.SizeId, x.Qty
+from x 
+join Style s 
+on s.StyleNumber = x.StyleNumber
+join Color c 
+on c.ColorName = x.ColorName
+join StyleColor sc 
+on s.StyleId = sc.StyleId 
+and c.ColorId = sc.ColorId
+join Sizes sz 
+on sz.SizeName = x.SizeName
 

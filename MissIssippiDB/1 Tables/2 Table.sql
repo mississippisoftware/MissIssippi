@@ -82,12 +82,13 @@ create table dbo.Inventory(
         constraint f_StyleColor_Inventory foreign key references StyleColor(StyleColorId),
     SizeId int not null 
         constraint f_Sizes_Inventory foreign key references Sizes(SizeId),
-    Qty int not null,
-    InStock as case 
-                when Qty > 0 then 1
-                else 0
-                end
-            persisted
+    Qty int not null
+    -- ,
+    -- InStock as case 
+    --             when Qty > 0 then 1
+    --             else 0
+    --             end
+    --         persisted
 )
 
 create table dbo.InventoryActivityLog(
