@@ -1,0 +1,6 @@
+@MissIssippiAPI_HostAddress = http://localhost:5139
+
+GET {{MissIssippiAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
