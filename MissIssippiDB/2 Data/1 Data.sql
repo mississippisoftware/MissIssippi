@@ -1,5 +1,5 @@
--- use MissIssippiDB
--- go
+use MissIssippiDB
+go
 delete Inventory 
 go
 delete StyleColor

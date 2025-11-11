@@ -1,11 +1,12 @@
 {
   "Version": 1,
-  "Hash": "tW2hw7zBBCb3GucTYBvHdvfj4mjeVJYoopvVr+lUXnA=",
+  "Hash": "RVS/PxstdHebPLc4e09CwS1QGH7L65jRDnRSNsL+osc=",
   "Source": "MissIssippiAPI",
   "BasePath": "_content/MissIssippiAPI",
   "Mode": "Default",
   "ManifestType": "Publish",
   "ReferencedProjectsConfiguration": [],
   "DiscoveryPatterns": [],
-  "Assets": []
+  "Assets": [],
+  "Endpoints": []
 }

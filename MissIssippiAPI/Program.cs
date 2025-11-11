@@ -17,9 +17,9 @@ builder.Services.AddControllers();
 
 
 
-string settingname = "Settings:liveconn";
+//string settingname = "Settings:liveconn";
 //#if DEBUG
-//settingname = "Settings:devconn-local";
+string settingname = "Settings:devconn-local";
 //#endif
 string? connstring = builder.Configuration[settingname];
 if (connstring == null)
