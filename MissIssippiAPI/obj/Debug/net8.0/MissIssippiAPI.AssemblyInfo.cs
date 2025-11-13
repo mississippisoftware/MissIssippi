@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MissIssippiAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+eec665230552802141898b8f9993eea1a95d8278")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bc912a40b2293d56f364a015d938131a12082258")]
 [assembly: System.Reflection.AssemblyProductAttribute("MissIssippiAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MissIssippiAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
