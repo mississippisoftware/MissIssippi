@@ -1,15 +1,15 @@
 import { createBrowserRouter } from "react-router-dom";
-import ViewInventory from "./Pages/ViewInventory";
+import ViewInventory from "./pages/ViewInventory";
 import App from "./App";
-import EnterInventory from "./Pages/EnterInventory";
-import DataMaintenance from "./Pages/DataMaintenance";
+import DataMaintenance from "./pages/DataMaintenance";
+import InventoryCardsPage from "./pages/InventoryCardsPage";
 
 
 const router = createBrowserRouter(
     [
         {
             path: "/", element: <App />, children: [
-                { path: "/enterinventory", element: <EnterInventory /> },
+                { path: "/enterinventory", element: <InventoryCardsPage /> },
                 { path: "/viewinventory", element: <ViewInventory /> },
                 { path: "/datamaintenance", element: <DataMaintenance /> },
             ]

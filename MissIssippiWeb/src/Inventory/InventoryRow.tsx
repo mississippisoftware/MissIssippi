@@ -15,7 +15,7 @@ export default function InventoryRow({ row, sizeColumns, onQtyChange, onSave }: 
             <td>{row.colorName}</td>
 
             {sizeColumns.map((size) => {
-                const cell = row[size] as iInventoryCell | undefined;
+                const cell = row.sizes[size] as iInventoryCell | undefined;
                 return (
                     <td key={size}>
                         {cell ? (

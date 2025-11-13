@@ -25,13 +25,15 @@ export interface iInventoryDisplayRow {
   styleId: number;
   colorId: number;
   styleColorId: number;
-  [sizeName: string]: iInventoryCell | string | number; 
+  seasonName?: string;
+  sizes: Record<string, iInventoryCell>;
+  [key: string]: any; 
 }
 
 export interface iInventoryUpdate {
   styleNumber: string;
   colorName: string;
-  seasonName: string;   // <--- add this
+  seasonName: string;
   sizeName: string;
   inventoryId: number;
   styleColorId: number;
@@ -45,4 +47,11 @@ export interface iSize {
   sizeId: number;
   sizeName: string;
   sizeSequence: number;
+}
+
+export interface iStyleGroup {
+  styleNumber: string;
+  description: string;
+  imageUrl?: string;
+  variants: iInventoryDisplayRow[];
 }

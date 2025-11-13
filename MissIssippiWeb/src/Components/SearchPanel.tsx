@@ -1,56 +1,53 @@
-import React from "react";
 import { Card, Row, Col, Form, Button } from "react-bootstrap";
+import Select from "react-select";
+import type { MultiValue } from "react-select";
+
+interface FilterOption {
+    value: string;
+    label: string;
+}
 
 interface SearchPanelProps {
-    allOptions: string[];
-    selectedOptions: string[];
-    onSelectOptions: (values: string[]) => void;
+    filters: Record<string, string[]>;
+    allOptions: Record<string, FilterOption[]>;
+    onChangeFilter: (filterName: string, selected: string[]) => void;
     onSearch: () => void;
 }
 
 export default function SearchPanel({
+    filters,
     allOptions,
-    selectedOptions,
-    onSelectOptions,
+    onChangeFilter,
     onSearch,
 }: SearchPanelProps) {
-    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        // Convert selected options to array of strings
-        const selected = Array.from(e.target.selectedOptions, (opt) => opt.value).slice(0, 4);
-        onSelectOptions(selected);
-    };
-
     return (
         <Card className="mb-3 p-3">
-            <Row>
-                <Col md={3}>
-                    <Form.Group>
-                        <Form.Label>Search By</Form.Label>
-                        <Form.Select disabled>
-                            <option value="style">Style Number</option>
-                        </Form.Select>
-                    </Form.Group>
-                </Col>
+            <Row className="g-3">
+                {Object.keys(allOptions).map((filterKey) => (
+                    <Col md={3} key={filterKey}>
+                        <Form.Group>
+                            <Form.Label>{filterKey}</Form.Label>
+                            <Select
+                                isMulti
+                                closeMenuOnSelect={false}
+                                options={allOptions[filterKey]}
+                                value={allOptions[filterKey].filter((opt) =>
+                                    filters[filterKey]?.includes(opt.value)
+                                )}
+                                onChange={(selected: MultiValue<FilterOption>) =>
+                                    onChangeFilter(
+                                        filterKey,
+                                        selected.map((s) => s.value)
+                                    )
+                                }
+                                placeholder={`Select ${filterKey}...`}
+                            />
+                        </Form.Group>
+                    </Col>
+                ))}
 
-                <Col md={9}>
-                    <Form.Group>
-                        <Form.Label>Select Styles (max 4)</Form.Label>
-                        <Form.Control
-                            as="select"
-                            multiple
-                            value={selectedOptions}
-                            onChange={handleChange}
-                        >
-                            {allOptions.map((opt) => (
-                                <option key={opt} value={opt}>
-                                    {opt}
-                                </option>
-                            ))}
-                        </Form.Control>
-                    </Form.Group>
-                    <Button className="mt-2" onClick={onSearch}>
-                        Search
-                    </Button>
+                <Col md={3} className="d-flex align-items-end">
+                    <Button onClick={onSearch}>Search</Button>
                 </Col>
             </Row>
         </Card>
