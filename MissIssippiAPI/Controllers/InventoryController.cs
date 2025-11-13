@@ -82,13 +82,19 @@ namespace MissIssippiAPI
 
                 if (existingInventory == null)
                 {
-                    existingInventory.InventoryId = Inventory.InventoryId;
-                    existingInventory.StyleColorId = Inventory.StyleColorId;
-                    existingInventory.SizeId = Inventory.SizeId;
-                    existingInventory.Qty = Inventory.Qty;
-
+                    //existingInventory.InventoryId = Inventory.InventoryId;
+                    //existingInventory.StyleColorId = Inventory.StyleColorId;
+                    //existingInventory.SizeId = Inventory.SizeId;
+                    //existingInventory.Qty = Inventory.Qty;
+                    var newInventory = new Inventory
+                    {
+                        StyleColorId = Inventory.StyleColorId,
+                        SizeId = Inventory.SizeId,
+                        Qty = Inventory.Qty
+                    };
+                    _context.Inventories.Add(newInventory);
                 }
-                _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
                 return true;
             }
             return false;

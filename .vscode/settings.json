@@ -1,0 +1,5 @@
+{
+    "appService.preDeployTask": "publish-release",
+    "appService.deploySubpath": "MissIssippiAPI\\bin\\Release\\net8.0\\publish",
+    "appService.defaultWebAppToDeploy": "/subscriptions/8b8ad3f7-f765-4900-bc40-11dd99c475f9/resourceGroups/MississippiRG/providers/Microsoft.Web/sites/MississippiWebApp"
+}
