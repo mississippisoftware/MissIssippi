@@ -1,36 +1,44 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Spinner } from "react-bootstrap";
 import { useInventoryStore } from "./inventoryStore";
 import InventoryTableView from "./InventoryTableView";
 
 interface InventoryTableProps {
-  styleNumber?: string;
-  editable?: boolean;
+    styleNumber?: string;       // optional filter for a single style
+    editable?: boolean;         // cells editable or not
+    showStyleNumber?: boolean;  // toggle first column
 }
 
-export default function InventoryTable({ styleNumber, editable = false }: InventoryTableProps) {
-  const inventory = useInventoryStore((state) =>
-    styleNumber
-      ? state.inventory.filter((row) => row.styleNumber === styleNumber)
-      : state.inventory
-  );
+export default function InventoryTable({
+    styleNumber,
+    editable = false,
+    showStyleNumber = true,
+}: InventoryTableProps) {
+    const allInventory = useInventoryStore((state) => state.inventory);
+    const sizeColumnsRaw = useInventoryStore((state) => state.sizeColumns);
+    const loading = useInventoryStore((state) => state.loading);
+    const updateCell = useInventoryStore((state) => state.updateCell);
+    const saveInventory = useInventoryStore((state) => state.saveInventory);
 
-  const sizeColumnsRaw = useInventoryStore((state) => state.sizeColumns);
-  const loading = useInventoryStore((state) => state.loading);
-  const updateCell = useInventoryStore((state) => state.updateCell);
-  const saveInventory = useInventoryStore((state) => state.saveInventory);
+    // Filter inventory if a styleNumber is provided
+    const inventory = useMemo(
+        () => (styleNumber ? allInventory.filter((row) => row.styleNumber === styleNumber) : allInventory),
+        [allInventory, styleNumber]
+    );
 
-  const sizeColumns = useMemo(() => sizeColumnsRaw.map((s) => s.sizeName), [sizeColumnsRaw]);
+    // Memoize size column names
+    const sizeColumns = useMemo(() => sizeColumnsRaw.map((s) => s.sizeName), [sizeColumnsRaw]);
 
-  if (loading) return <Spinner animation="border" />;
+    if (loading) return <Spinner animation="border" />;
 
-  return (
-    <InventoryTableView
-      inventory={inventory}
-      sizeColumns={sizeColumns}
-      editable={editable}
-      onQtyChange={updateCell}  // <-- directly writes to store
-      onSave={saveInventory}     // <-- directly saves to API
-    />
-  );
+    return (
+        <InventoryTableView
+            inventory={inventory}
+            sizeColumns={sizeColumns}
+            editable={editable}
+            showStyleNumber={showStyleNumber}
+            onQtyChange={updateCell}
+            onSave={saveInventory}
+        />
+    );
 }
