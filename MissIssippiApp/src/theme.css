@@ -1,0 +1,729 @@
+/* -------------------- Global Layout -------------------- */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+:root {
+    --bs-primary: #4caf50;
+    --bs-secondary: #6c757d;
+}
+
+.app-layout {
+    display: flex;
+    background: #f5f7fa;
+    height: 100vh;
+    overflow: hidden;
+}
+
+h1 {
+    font-size: 1.5rem;
+    /* large main heading */
+    font-weight: 500;
+    /* semi-bold */
+    line-height: 2.5rem;
+    /* comfortable spacing */
+    letter-spacing: -0.5px;
+    /* subtle tightening */
+    margin: 0 0 0.5rem 0;
+    /* bottom margin for spacing */
+    font-family: "Inter", "Segoe UI", "Helvetica Neue", sans-serif;
+    color: #212529;
+    /* dark gray, not pure black */
+}
+
+h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 2.25rem;
+    margin: 0 0 0.5rem 0;
+    font-family: inherit;
+    color: #212529;
+}
+
+h3 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 2rem;
+    margin: 0 0 0.5rem 0;
+    font-family: inherit;
+    color: #212529;
+}
+
+h4 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.75rem;
+    margin: 0 0 0.5rem 0;
+    font-family: inherit;
+    color: #212529;
+}
+
+h5 {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5rem;
+    margin: 0 0 0.5rem 0;
+    font-family: inherit;
+    color: #212529;
+}
+
+h6 {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    margin: 0 0 0.5rem 0;
+    font-family: inherit;
+    color: #212529;
+}
+
+:root {
+    --portal-green: #4caf50;
+    --portal-green-soft: #e6f4ea;
+    --sidebar-text: #5d6778;
+    --sidebar-text-strong: #2f3b52;
+    --sidebar-hover: #f3f6fb;
+    --sidebar-divider: #e5e7eb;
+}
+
+/* -------------------- Sidebar -------------------- */
+.app-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 260px;
+    background: #fff;
+    border-right: 1px solid var(--sidebar-divider, #e5e7eb);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.sidebar-menu {
+    padding: 0.75rem 0.5rem;
+}
+
+/* wipe PanelMenu chrome */
+.sidebar-menu .p-panelmenu,
+.sidebar-menu .p-panelmenu-panel,
+.sidebar-menu .p-panelmenu-header,
+.sidebar-menu .p-panelmenu-header-content,
+.sidebar-menu .p-panelmenu-content {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
+
+/* unify clickable rows (root + nested) */
+.sidebar-menu .p-panelmenu-header-link,
+.sidebar-menu .p-menuitem-link {
+    display: flex !important;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.75rem !important;
+    margin: 0.15rem 0.25rem !important;
+    border-radius: 8px !important;
+    color: var(--sidebar-text, #5d6778) !important;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+/* icon sizing + alignment */
+.sidebar-menu .p-menuitem-icon,
+.sidebar-menu .p-panelmenu-header-link .p-menuitem-icon {
+    font-size: 1rem;
+    width: 1.25rem;
+    display: inline-flex;
+    justify-content: center;
+}
+
+/* label */
+.sidebar-menu .p-menuitem-text {
+    flex: 1;
+    line-height: 1.1;
+}
+
+/* hover */
+.sidebar-menu .p-panelmenu-header-link:hover,
+.sidebar-menu .p-menuitem-link:hover {
+    background: var(--sidebar-hover, #f3f6fb) !important;
+    color: var(--sidebar-text-strong, #2f3b52) !important;
+}
+
+/* ✅ MOVE THE EXPAND CHEVRON TO THE RIGHT
+   Prime uses .p-panelmenu-icon for expand/collapse (it’s currently on the left) */
+.sidebar-menu .p-panelmenu-header-link .p-panelmenu-icon {
+    margin-left: auto !important;
+    order: 999;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* submenu indentation (closer to Portal demo) */
+.sidebar-menu .p-panelmenu-content {
+    padding: 0.15rem 0 0.35rem 0 !important;
+}
+
+.sidebar-menu .p-panelmenu-content .p-menuitem-link {
+    margin-left: 1.25rem !important;
+    padding-left: 0.65rem !important;
+}
+
+/* ✅ ACTIVE STATE (works for root headers + nested links) */
+.sidebar-menu li.active-menuitem>.p-menuitem-link,
+.sidebar-menu .p-panelmenu-header.active-menuitem .p-panelmenu-header-link {
+    background: var(--portal-green-soft, #e6f4ea) !important;
+    color: var(--portal-green, #4caf50) !important;
+    font-weight: 600;
+    position: relative;
+}
+
+/* green rail on active */
+.sidebar-menu li.active-menuitem>.p-menuitem-link::before,
+.sidebar-menu .p-panelmenu-header.active-menuitem .p-panelmenu-header-link::before {
+    content: "";
+    position: absolute;
+    left: -0.25rem;
+    top: 10%;
+    bottom: 10%;
+    width: 4px;
+    border-radius: 4px;
+    background: var(--portal-green, #4caf50);
+}
+
+/* remove focus/ripple visuals */
+.sidebar-menu .p-ripple,
+.sidebar-menu a:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* -------------------- Topbar -------------------- */
+.topbar {
+    position: fixed;
+    left: 260px;
+    right: 0;
+    top: 0;
+    height: 60px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    z-index: 900;
+}
+
+.topbar-title {
+    margin: 0;
+}
+
+/* -------------------- Content Wrapper -------------------- */
+.content-wrapper {
+    position: absolute;
+    top: 60px;
+    left: 260px;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 1rem;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.content-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 1rem;
+
+}
+
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    padding: 1rem 1.5rem;
+    margin: 0 auto;
+    max-width: 1320px;
+    box-sizing: border-box;
+}
+
+
+.container>*+* {
+    margin-top: 1rem;
+}
+
+.title-card {
+    background-color: #fff;
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    /* space between title and content card */
+    display: flex;
+    align-items: center;
+    border-left: 4px solid var(--portal-green, #4caf50);
+    /* green accent strip */
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.content-card {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* -------------------- DataTable -------------------- */
+.inventory-table-wrapper {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    flex-direction: column;
+    padding: 0.5rem;
+    /* inner spacing inside card */
+    box-sizing: border-box;
+    border-radius: 6px;
+    /* optional: subtle rounding for wrapper */
+    background-color: #fff;
+
+}
+
+.inventory-table-wrapper .p-datatable {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.inventory-table-wrapper .p-datatable-scrollable-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    /* ensure it stays above table rows */
+    background-color: #fff;
+    /* maintain background */
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.inventory-table-wrapper .p-datatable-scrollable-header::after {
+    content: '';
+    display: block;
+    height: 2px;
+    background: rgba(0, 0, 0, 0.05);
+    width: 100%;
+}
+
+.inventory-table-wrapper .p-datatable-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.inventory-table-card {
+    background-color: #fff;
+    border-radius: 4px;
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin: 1rem 0;
+    border-left: 4px solid var(--portal-green, #4caf50);
+}
+
+
+
+.inventory-table-wrapper .p-datatable-gridlines td,
+.inventory-table-wrapper .p-datatable-gridlines th {
+    border: 1px solid #dee2e6;
+}
+
+.p-datatable .p-column-resizer {
+    width: 6px;
+    background: transparent;
+}
+
+.p-datatable .p-column-resizer:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.container .p-datatable td,
+.container .p-datatable th {
+    font-size: 0.9rem;
+}
+
+/* -------------------- Column Styles -------------------- */
+.col-style {
+    width: 12%;
+    min-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.col-season {
+    width: 10%;
+    min-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.col-color {
+    width: 18%;
+    min-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.col-description {
+    width: auto;
+    min-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.col-size {
+    width: 5%;
+    min-width: 48px;
+    text-align: center;
+    padding: 0 0.25rem;
+}
+
+/* -------------------- Filter Footer -------------------- */
+.p-column-filter-footer-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-color-secondary);
+}
+
+.p-column-filter-footer-info .pi-filter.filtered,
+.p-column-filter-footer-info .pi-times:hover {
+    color: var(--primary-color);
+}
+
+/* -------------------- Input Numbers & Buttons -------------------- */
+.p-inputnumber.p-component.p-inputwrapper {
+    width: 40px !important;
+    min-width: 0 !important;
+    max-width: 40px !important;
+    padding: 0 !important;
+}
+
+.p-inputnumber-input {
+    width: 100% !important;
+    padding: 0 !important;
+    height: 24px !important;
+    font-size: 14px;
+}
+
+.minimal-button {
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 16px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 12px !important;
+}
+
+/* -------------------- Filter Overlay -------------------- */
+.container .p-column-filter-overlay,
+.container .p-column-filter-overlay input,
+.container .p-column-filter-overlay .p-dropdown {
+    font-size: inherit;
+    font-family: inherit;
+    line-height: inherit;
+    padding: 0.25rem 0.5rem;
+    box-sizing: border-box;
+}
+
+/* -------------------- Responsive -------------------- */
+@media (max-width: 1200px) {
+    .container {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    .container .p-column-filter-overlay {
+        font-size: 0.8rem;
+    }
+
+    .container .p-datatable td,
+    .container .p-datatable th {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .container .p-column-filter-overlay {
+        font-size: 0.7rem;
+    }
+
+    .container .p-datatable td,
+    .container .p-datatable th {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .p-datatable {
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+}
+
+/* =========================================================
+   SIDEBAR + PANELMENU (PrimeReact 10.9.7) – FINAL OVERRIDES
+   Paste this WHOLE block at the VERY BOTTOM of your CSS.
+   ========================================================= */
+
+:root {
+    --portal-green: #4caf50;
+    --portal-green-soft: #e6f4ea;
+
+    --sidebar-text: #5d6778;
+    --sidebar-text-strong: #2f3b52;
+    --sidebar-hover: #f3f6fb;
+    --sidebar-divider: #e5e7eb;
+
+    --sidebar-pad-x: 14px;
+    /* inner padding of sidebar menu area */
+    --row-pad-y: 14px;
+    /* row height */
+    --row-pad-x: 16px;
+    /* row left/right padding */
+    --row-gap-y: 6px;
+    /* spacing between rows */
+}
+
+/* Sidebar container */
+.app-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 260px;
+    background: #fff;
+    border-right: 1px solid var(--sidebar-divider);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    border-bottom: 1px solid var(--sidebar-divider);
+}
+
+.sidebar-brand {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--sidebar-text-strong);
+}
+
+.sidebar-menu {
+    padding: 0.75rem var(--sidebar-pad-x);
+}
+
+/* Strip Prime chrome */
+.sidebar-menu .p-panelmenu,
+.sidebar-menu .p-panelmenu-panel,
+.sidebar-menu .p-panelmenu-header,
+.sidebar-menu .p-panelmenu-header-content,
+.sidebar-menu .p-panelmenu-content {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
+
+/* ---------------------------------------------------------
+   PRIME 10.9.7 DOM TARGETS
+   (top-level items are rendered as "headers" with:
+    .p-panelmenu-panel > .p-panelmenu-header-content > a.p-panelmenu-header-link)
+   --------------------------------------------------------- */
+
+/* Base clickable rows */
+.sidebar-menu .p-panelmenu .p-panelmenu-header-link,
+.sidebar-menu .p-panelmenu .p-menuitem>.p-menuitem-content>a {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.65rem !important;
+
+    /* Portal spacing */
+    padding: var(--row-pad-y) var(--row-pad-x) !important;
+
+    /* Edge-to-edge bars (neg margin equals sidebar padding) */
+    margin: var(--row-gap-y) calc(var(--sidebar-pad-x) * -1) !important;
+
+    border-radius: 0 !important;
+    /* no pill rounding */
+    text-decoration: none !important;
+
+    background: transparent !important;
+    color: var(--sidebar-text) !important;
+    font-weight: 500 !important;
+
+    transition: background-color 120ms ease, color 120ms ease !important;
+}
+
+/* Icon alignment */
+.sidebar-menu .p-panelmenu .p-panelmenu-header-link .p-menuitem-icon,
+.sidebar-menu .p-panelmenu .p-menuitem>.p-menuitem-content>a .p-menuitem-icon {
+    width: 20px !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    font-size: 1.05rem !important;
+    color: inherit !important;
+}
+
+/* Label */
+.sidebar-menu .p-panelmenu .p-menuitem-text {
+    flex: 1 !important;
+    line-height: 1.1 !important;
+    font-size: 0.98rem !important;
+    color: inherit !important;
+}
+
+/* Move expand chevron to right (only for expandable headers) */
+.sidebar-menu .p-panelmenu .p-panelmenu-header-link .p-panelmenu-icon {
+    margin-left: auto !important;
+    order: 999 !important;
+    font-size: 0.9rem !important;
+    opacity: 0.8 !important;
+    color: inherit !important;
+}
+
+/* Submenu indentation */
+.sidebar-menu .p-panelmenu .p-panelmenu-content {
+    padding: 0.15rem 0 0.35rem 0 !important;
+}
+
+.sidebar-menu .p-panelmenu .p-panelmenu-content .p-menuitem>.p-menuitem-content>a {
+    margin-left: calc((var(--sidebar-pad-x) * -1) + 14px) !important;
+    padding-left: calc(var(--row-pad-x) + 14px) !important;
+}
+
+/* --------------------
+   Portal hover behavior
+   -------------------- */
+
+/* Hover: subtle bg, dark text (NOT green) */
+.sidebar-menu .p-panelmenu .p-panelmenu-header-link:hover,
+.sidebar-menu .p-panelmenu .p-menuitem>.p-menuitem-content>a:hover {
+    background: var(--sidebar-hover) !important;
+    color: var(--sidebar-text-strong) !important;
+}
+
+/* --------------------
+   Active behavior
+   -------------------- */
+/* IMPORTANT: your active-menuitem class lands on .p-panelmenu-panel (per your DOM) */
+.sidebar-menu .p-panelmenu-panel.active-menuitem .p-panelmenu-header-link,
+.sidebar-menu .p-panelmenu .p-menuitem.active-menuitem>.p-menuitem-content>a {
+    background: var(--portal-green-soft) !important;
+    color: var(--sidebar-text-strong) !important;
+    /* Portal keeps text dark */
+    font-weight: 600 !important;
+    position: relative !important;
+}
+
+/* Green rail: flush left, full height */
+.sidebar-menu .p-panelmenu-panel.active-menuitem .p-panelmenu-header-link::before,
+.sidebar-menu .p-panelmenu .p-menuitem.active-menuitem>.p-menuitem-content>a::before {
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 4px !important;
+    border-radius: 0 !important;
+    background: var(--portal-green) !important;
+}
+
+/* Remove focus ring/ripple visuals */
+.sidebar-menu a:focus,
+.sidebar-menu a:focus-visible,
+.sidebar-menu .p-ripple {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Optional: thin scrollbar */
+.app-sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.app-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(17, 24, 39, 0.12);
+    border-radius: 999px;
+}
+
+/* -------- DEFAULT -------- */
+.sidebar-menu .p-panelmenu-header-link,
+.sidebar-menu .p-menuitem>.p-menuitem-content>a {
+    color: var(--sidebar-text, #5d6778) !important;
+}
+
+/* -------- HOVER: text + icon green, no strong bg -------- */
+.sidebar-menu .p-panelmenu-header-link:hover,
+.sidebar-menu .p-menuitem>.p-menuitem-content>a:hover {
+    color: var(--portal-green, #4caf50) !important;
+}
+
+.sidebar-menu .p-panelmenu-header-link:hover .p-menuitem-icon,
+.sidebar-menu .p-menuitem>.p-menuitem-content>a:hover .p-menuitem-icon {
+    color: var(--portal-green, #4caf50) !important;
+}
+
+/* -------- ACTIVE: bg + rail + GREEN TEXT -------- */
+/* NOTE: active-menuitem is on .p-panelmenu-panel (per your DOM) */
+.sidebar-menu .p-panelmenu-panel.active-menuitem .p-panelmenu-header-link {
+    background: var(--portal-green-soft, #e6f4ea) !important;
+    color: var(--portal-green, #4caf50) !important;
+    font-weight: 600 !important;
+}
+
+.sidebar-menu .p-panelmenu-panel.active-menuitem .p-panelmenu-header-link .p-menuitem-icon {
+    color: var(--portal-green, #4caf50) !important;
+}
+
+/* Submenu active (future-proof) */
+.sidebar-menu .p-panelmenu .p-menuitem.active-menuitem>.p-menuitem-content>a {
+    background: var(--portal-green-soft, #e6f4ea) !important;
+    color: var(--portal-green, #4caf50) !important;
+    font-weight: 600 !important;
+}
+
+.sidebar-menu .p-panelmenu .p-menuitem.active-menuitem>.p-menuitem-content>a .p-menuitem-icon {
+    color: var(--portal-green, #4caf50) !important;
+}
