@@ -1,1 +1,18 @@
 .vs/
+
+# .NET build output
+**/bin/
+**/obj/
+.vs/
+
+# user-specific / IDE
+*.user
+*.suo
+
+# Node / frontend
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Optional: don't track zips
+*.zip
