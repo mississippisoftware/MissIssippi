@@ -1,6 +1,3 @@
-import { InputText } from "primereact/inputtext";
-
-
 export const stringMatchModes = [
     { label: 'Starts With', value: 'startsWith' },
     { label: 'Contains', value: 'contains' },
@@ -81,7 +78,7 @@ const matchModes = [
 ];
 
 export const multiRuleTextFilterTemplate = (placeholder: string) => (options: any) => {
-    const { value, filterCallback, constraints, operator } = options;
+    const { filterCallback, constraints, operator } = options;
 
     // Single constraint for simplicity (can extend to multiple)
     const currentConstraint = constraints?.[0] || { value: "", matchMode: "startsWith" };
@@ -125,17 +122,8 @@ export const multiRuleTextFilterTemplate = (placeholder: string) => (options: an
     );
 };
 
-interface ColumnFilterProps {
-    filterModel: {
-        value: any;
-        matchMode: string;
-    };
-    filterCallback: (newVal: any, constraintIndex?: number) => void;
-    constraints: any[]; // internal rule constraints array
-}
-
 export function multiRuleTextFilterWithoutButtons(props: any) {
-  const { value, filterCallback, filterApplyCallback } = props;
+  const { value, filterApplyCallback } = props;
 
   return (
     <div className="p-d-flex p-flex-column p-gap-2">
