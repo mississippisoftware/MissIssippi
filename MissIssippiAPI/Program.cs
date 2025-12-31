@@ -14,6 +14,7 @@ builder.Services.AddCors(options =>
 builder.Configuration.AddJsonFile("secret-appsettings.json", true, true);
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<MissIssippiAPI.Services.InventoryService>();
 
 
 

@@ -1,7 +1,7 @@
 // src/stores/inventoryStore.ts
 import { create } from "zustand";
 import { inventoryService } from "../service/InventoryService";
-import type { iInventoryDisplayRow, iSize, iInventoryUpdate } from "../utils/DataInterfaces";
+import type { iInventoryCell, iInventoryDisplayRow, iSize } from "../utils/DataInterfaces";
 
 interface InventoryState {
   inventory: iInventoryDisplayRow[];
@@ -22,29 +22,20 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
     try {
       const sizesRaw = await inventoryService.getSizes();
-      console.log("Sizes from API:", sizesRaw);
-      const inventoryRaw = await inventoryService.getInventory();
-      console.log("Inventory from API:", inventoryRaw);
+      const inventoryRaw = await inventoryService.getPivotInventory();
 
-      // Ensure the right field names
-      // If your API returns SizeSequence (PascalCase), adjust here:
       const orderedSizes = [...sizesRaw].sort((a, b) => {
-        const seqA = a.sizeSequence ?? a.sizeSequence ?? 0;
-        const seqB = b.sizeSequence ?? b.sizeSequence ?? 0;
+        const seqA = a.sizeSequence ?? 0;
+        const seqB = b.sizeSequence ?? 0;
         return seqA - seqB;
       });
 
-      // Optional: trim size names (prevents mismatch)
       const cleanSizes = orderedSizes.map((s) => ({
         ...s,
-        SizeName: (s.sizeName ?? s.sizeName ?? "").trim(),
+        sizeName: (s.sizeName ?? "").trim(),
       }));
 
-      set({
-        inventory: inventoryRaw,
-        sizeColumns: cleanSizes,
-        loading: false,
-      });
+      set({ inventory: inventoryRaw, sizeColumns: cleanSizes, loading: false });
 
     } catch (err) {
       console.error("Inventory fetch error:", err);
@@ -65,26 +56,22 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   saveInventory: async (row) => {
     try {
       const sizeNames = get().sizeColumns.map((s) => s.sizeName);
-      const updates: iInventoryUpdate[] = sizeNames
-        .map((size) => {
+      const normalizedRow: iInventoryDisplayRow = {
+        ...row,
+        sizes: sizeNames.reduce<Record<string, iInventoryCell>>((acc, size) => {
           const cell = row.sizes[size];
-          if (!cell) return null;
-          return {
-            styleNumber: row.styleNumber,
-            colorName: row.colorName,
-            seasonName: row.seasonName || "",
-            sizeName: size,
-            inventoryId: cell.inventoryId,
-            styleColorId: row.styleColorId,
-            styleId: row.styleId,
-            colorId: row.colorId,
-            sizeId: cell.sizeId,
-            qty: Number(cell.qty) ?? 0,
-          };
-        })
-        .filter(Boolean) as iInventoryUpdate[];
+          if (cell) {
+            acc[size] = {
+              qty: Number(cell.qty ?? 0),
+              inventoryId: cell.inventoryId,
+              sizeId: cell.sizeId,
+            };
+          }
+          return acc;
+        }, {}),
+      };
 
-      await inventoryService.saveInventory(updates);
+      await inventoryService.savePivotInventory([normalizedRow]);
       await get().fetchInventory();
     } catch (err) {
       console.error(err);
