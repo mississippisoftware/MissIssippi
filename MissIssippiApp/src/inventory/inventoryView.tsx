@@ -45,7 +45,7 @@ export default function InventoryView() {
     return (
         <>
             <div className="portal-page-header">
-                <h1 className="portal-page-title">Inventory</h1>
+                <h1 className="portal-page-title">View Inventory</h1>
 
                 <ExportButton
                     onClick={handleExport}

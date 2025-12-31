@@ -1,7 +1,8 @@
 import { DataTable } from "primereact/datatable";
-import type { DataTable as DataTableRef } from "primereact/datatable";
+import type { DataTable as DataTableRef, DataTableRowEditCompleteEvent } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
+import { InputNumber } from "primereact/inputnumber";
 import type { iInventoryDisplayRow, iSize } from "../utils/DataInterfaces";
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { inventoryFieldLabels } from "../utils/LabelMap";
@@ -23,6 +24,8 @@ interface InventoryTableProps {
   editable?: boolean;
   filteredColumns?: FilterableColumn[];
   loading?: boolean;
+  onQtyChange?: (styleNumber: string, colorName: string, size: string, qty: number) => void;
+  onSave?: (row: iInventoryDisplayRow) => Promise<void> | void;
 }
 
 const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(function InventoryTable(
@@ -32,10 +35,13 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
     editable = false,
     filteredColumns = [],
     loading = false,
+    onQtyChange,
+    onSave,
   },
   ref
 ) {
   const [filters, setFilters] = useState<any>({});
+  const [savingRowId, setSavingRowId] = useState<string | null>(null);
   const dtRef = useRef<DataTableRef<iInventoryDisplayRow[]>>(null);
 
   useImperativeHandle(ref, () => ({
@@ -108,6 +114,36 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
     />
   );
 
+  const onRowEditComplete = async ({ newData }: DataTableRowEditCompleteEvent) => {
+    if (!onSave) return;
+
+    const typedRow = newData as iInventoryDisplayRow;
+    setSavingRowId(typedRow.id);
+    await onSave(typedRow);
+    setSavingRowId(null);
+  };
+
+  const renderSizeEditor = (
+    options: { rowData: iInventoryDisplayRow },
+    sizeName: string
+  ) => {
+    const cell = options.rowData.sizes[sizeName];
+    return (
+      <InputNumber
+        value={cell?.qty ?? 0}
+        inputClassName="w-full"
+        onValueChange={(e) =>
+          onQtyChange?.(
+            options.rowData.styleNumber,
+            options.rowData.colorName,
+            sizeName,
+            Number(e.value ?? 0)
+          )
+        }
+      />
+    );
+  };
+
   return (
     <div className="container">
       <div className="content-card">
@@ -119,12 +155,14 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
             filters={filters}
             onFilter={(e) => setFilters(e.filters)}
             filterDisplay="menu"
+            editMode={editable ? "row" : undefined}
+            onRowEditComplete={editable ? onRowEditComplete : undefined}
             resizableColumns
             scrollable
             scrollHeight="flex"
             columnResizeMode="expand"
             className="p-datatable-gridlines"
-            loading={loading || inventory.length === 0}
+            loading={loading || savingRowId !== null}
           >
             {filteredColumns.map((col) => (
               <Column
@@ -145,6 +183,7 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
                 key={size.sizeName}
                 header={size.sizeName}
                 body={(row) => row.sizes[size.sizeName]?.qty ?? 0}
+                editor={editable ? (options) => renderSizeEditor(options, size.sizeName) : undefined}
                 style={{ textAlign: "center" }}
                 className="col-size"
               />
