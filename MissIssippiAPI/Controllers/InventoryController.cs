@@ -1,9 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using MissIssippiAPI.Data;
 using MissIssippiAPI.Models;
-using Microsoft.EntityFrameworkCore;
+using MissIssippiAPI.Services;
 
 namespace MissIssippiAPI
 {
@@ -11,11 +8,11 @@ namespace MissIssippiAPI
     [ApiController]
     public class InventoryController : ControllerBase
     {
-        private readonly MissIssippiContext _context;
+        private readonly InventoryService _inventoryService;
 
-        public InventoryController(MissIssippiContext context)
+        public InventoryController(InventoryService inventoryService)
         {
-            _context = context;
+            _inventoryService = inventoryService;
         }
 
         [HttpGet]
@@ -26,91 +23,80 @@ namespace MissIssippiAPI
                                                             string? SeasonName = null,
                                                             int? InventoryId = null,
                                                             int? StyleColorId = null,
-                                                            int? StyleId = null, 
-                                                            int? ColorId = null, 
+                                                            int? StyleId = null,
+                                                            int? ColorId = null,
                                                             int? SizeId = null,
                                                             int? SeasonId = null)
         {
-            var query = from i in _context.InventoryViews
-                        .Where(x =>
-                                
-                                (x.StyleNumber.Contains(StyleNumber) || StyleNumber == null)
-                                && (x.Description.Contains(Description) || Description == null)
-                                && (x.ColorName.Contains(ColorName) || ColorName == null)
-                                && (x.SizeName.Contains(SizeName) || SizeName == null)
-                                && (x.SeasonName.Contains(SeasonName) || SeasonName == null)
-                                && (x.InventoryId == InventoryId || InventoryId == null)
-                                && (x.StyleId == StyleId || StyleId == null)
-                                && (x.StyleColorId == StyleColorId || StyleColorId == null)
-                                && (x.ColorId == ColorId || ColorId == null)
-                                && (x.SizeId == SizeId || SizeId == null)
-                                && (x.SeasonId == SeasonId || SeasonId == null)
-                                )
-                        select new InventoryView
-                        {
-                            StyleNumber = i.StyleNumber,
-                            Description = i.Description,
-                            ColorName = i.ColorName,
-                            SizeName = i.SizeName,
-                            Qty = i.Qty,
-                            SeasonName = i.SeasonName,
-                            InventoryId = i.InventoryId,
-                            StyleColorId = i.StyleColorId,
-                            StyleId = i.StyleId,
-                            ColorId = i.ColorId,
-                            SizeId = i.SizeId,
-                            SeasonId = i.SeasonId,
-                        };
+            return await _inventoryService.GetInventoryAsync(
+                StyleNumber,
+                Description,
+                ColorName,
+                SizeName,
+                SeasonName,
+                InventoryId,
+                StyleColorId,
+                StyleId,
+                ColorId,
+                SizeId,
+                SeasonId);
+        }
 
-            return await query.ToListAsync();
+        [HttpGet]
+        public async Task<IEnumerable<InventoryPivotRow>> GetPivotInventory(string? StyleNumber = null,
+                                                                            string? Description = null,
+                                                                            string? ColorName = null,
+                                                                            string? SizeName = null,
+                                                                            string? SeasonName = null,
+                                                                            int? InventoryId = null,
+                                                                            int? StyleColorId = null,
+                                                                            int? StyleId = null,
+                                                                            int? ColorId = null,
+                                                                            int? SizeId = null,
+                                                                            int? SeasonId = null)
+        {
+            return await _inventoryService.GetPivotInventoryAsync(
+                StyleNumber,
+                Description,
+                ColorName,
+                SizeName,
+                SeasonName,
+                InventoryId,
+                StyleColorId,
+                StyleId,
+                ColorId,
+                SizeId,
+                SeasonId);
         }
 
         [HttpPost]
         public async Task<bool> AddOrUpdateInventory(InventoryView? Inventory)
         {
-            if (Inventory != null)
+            return await _inventoryService.AddOrUpdateInventoryAsync(Inventory);
+        }
+
+        [HttpPost]
+        public async Task<bool> SaveInventoryUpdates([FromBody] List<InventoryView> updates)
+        {
+            return await _inventoryService.SaveInventoryUpdatesAsync(updates);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SavePivotInventory([FromBody] List<InventoryPivotRow> updates)
+        {
+            if (updates == null || updates.Count == 0)
             {
-                var existingInventory = await _context.Inventories.Where(x => x.InventoryId == Inventory.InventoryId).FirstOrDefaultAsync();
-
-                if (existingInventory != null)
-                {
-                    existingInventory.InventoryId = Inventory.InventoryId;
-                    existingInventory.StyleColorId = Inventory.StyleColorId;
-                    existingInventory.SizeId = Inventory.SizeId;
-                    existingInventory.Qty = Inventory.Qty;
-                }
-
-                if (existingInventory == null)
-                {
-                    //existingInventory.InventoryId = Inventory.InventoryId;
-                    //existingInventory.StyleColorId = Inventory.StyleColorId;
-                    //existingInventory.SizeId = Inventory.SizeId;
-                    //existingInventory.Qty = Inventory.Qty;
-                    var newInventory = new Inventory
-                    {
-                        StyleColorId = Inventory.StyleColorId,
-                        SizeId = Inventory.SizeId,
-                        Qty = Inventory.Qty
-                    };
-                    _context.Inventories.Add(newInventory);
-                }
-                await _context.SaveChangesAsync();
-                return true;
+                return BadRequest("No updates provided");
             }
-            return false;
+
+            var result = await _inventoryService.SavePivotInventoryAsync(updates);
+            return Ok(result);
         }
 
         [HttpDelete]
         public async Task<bool> DeleteInventory(int InventoryId)
         {
-            var existingInventory = await _context.Inventories.FindAsync(InventoryId);
-            if (existingInventory != null)
-            {
-                _context.Inventories.Remove(existingInventory);
-                await _context.SaveChangesAsync();
-            }
-            return true;
+            return await _inventoryService.DeleteInventoryAsync(InventoryId);
         }
-
     }
 }
