@@ -1,7 +1,6 @@
 import type { iInventoryCell, iInventoryDisplayRow, iSize } from "../utils/DataInterfaces";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE?.replace(/\/$/, "") ?? "https://localhost:7006/api";
+const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/$/, "");
 
 async function fetchJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`);
