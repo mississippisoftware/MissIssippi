@@ -1,5 +1,22 @@
 import type { iInventoryCell, iInventoryDisplayRow, iSize } from "../utils/DataInterfaces";
 
+function normalizeApiBase() {
+  const raw = (import.meta.env.VITE_API_BASE ?? "/api").trim();
+
+  // If someone sets VITE_API_BASE to "api" instead of "/api", make it absolute so
+  // the dev server doesn't serve index.html and break JSON parsing.
+  if (!/^https?:\/\//i.test(raw) && !raw.startsWith("/")) {
+    return `/${raw}`.replace(/\/$/, "");
+  }
+
+  return raw.replace(/\/$/, "");
+}
+
+const API_BASE = normalizeApiBase();
+
+async function fetchJson<T>(path: string): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  const response = await fetch(url);
 const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/$/, "");
 
 async function fetchJson<T>(path: string): Promise<T> {
@@ -12,6 +29,17 @@ async function fetchJson<T>(path: string): Promise<T> {
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     const body = await response.text();
+    throw new Error(
+      `Unexpected response type for ${url} (${contentType || "unknown"}): ${body.slice(0, 200)}`
+    );
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch (err) {
+    const body = await response.text();
+    throw new Error(`Failed to parse JSON from ${url}: ${(err as Error).message}. Body: ${body.slice(0, 200)}`);
+  }
     throw new Error(`Unexpected response type (${contentType || "unknown"}): ${body.slice(0, 200)}`);
   }
 
