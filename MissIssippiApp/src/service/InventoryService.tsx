@@ -9,6 +9,12 @@ async function fetchJson<T>(path: string): Promise<T> {
     throw new Error(`Request failed (${response.status}): ${response.statusText}`);
   }
 
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    const body = await response.text();
+    throw new Error(`Unexpected response type (${contentType || "unknown"}): ${body.slice(0, 200)}`);
+  }
+
   return response.json() as Promise<T>;
 }
 
