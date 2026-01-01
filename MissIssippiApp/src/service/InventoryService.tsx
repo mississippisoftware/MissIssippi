@@ -17,6 +17,10 @@ const API_BASE = normalizeApiBase();
 async function fetchJson<T>(path: string): Promise<T> {
   const url = `${API_BASE}${path}`;
   const response = await fetch(url);
+const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/$/, "");
+
+async function fetchJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`);
 
   if (!response.ok) {
     throw new Error(`Request failed (${response.status}): ${response.statusText}`);
@@ -36,6 +40,10 @@ async function fetchJson<T>(path: string): Promise<T> {
     const body = await response.text();
     throw new Error(`Failed to parse JSON from ${url}: ${(err as Error).message}. Body: ${body.slice(0, 200)}`);
   }
+    throw new Error(`Unexpected response type (${contentType || "unknown"}): ${body.slice(0, 200)}`);
+  }
+
+  return response.json() as Promise<T>;
 }
 
 export type InventorySearchFilters = {
