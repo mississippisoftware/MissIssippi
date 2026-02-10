@@ -1,6 +1,6 @@
 // src/stores/inventoryStore.ts
 import { create } from "zustand";
-import { inventoryService } from "../service/InventoryService";
+import { InventoryService } from "../service/InventoryService";
 import type { iInventoryCell, iInventoryDisplayRow, iSize } from "../utils/DataInterfaces";
 
 interface InventoryState {
@@ -8,7 +8,7 @@ interface InventoryState {
   sizeColumns: iSize[];
   loading: boolean;
   fetchInventory: () => Promise<void>;
-  updateCell: (styleNumber: string, colorName: string, size: string, qty: number) => void;
+  updateCell: (itemNumber: string, colorName: string, size: string, qty: number) => void;
   saveInventory: (row: iInventoryDisplayRow) => Promise<void>;
 }
 
@@ -21,8 +21,8 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     set({ loading: true });
 
     try {
-      const sizesRaw = await inventoryService.getSizes();
-      const inventoryRaw = await inventoryService.getPivotInventory();
+      const sizesRaw = await InventoryService.getSizes();
+      const inventoryRaw = await InventoryService.getPivotInventory();
 
       const orderedSizes = [...sizesRaw].sort((a, b) => {
         const seqA = a.sizeSequence ?? 0;
@@ -43,10 +43,10 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     }
   },
 
-  updateCell: (styleNumber, colorName, size, qty) => {
+  updateCell: (itemNumber, colorName, size, qty) => {
     set((state) => ({
       inventory: state.inventory.map((row) =>
-        row.styleNumber === styleNumber && row.colorName === colorName
+        row.itemNumber === itemNumber && row.colorName === colorName
           ? { ...row, sizes: { ...row.sizes, [size]: { ...row.sizes[size], qty } } }
           : row
       ),
@@ -71,7 +71,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         }, {}),
       };
 
-      await inventoryService.savePivotInventory([normalizedRow]);
+      await InventoryService.savePivotInventory([normalizedRow]);
       await get().fetchInventory();
     } catch (err) {
       console.error(err);

@@ -14,23 +14,37 @@ namespace MissIssippiAPI.Services
         }
 
         public async Task<List<InventoryView>> GetInventoryAsync(
-            string? styleNumber = null,
+            string? itemNumber = null,
             string? description = null,
             string? colorName = null,
             string? sizeName = null,
             string? seasonName = null,
             int? inventoryId = null,
-            int? styleColorId = null,
-            int? styleId = null,
+            int? itemColorId = null,
+            int? itemId = null,
             int? colorId = null,
             int? sizeId = null,
             int? seasonId = null)
         {
             var query = _context.InventoryViews.AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(styleNumber))
+            if (!string.IsNullOrWhiteSpace(itemNumber))
             {
-                query = query.Where(x => x.StyleNumber.Contains(styleNumber));
+                var itemNumbers = itemNumber
+                    .Split(new[] { ',', ';', '\n', '\r', '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct()
+                    .ToArray();
+
+                if (itemNumbers.Length == 1)
+                {
+                    query = query.Where(x => x.ItemNumber.Contains(itemNumbers[0]));
+                }
+                else if (itemNumbers.Length > 1)
+                {
+                    query = query.Where(x => itemNumbers.Contains(x.ItemNumber));
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(description))
@@ -50,7 +64,7 @@ namespace MissIssippiAPI.Services
 
             if (!string.IsNullOrWhiteSpace(seasonName))
             {
-                query = query.Where(x => x.SeasonName.Contains(seasonName));
+                query = query.Where(x => x.SeasonName.Contains(seasonName) || x.SeasonName == "Legacy");
             }
 
             if (inventoryId.HasValue)
@@ -58,14 +72,14 @@ namespace MissIssippiAPI.Services
                 query = query.Where(x => x.InventoryId == inventoryId.Value);
             }
 
-            if (styleColorId.HasValue)
+            if (itemColorId.HasValue)
             {
-                query = query.Where(x => x.StyleColorId == styleColorId.Value);
+                query = query.Where(x => x.ItemColorId == itemColorId.Value);
             }
 
-            if (styleId.HasValue)
+            if (itemId.HasValue)
             {
-                query = query.Where(x => x.StyleId == styleId.Value);
+                query = query.Where(x => x.ItemId == itemId.Value);
             }
 
             if (colorId.HasValue)
@@ -87,46 +101,47 @@ namespace MissIssippiAPI.Services
         }
 
         public async Task<IEnumerable<InventoryPivotRow>> GetPivotInventoryAsync(
-            string? styleNumber = null,
+            string? itemNumber = null,
             string? description = null,
             string? colorName = null,
             string? sizeName = null,
             string? seasonName = null,
             int? inventoryId = null,
-            int? styleColorId = null,
-            int? styleId = null,
+            int? itemColorId = null,
+            int? itemId = null,
             int? colorId = null,
             int? sizeId = null,
             int? seasonId = null)
         {
             var inventory = await GetInventoryAsync(
-                styleNumber,
+                itemNumber,
                 description,
                 colorName,
                 sizeName,
                 seasonName,
                 inventoryId,
-                styleColorId,
-                styleId,
+                itemColorId,
+                itemId,
                 colorId,
                 sizeId,
                 seasonId);
 
             return inventory
-                .OrderBy(i => i.StyleNumber)
+                .OrderBy(i => i.ItemNumber)
                 .ThenBy(i => i.ColorName)
-                .GroupBy(i => new { i.StyleColorId, i.StyleNumber, i.ColorName })
+                .GroupBy(i => new { i.ItemColorId, i.ItemNumber, i.ColorName })
                 .Select(group =>
                 {
                     var first = group.First();
 
                     return new InventoryPivotRow
                     {
-                        StyleNumber = group.Key.StyleNumber,
+                        ItemNumber = group.Key.ItemNumber,
                         ColorName = group.Key.ColorName,
-                        StyleId = first.StyleId,
+                        Description = first.Description ?? string.Empty,
+                        ItemId = first.ItemId,
                         ColorId = first.ColorId,
-                        StyleColorId = group.Key.StyleColorId,
+                        ItemColorId = group.Key.ItemColorId,
                         SeasonName = first.SeasonName,
                         Sizes = group
                             .GroupBy(x => x.SizeName)
@@ -154,7 +169,7 @@ namespace MissIssippiAPI.Services
 
             if (existingInventory != null)
             {
-                existingInventory.StyleColorId = inventory.StyleColorId;
+                existingInventory.ItemColorId = inventory.ItemColorId;
                 existingInventory.SizeId = inventory.SizeId;
                 existingInventory.Qty = inventory.Qty;
             }
@@ -162,7 +177,7 @@ namespace MissIssippiAPI.Services
             {
                 var newInventory = new Inventory
                 {
-                    StyleColorId = inventory.StyleColorId,
+                    ItemColorId = inventory.ItemColorId,
                     SizeId = inventory.SizeId,
                     Qty = inventory.Qty
                 };
@@ -190,7 +205,7 @@ namespace MissIssippiAPI.Services
                 {
                     existing.Qty = update.Qty;
                     existing.SizeId = update.SizeId;
-                    existing.StyleColorId = update.StyleColorId;
+                    existing.ItemColorId = update.ItemColorId;
                 }
                 else
                 {
@@ -198,7 +213,7 @@ namespace MissIssippiAPI.Services
                     {
                         Qty = update.Qty,
                         SizeId = update.SizeId,
-                        StyleColorId = update.StyleColorId
+                        ItemColorId = update.ItemColorId
                     });
                 }
             }
@@ -218,7 +233,7 @@ namespace MissIssippiAPI.Services
 
             foreach (var row in pivotRows)
             {
-                if (row == null || row.StyleColorId == 0 || row.Sizes == null)
+                if (row == null || row.ItemColorId == 0 || row.Sizes == null)
                 {
                     continue;
                 }
@@ -233,7 +248,7 @@ namespace MissIssippiAPI.Services
                     updates.Add(new InventoryView
                     {
                         InventoryId = cell.InventoryId ?? 0,
-                        StyleColorId = row.StyleColorId,
+                        ItemColorId = row.ItemColorId,
                         SizeId = cell.SizeId,
                         Qty = cell.Qty,
                         // The rest of the view properties are not required for persistence here.
@@ -247,6 +262,104 @@ namespace MissIssippiAPI.Services
             }
 
             return await SaveInventoryUpdatesAsync(updates);
+        }
+
+        public async Task<int> EnsureInventoryForItemColorAsync(int itemColorId)
+        {
+            var sizes = await _context.Sizes.AsNoTracking()
+                .OrderBy(x => x.SizeSequence)
+                .ToListAsync();
+
+            var existingSizeIds = await _context.Inventories
+                .Where(x => x.ItemColorId == itemColorId)
+                .Select(x => x.SizeId)
+                .ToListAsync();
+
+            var existingSet = new HashSet<int>(existingSizeIds);
+            var newRows = new List<Inventory>();
+
+            foreach (var size in sizes)
+            {
+                if (existingSet.Contains(size.SizeId))
+                {
+                    continue;
+                }
+
+                newRows.Add(new Inventory
+                {
+                    ItemColorId = itemColorId,
+                    SizeId = size.SizeId,
+                    Qty = 0
+                });
+            }
+
+            if (newRows.Count > 0)
+            {
+                _context.Inventories.AddRange(newRows);
+                await _context.SaveChangesAsync();
+            }
+
+            return newRows.Count;
+        }
+
+        public async Task<int> EnsureInventoryForItemColorFromSkusAsync(int itemColorId)
+        {
+            var skuSizeIds = await _context.Skus.AsNoTracking()
+                .Where(x => x.ItemColorId == itemColorId)
+                .Select(x => x.SizeId)
+                .Distinct()
+                .ToListAsync();
+
+            if (skuSizeIds.Count == 0)
+            {
+                return 0;
+            }
+
+            var existingSizeIds = await _context.Inventories
+                .Where(x => x.ItemColorId == itemColorId)
+                .Select(x => x.SizeId)
+                .ToListAsync();
+
+            var existingSet = new HashSet<int>(existingSizeIds);
+            var newRows = new List<Inventory>();
+
+            foreach (var sizeId in skuSizeIds)
+            {
+                if (existingSet.Contains(sizeId))
+                {
+                    continue;
+                }
+
+                newRows.Add(new Inventory
+                {
+                    ItemColorId = itemColorId,
+                    SizeId = sizeId,
+                    Qty = 0
+                });
+            }
+
+            if (newRows.Count > 0)
+            {
+                _context.Inventories.AddRange(newRows);
+                await _context.SaveChangesAsync();
+            }
+
+            return newRows.Count;
+        }
+
+        public string? ValidatePivotUpdates(IEnumerable<InventoryPivotRow>? pivotRows)
+        {
+            if (pivotRows == null)
+            {
+                return "No updates provided";
+            }
+
+            if (!pivotRows.Any())
+            {
+                return "No updates provided";
+            }
+
+            return null;
         }
 
         public async Task<bool> DeleteInventoryAsync(int inventoryId)

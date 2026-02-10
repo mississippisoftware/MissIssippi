@@ -18,25 +18,29 @@ public partial class MissIssippiContext : DbContext
 
     public virtual DbSet<Color> Colors { get; set; }
 
+    public virtual DbSet<ImageType> ImageTypes { get; set; }
+
     public virtual DbSet<Inventory> Inventories { get; set; }
 
     public virtual DbSet<InventoryActivityLog> InventoryActivityLogs { get; set; }
 
     public virtual DbSet<InventoryView> InventoryViews { get; set; }
 
-    public virtual DbSet<ProductType> ProductTypes { get; set; }
+    public virtual DbSet<ItemImage> ItemImages { get; set; }
 
     public virtual DbSet<Season> Seasons { get; set; }
 
     public virtual DbSet<Size> Sizes { get; set; }
 
-    public virtual DbSet<Style> Styles { get; set; }
+    public virtual DbSet<Sku> Skus { get; set; }
 
-    public virtual DbSet<StyleColor> StyleColors { get; set; }
+    public virtual DbSet<Item> Items { get; set; }
 
-    public virtual DbSet<StyleColorView> StyleColorViews { get; set; }
+    public virtual DbSet<ItemColor> ItemColors { get; set; }
 
-    public virtual DbSet<StyleView> StyleViews { get; set; }
+    public virtual DbSet<ItemColorView> ItemColorViews { get; set; }
+
+    public virtual DbSet<ItemView> ItemViews { get; set; }
 
    // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -55,6 +59,33 @@ public partial class MissIssippiContext : DbContext
             entity.Property(e => e.ColorName)
                 .HasMaxLength(75)
                 .IsUnicode(false);
+
+            entity.Property(e => e.HexValue)
+                .HasMaxLength(7)
+                .IsUnicode(false);
+
+            entity.Property(e => e.PantoneColor)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.Season).WithMany()
+                .HasForeignKey(d => d.SeasonId)
+                .HasConstraintName("f_Season_Color");
+        });
+
+        modelBuilder.Entity<ImageType>(entity =>
+        {
+            entity.HasKey(e => e.ImageTypeId).HasName("PK__ImageTyp__C4FE4B7B050E0A04");
+
+            entity.ToTable("ImageType");
+
+            entity.HasIndex(e => e.Sequence, "u_ImageType_Sequence").IsUnique();
+
+            entity.HasIndex(e => e.Type, "u_ImageType_Type").IsUnique();
+
+            entity.Property(e => e.Type)
+                .HasMaxLength(50)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<Inventory>(entity =>
@@ -70,10 +101,10 @@ public partial class MissIssippiContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("f_Sizes_Inventory");
 
-            entity.HasOne(d => d.StyleColor).WithMany(p => p.Inventories)
-                .HasForeignKey(d => d.StyleColorId)
+            entity.HasOne(d => d.ItemColor).WithMany(p => p.Inventories)
+                .HasForeignKey(d => d.ItemColorId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("f_StyleColor_Inventory");
+                .HasConstraintName("f_ItemColor_Inventory");
         });
 
         modelBuilder.Entity<InventoryActivityLog>(entity =>
@@ -92,10 +123,10 @@ public partial class MissIssippiContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("f_Sizes_InventoryActivityLog");
 
-            entity.HasOne(d => d.StyleColor).WithMany(p => p.InventoryActivityLogs)
-                .HasForeignKey(d => d.StyleColorId)
+            entity.HasOne(d => d.ItemColor).WithMany(p => p.InventoryActivityLogs)
+                .HasForeignKey(d => d.ItemColorId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("f_StyleColor_InventoryActivityLog");
+                .HasConstraintName("f_ItemColor_InventoryActivityLog");
         });
 
         modelBuilder.Entity<InventoryView>(entity =>
@@ -111,27 +142,35 @@ public partial class MissIssippiContext : DbContext
                 .HasMaxLength(500)
                 .IsUnicode(false);
             entity.Property(e => e.SeasonName)
-                .HasMaxLength(4)
+                .HasMaxLength(10)
                 .IsUnicode(false);
             entity.Property(e => e.SizeName)
                 .HasMaxLength(10)
                 .IsUnicode(false);
-            entity.Property(e => e.StyleNumber)
+            entity.Property(e => e.ItemNumber)
                 .HasMaxLength(75)
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<ProductType>(entity =>
+        modelBuilder.Entity<ItemImage>(entity =>
         {
-            entity.HasKey(e => e.ProductTypeId).HasName("PK__ProductT__A1312F6EBCB7E6E4");
+            entity.HasKey(e => e.ItemImageId).HasName("PK__ItemImag__7FBDF9E4A9A8D9E8");
 
-            entity.ToTable("ProductType");
+            entity.ToTable("ItemImage");
 
-            entity.HasIndex(e => e.ProductTypeName, "u_ProductType_ProductTypeName").IsUnique();
-
-            entity.Property(e => e.ProductTypeName)
-                .HasMaxLength(150)
+            entity.Property(e => e.ImageUrl)
+                .HasMaxLength(500)
                 .IsUnicode(false);
+
+            entity.HasOne(d => d.ImageType).WithMany(p => p.ItemImages)
+                .HasForeignKey(d => d.ImageTypeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("f_ImageType_ItemImage");
+
+            entity.HasOne(d => d.ItemColor).WithMany(p => p.ItemImages)
+                .HasForeignKey(d => d.ItemColorId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("f_ItemColor_ItemImage");
         });
 
         modelBuilder.Entity<Season>(entity =>
@@ -144,7 +183,7 @@ public partial class MissIssippiContext : DbContext
 
             entity.Property(e => e.SeasonDateCreated).HasColumnType("datetime");
             entity.Property(e => e.SeasonName)
-                .HasMaxLength(4)
+                .HasMaxLength(10)
                 .IsUnicode(false);
         });
 
@@ -161,91 +200,116 @@ public partial class MissIssippiContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<Style>(entity =>
+        modelBuilder.Entity<Sku>(entity =>
         {
-            entity.HasKey(e => e.StyleId).HasName("PK__Style__8AD14640BCF81361");
+            entity.HasKey(e => e.SkuId).HasName("PK__Sku__CA1ECF0D968C4D01");
 
-            entity.ToTable("Style");
+            entity.ToTable("Sku");
 
-            entity.HasIndex(e => new { e.StyleNumber, e.SeasonId }, "u_Style_StyleNumber_SeasonId").IsUnique();
+            entity.HasIndex(e => e.SkuValue, "u_Sku_Sku").IsUnique();
+
+            entity.HasIndex(e => new { e.ItemColorId, e.SizeId }, "u_Sku_ItemColorId_SizeId").IsUnique();
+
+            entity.Property(e => e.SkuValue)
+                .HasColumnName("Sku")
+                .HasMaxLength(25)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.ItemColor).WithMany(p => p.Skus)
+                .HasForeignKey(d => d.ItemColorId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("f_ItemColor_Sku");
+
+            entity.HasOne(d => d.Size).WithMany()
+                .HasForeignKey(d => d.SizeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("f_Sizes_Sku");
+        });
+
+        modelBuilder.Entity<Item>(entity =>
+        {
+            entity.HasKey(e => e.ItemId).HasName("PK__Item__8AD14640BCF81361");
+
+            entity.ToTable("Item");
+
+            entity.HasIndex(e => new { e.ItemNumber, e.SeasonId }, "u_Item_ItemNumber_SeasonId").IsUnique();
 
             entity.Property(e => e.CostPrice).HasColumnType("decimal(18, 0)");
             entity.Property(e => e.Description)
                 .HasMaxLength(500)
-                .IsUnicode(false);
-            entity.Property(e => e.StyleDateCreated).HasColumnType("datetime");
-            entity.Property(e => e.StyleNumber)
+                .IsUnicode(false)
+                .IsRequired();
+            entity.Property(e => e.ItemDateCreated).HasColumnType("datetime");
+            entity.Property(e => e.ItemNumber)
                 .HasMaxLength(75)
                 .IsUnicode(false);
             entity.Property(e => e.Weight).HasColumnType("decimal(18, 0)");
             entity.Property(e => e.WholesalePrice).HasColumnType("decimal(18, 0)");
 
-            entity.HasOne(d => d.ProductType).WithMany(p => p.Styles)
-                .HasForeignKey(d => d.ProductTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("f_ProductType_Style");
-
-            entity.HasOne(d => d.Season).WithMany(p => p.Styles)
+            entity.HasOne(d => d.Season).WithMany(p => p.Items)
                 .HasForeignKey(d => d.SeasonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("f_Season_Style");
+                .HasConstraintName("f_Season_Item");
         });
 
-        modelBuilder.Entity<StyleColor>(entity =>
+        modelBuilder.Entity<ItemColor>(entity =>
         {
-            entity.HasKey(e => e.StyleColorId).HasName("PK__StyleCol__D60ED5767E9873B1");
+            entity.HasKey(e => e.ItemColorId).HasName("PK__ItemCol__D60ED5767E9873B1");
 
-            entity.ToTable("StyleColor");
+            entity.ToTable("ItemColor");
 
-            entity.HasIndex(e => new { e.StyleId, e.ColorId }, "u_StyleColor_StyleId_ColorId").IsUnique();
+            entity.HasIndex(e => new { e.ItemId, e.ColorId }, "u_ItemColor_ItemId_ColorId").IsUnique();
 
-            entity.HasOne(d => d.Color).WithMany(p => p.StyleColors)
+            entity.HasOne(d => d.Color).WithMany(p => p.ItemColors)
                 .HasForeignKey(d => d.ColorId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("f_Color_StyleColor");
+                .HasConstraintName("f_Color_ItemColor");
 
-            entity.HasOne(d => d.Style).WithMany(p => p.StyleColors)
-                .HasForeignKey(d => d.StyleId)
+            entity.HasOne(d => d.Item).WithMany(p => p.ItemColors)
+                .HasForeignKey(d => d.ItemId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("f_Style_StyleColor");
+                .HasConstraintName("f_Item_ItemColor");
         });
 
-        modelBuilder.Entity<StyleColorView>(entity =>
+        modelBuilder.Entity<ItemColorView>(entity =>
         {
             entity
                 .HasNoKey()
-                .ToView("StyleColorView");
+                .ToView("ItemColorView");
 
             entity.Property(e => e.ColorName)
                 .HasMaxLength(75)
                 .IsUnicode(false);
-            entity.Property(e => e.SeasonName)
-                .HasMaxLength(4)
+            entity.Property(e => e.HexValue)
+                .HasMaxLength(7)
                 .IsUnicode(false);
-            entity.Property(e => e.StyleNumber)
+            entity.Property(e => e.PantoneColor)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.SeasonName)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.ItemNumber)
                 .HasMaxLength(75)
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<StyleView>(entity =>
+        modelBuilder.Entity<ItemView>(entity =>
         {
             entity
                 .HasNoKey()
-                .ToView("StyleView");
+                .ToView("ItemView");
 
             entity.Property(e => e.CostPrice).HasColumnType("decimal(18, 0)");
             entity.Property(e => e.Description)
                 .HasMaxLength(500)
                 .IsUnicode(false);
-            entity.Property(e => e.ProductTypeName)
-                .HasMaxLength(150)
-                .IsUnicode(false);
             entity.Property(e => e.SeasonDateCreated).HasColumnType("datetime");
             entity.Property(e => e.SeasonName)
-                .HasMaxLength(4)
+                .HasMaxLength(10)
                 .IsUnicode(false);
-            entity.Property(e => e.StyleDateCreated).HasColumnType("datetime");
-            entity.Property(e => e.StyleNumber)
+            entity.Property(e => e.ItemDateCreated).HasColumnType("datetime");
+            entity.Property(e => e.ItemNumber)
                 .HasMaxLength(75)
                 .IsUnicode(false);
             entity.Property(e => e.Weight).HasColumnType("decimal(18, 0)");

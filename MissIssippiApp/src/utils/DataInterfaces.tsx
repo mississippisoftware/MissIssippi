@@ -6,11 +6,11 @@ export interface iInventoryCell {
 
 export interface iInventoryDisplayRow {
   id: string;
-  styleNumber: string;
+  itemNumber: string;
   colorName: string;
-  styleId?: number | string;
+  itemId?: number | string;
   colorId?: number | string;
-  styleColorId?: number | string;
+  itemColorId?: number | string;
   seasonName?: string;
   description?: string;
   sizes: Record<string, iInventoryCell | undefined>;
@@ -23,12 +23,12 @@ export interface iSize {
 }
 
 export interface iInventoryUpdate {
-  styleNumber: string;
+  itemNumber: string;
   colorName: string;
   sizeName: string;
   inventoryId: number;
-  styleColorId: number;
-  styleId: number;
+  itemColorId: number;
+  itemId: number;
   colorId: number;
   sizeId: number;
   qty: number;

@@ -5,9 +5,9 @@ namespace MissIssippiAPI.Models;
 
 public partial class InventoryView
 {
-    public string StyleNumber { get; set; } = null!;
+    public string ItemNumber { get; set; } = null!;
 
-    public string? Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 
     public string ColorName { get; set; } = null!;
 
@@ -21,9 +21,9 @@ public partial class InventoryView
 
     public int InventoryId { get; set; }
 
-    public int StyleColorId { get; set; }
+    public int ItemColorId { get; set; }
 
-    public int StyleId { get; set; }
+    public int ItemId { get; set; }
 
     public int ColorId { get; set; }
 

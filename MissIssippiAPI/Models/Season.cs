@@ -13,5 +13,5 @@ public partial class Season
 
     public bool? Active { get; set; }
 
-    public virtual ICollection<Style> Styles { get; set; } = new List<Style>();
+    public virtual ICollection<Item> Items { get; set; } = new List<Item>();
 }

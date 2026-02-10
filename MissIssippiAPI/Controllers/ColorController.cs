@@ -19,17 +19,21 @@ namespace MissIssippiAPI
         }
 
         [HttpGet]
-        public async Task<List<Color>> GetColors(int? ColorId = null, string? ColorName = null)
+        public async Task<List<Color>> GetColors(int? ColorId = null, string? ColorName = null, int? SeasonId = null)
         {
             var query = from c in _context.Colors
                         .Where(x =>  
                                 (x.ColorId == ColorId || ColorId == null)
                                 && (x.ColorName.Contains(ColorName) || ColorName == null)
+                                && (x.SeasonId == SeasonId || SeasonId == null)
                                 )
                         select new Color
                         {
                             ColorId = c.ColorId,
-                            ColorName = c.ColorName
+                            ColorName = c.ColorName,
+                            SeasonId = c.SeasonId,
+                            PantoneColor = c.PantoneColor,
+                            HexValue = c.HexValue
                         };
 
             return await query.ToListAsync();
@@ -40,21 +44,30 @@ namespace MissIssippiAPI
         {
             if (color != null)
             {
-                var existingColor = await _context.Colors.Where(x => x.ColorId == color.ColorId).FirstOrDefaultAsync();
+                var existingColor = color.ColorId != 0
+                    ? await _context.Colors.Where(x => x.ColorId == color.ColorId).FirstOrDefaultAsync()
+                    : null;
 
                 if (existingColor != null)
                 {
                     existingColor.ColorName = color.ColorName;
-
+                    existingColor.SeasonId = color.SeasonId;
+                    existingColor.PantoneColor = color.PantoneColor;
+                    existingColor.HexValue = color.HexValue;
                 }
-
-                if (existingColor == null)
+                else
                 {
-                    existingColor.ColorName = color.ColorName;
-                    _context.AddAsync(existingColor);
-
+                    existingColor = new Color
+                    {
+                        ColorName = color.ColorName,
+                        SeasonId = color.SeasonId,
+                        PantoneColor = color.PantoneColor,
+                        HexValue = color.HexValue
+                    };
+                    _context.Colors.Add(existingColor);
                 }
-                _context.SaveChangesAsync();
+
+                await _context.SaveChangesAsync();
                 return true;
             }
             return false;

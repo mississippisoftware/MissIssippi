@@ -15,29 +15,29 @@ namespace MissIssippiAPI.Controllers
             _inventoryService = inventoryService;
         }
 
-        // GET: Used by the edit page to search styles and colors before editing
+        // GET: Used by the edit page to search items and colors before editing
         [HttpGet]
-        public async Task<IActionResult> SearchInventory(string? StyleNumber = null,
+        public async Task<IActionResult> SearchInventory(string? ItemNumber = null,
                                                          string? Description = null,
                                                          string? ColorName = null,
                                                          string? SizeName = null,
                                                          string? SeasonName = null,
                                                          int? InventoryId = null,
-                                                         int? StyleColorId = null,
-                                                         int? StyleId = null,
+                                                         int? ItemColorId = null,
+                                                         int? ItemId = null,
                                                          int? ColorId = null,
                                                          int? SizeId = null,
                                                          int? SeasonId = null)
         {
             var grouped = await _inventoryService.GetPivotInventoryAsync(
-                StyleNumber,
+                ItemNumber,
                 Description,
                 ColorName,
                 SizeName,
                 SeasonName,
                 InventoryId,
-                StyleColorId,
-                StyleId,
+                ItemColorId,
+                ItemId,
                 ColorId,
                 SizeId,
                 SeasonId);
@@ -48,9 +48,10 @@ namespace MissIssippiAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> SaveInventory([FromBody] List<InventoryPivotRow> updates)
         {
-            if (updates == null || updates.Count == 0)
+            var validationError = _inventoryService.ValidatePivotUpdates(updates);
+            if (validationError != null)
             {
-                return BadRequest("No updates provided");
+                return BadRequest(validationError);
             }
 
             var result = await _inventoryService.SavePivotInventoryAsync(updates);

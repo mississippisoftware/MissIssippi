@@ -1,22 +1,28 @@
 import { create } from "zustand";
-import { inventoryService, type InventorySearchFilters } from "../service/InventoryService";
+import { InventoryService } from "../service/InventoryService";
 import type { iInventoryCell, iInventoryDisplayRow, iSize } from "../utils/DataInterfaces";
+import type { InventorySearchFilters } from "../utils/InventorySearchFilters";
 
 interface InventoryEditState {
   results: iInventoryDisplayRow[];
   sizeColumns: iSize[];
+  seasons: Array<{ seasonId: number; seasonName: string }>;
   loading: boolean;
   searching: boolean;
   lastFilters?: InventorySearchFilters;
   initializeSizes: () => Promise<void>;
-  search: (filters: InventorySearchFilters) => Promise<void>;
-  updateCell: (styleNumber: string, colorName: string, size: string, qty: number) => void;
-  saveByStyle: (styleNumber: string) => Promise<void>;
+  fetchSeasons: () => Promise<void>;
+  search: (filters: InventorySearchFilters) => Promise<iInventoryDisplayRow[]>;
+  clearResults: () => void;
+  updateCell: (itemNumber: string, colorName: string, size: string, qty: number) => void;
+  saveByItem: (itemNumber: string) => Promise<void>;
+  discardChanges: () => Promise<void>;
 }
 
 export const useInventoryEditStore = create<InventoryEditState>((set, get) => ({
   results: [],
   sizeColumns: [],
+  seasons: [],
   loading: true,
   searching: false,
 
@@ -24,7 +30,7 @@ export const useInventoryEditStore = create<InventoryEditState>((set, get) => ({
     if (get().sizeColumns.length > 0) return;
 
     try {
-      const sizesRaw = await inventoryService.getSizes();
+      const sizesRaw = await InventoryService.getSizes();
       const ordered = [...sizesRaw].sort((a, b) => (a.sizeSequence ?? 0) - (b.sizeSequence ?? 0));
       const cleanSizes = ordered.map((s) => ({ ...s, sizeName: (s.sizeName ?? "").trim() }));
       set({ sizeColumns: cleanSizes, loading: false });
@@ -34,11 +40,24 @@ export const useInventoryEditStore = create<InventoryEditState>((set, get) => ({
     }
   },
 
+  fetchSeasons: async () => {
+    if (get().seasons.length > 0) return;
+
+    try {
+      const seasons = await InventoryService.getSeasons();
+      const ordered = [...seasons].sort((a, b) => a.seasonName.localeCompare(b.seasonName));
+      set({ seasons: ordered });
+    } catch (err) {
+      console.error("Failed to load seasons", err);
+    }
+  },
+
   search: async (filters) => {
     set({ searching: true, lastFilters: filters, loading: false });
     try {
-      const data = await inventoryService.searchPivotInventory(filters);
+      const data = await InventoryService.searchPivotInventory(filters);
       set({ results: data, searching: false });
+      return data;
     } catch (err) {
       console.error("Inventory search failed", err);
       set({ searching: false });
@@ -46,25 +65,67 @@ export const useInventoryEditStore = create<InventoryEditState>((set, get) => ({
     }
   },
 
-  updateCell: (styleNumber, colorName, size, qty) => {
+  clearResults: () => {
+    set({ results: [], searching: false, lastFilters: undefined });
+  },
+
+  updateCell: (itemNumber, colorName, size, qty) => {
     set((state) => ({
       results: state.results.map((row) =>
-        row.styleNumber === styleNumber && row.colorName === colorName
-          ? { ...row, sizes: { ...row.sizes, [size]: { ...row.sizes[size], qty } as iInventoryCell } }
+        row.itemNumber === itemNumber && row.colorName === colorName
+          ? {
+              ...row,
+              sizes: {
+                ...row.sizes,
+                [size]: {
+                  ...row.sizes[size],
+                  qty,
+                  sizeId:
+                    row.sizes[size]?.sizeId ??
+                    get().sizeColumns.find((s) => s.sizeName === size)?.sizeId,
+                } as iInventoryCell,
+              },
+            }
           : row
       ),
     }));
   },
 
-  saveByStyle: async (styleNumber) => {
-    const rowsForStyle = get().results.filter((r) => r.styleNumber === styleNumber);
-    if (!rowsForStyle.length) return;
+  saveByItem: async (itemNumber) => {
+    const sizeColumns = get().sizeColumns;
+    const rowsForItem = get().results
+      .filter((r) => r.itemNumber === itemNumber)
+      .map((row) => ({
+        ...row,
+        sizes: Object.entries(row.sizes).reduce<Record<string, iInventoryCell>>((acc, [sizeName, cell]) => {
+          if (!cell) {
+            return acc;
+          }
+          acc[sizeName] = {
+            qty: Number(cell.qty ?? 0),
+            inventoryId: cell.inventoryId,
+            sizeId:
+              cell.sizeId ??
+              sizeColumns.find((s) => s.sizeName === sizeName)?.sizeId,
+          };
+          return acc;
+        }, {}),
+      }));
+    if (!rowsForItem.length) return;
 
-    await inventoryService.savePivotInventory(rowsForStyle);
+    await InventoryService.savePivotInventory(rowsForItem);
 
     const filters = get().lastFilters;
     if (filters) {
       await get().search(filters);
     }
   },
+
+  discardChanges: async () => {
+    const filters = get().lastFilters;
+    if (filters) {
+      await get().search(filters);
+    }
+  },
 }));
+

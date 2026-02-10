@@ -4,7 +4,7 @@ export default function Topbar() {
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <h2 className="topbar-title">Portal</h2>
+        <h2 className="topbar-title">Miss Issippi</h2>
       </div>
 
       <div className="topbar-right">

@@ -1,9 +1,6 @@
-drop view if exists InventoryView
-go
-
 create view InventoryView as (
 select 
-s.StyleNumber,
+s.ItemNumber,
 s.[Description],
 c.ColorName,
 si.SizeName,
@@ -11,16 +8,16 @@ i.Qty,
 se.SeasonName,
 i.InStock,
 i.InventoryId, 
-i.StyleColorId,
-s.StyleId,
+i.ItemColorId,
+s.ItemId,
 c.ColorId,
 i.SizeId,
 se.SeasonId
 from Inventory i
-join StyleColor sc 
-on i.StyleColorId = sc.StyleColorId
-join Style s 
-on sc.StyleId = s.StyleId
+join ItemColor sc 
+on i.ItemColorId = sc.ItemColorId
+join Item s 
+on sc.ItemId = s.ItemId
 join Season se 
 on se.SeasonId = s.SeasonId
 join Color c 

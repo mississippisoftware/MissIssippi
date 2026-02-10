@@ -1,156 +1,85 @@
 import type { iInventoryCell, iInventoryDisplayRow, iSize } from "../utils/DataInterfaces";
+import type { InventorySearchFilters } from "../utils/InventorySearchFilters";
+import { fetchJson } from "./apiClient";
 
-function normalizeApiBase() {
-  const raw = (import.meta.env.VITE_API_BASE ?? "/api").trim();
+// Adjust these action names to match your ASP.NET controller action names
+const API = {
+  getSizes: "/Sizes/GetSizes",
+  getSeasons: "/Season/GetSeasons",
+  getPivotInventory: "/Inventory/GetPivotInventory",
+  savePivotInventory: "/Inventory/SavePivotInventory",
+  searchPivotInventory: "/EditInventory/SearchInventory",
 
-  // If someone sets VITE_API_BASE to "api" instead of "/api", make it absolute so
-  // the dev server doesn't serve index.html and break JSON parsing.
-  if (!/^https?:\/\//i.test(raw) && !raw.startsWith("/")) {
-    return `/${raw}`.replace(/\/$/, "");
-  }
-
-  return raw.replace(/\/$/, "");
-}
-
-const API_BASE = normalizeApiBase();
-
-async function fetchJson<T>(path: string): Promise<T> {
-  const url = `${API_BASE}${path}`;
-  const response = await fetch(url);
-const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/$/, "");
-
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`);
-
-  if (!response.ok) {
-    throw new Error(`Request failed (${response.status}): ${response.statusText}`);
-  }
-
-  const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
-    const body = await response.text();
-    throw new Error(
-      `Unexpected response type for ${url} (${contentType || "unknown"}): ${body.slice(0, 200)}`
-    );
-  }
-
-  try {
-    return (await response.json()) as T;
-  } catch (err) {
-    const body = await response.text();
-    throw new Error(`Failed to parse JSON from ${url}: ${(err as Error).message}. Body: ${body.slice(0, 200)}`);
-  }
-    throw new Error(`Unexpected response type (${contentType || "unknown"}): ${body.slice(0, 200)}`);
-  }
-
-  return response.json() as Promise<T>;
-}
-
-export type InventorySearchFilters = {
-  styleNumber?: string;
-  description?: string;
-  colorName?: string;
-  sizeName?: string;
-  seasonName?: string;
+  // Optional / legacy
+  getInventory: "/Inventory/GetInventory",
 };
 
-function normalizeSizes(rawSizes: Record<string, iInventoryCell | undefined> | undefined) {
-  const source = rawSizes ?? {};
-  return Object.keys(source).reduce<Record<string, iInventoryCell>>((acc, key) => {
-    const cell = source[key];
-    if (!cell) return acc;
-
-    acc[key.trim()] = {
-      qty: Number(cell.qty ?? 0),
-      inventoryId: cell.inventoryId ?? cell.inventoryId,
-      sizeId: cell.sizeId ?? cell.sizeId,
-    };
-
-    return acc;
-  }, {});
-}
-
-function buildQuery(filters?: InventorySearchFilters) {
-  if (!filters) return "";
-
-  const params = new URLSearchParams();
-  if (filters.styleNumber) params.set("StyleNumber", filters.styleNumber);
-  if (filters.description) params.set("Description", filters.description);
-  if (filters.colorName) params.set("ColorName", filters.colorName);
-  if (filters.sizeName) params.set("SizeName", filters.sizeName);
-  if (filters.seasonName) params.set("SeasonName", filters.seasonName);
-
-  const qs = params.toString();
-  return qs ? `?${qs}` : "";
-}
-
-function mapPivotRows(data: any[]): iInventoryDisplayRow[] {
-  return data.map((row) => {
-    const sizes = normalizeSizes(row.sizes ?? row.Sizes);
-
-    return {
-      id: `${row.styleColorId ?? row.StyleColorId}-${row.colorName ?? row.ColorName}`,
-      styleNumber: row.styleNumber ?? row.StyleNumber ?? "",
-      colorName: row.colorName ?? row.ColorName ?? "",
-      styleId: row.styleId ?? row.StyleId,
-      colorId: row.colorId ?? row.ColorId,
-      styleColorId: row.styleColorId ?? row.StyleColorId,
-      seasonName: row.seasonName ?? row.SeasonName,
-      description: row.description ?? row.Description,
-      sizes,
-    } as iInventoryDisplayRow;
-  });
-}
-
-export const inventoryService = {
+export const InventoryService = {
+  // Used by your store
   async getSizes(): Promise<iSize[]> {
-    return fetchJson<iSize[]>("/Sizes/GetSizes");
+    return fetchJson<iSize[]>(API.getSizes);
   },
 
-  async getPivotInventory(filters?: InventorySearchFilters): Promise<iInventoryDisplayRow[]> {
-    const query = buildQuery(filters);
-    const data = await fetchJson<any[]>(`/ViewInventory/GetInventory${query}`);
-    return mapPivotRows(data);
+  async getSeasons(): Promise<Array<{ seasonId: number; seasonName: string }>> {
+    return fetchJson<Array<{ seasonId: number; seasonName: string }>>(API.getSeasons);
   },
 
-  async searchPivotInventory(filters?: InventorySearchFilters): Promise<iInventoryDisplayRow[]> {
-    const query = buildQuery(filters);
-    const data = await fetchJson<any[]>(`/EditInventory/SearchInventory${query}`);
-    return mapPivotRows(data);
+  // Used by your store
+  async getPivotInventory(): Promise<iInventoryDisplayRow[]> {
+    return fetchJson<iInventoryDisplayRow[]>(API.getPivotInventory);
   },
 
+  // Used by your store
   async savePivotInventory(rows: iInventoryDisplayRow[]): Promise<void> {
-    const payload = rows.map((row) => ({
-      styleNumber: row.styleNumber,
-      colorName: row.colorName,
-      styleId: Number(row.styleId ?? 0),
-      colorId: Number(row.colorId ?? 0),
-      styleColorId: Number(row.styleColorId ?? 0),
-      seasonName: row.seasonName,
-      sizes: Object.entries(row.sizes ?? {}).reduce<Record<string, iInventoryCell>>(
-        (acc, [sizeName, cell]) => {
-          if (!cell) return acc;
+    // If your API returns something (bool/message), change Promise<void> to that type
+    await fetchJson<unknown>(API.savePivotInventory, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rows),
+    });
+  },
 
-          acc[sizeName] = {
-            qty: Number(cell.qty ?? 0),
-            inventoryId: cell.inventoryId ? Number(cell.inventoryId) : undefined,
-            sizeId: cell.sizeId ? Number(cell.sizeId) : 0,
-          };
+  // Optional: keep compatibility if other parts call getInventory()
+  async getInventory(): Promise<iInventoryDisplayRow[]> {
+    return fetchJson<iInventoryDisplayRow[]>(API.getInventory);
+  },
 
-          return acc;
-        },
-        {}
-      ),
-    }));
-
-    const res = await fetch(`${API_BASE}/EditInventory/SaveInventory`, {
+  // Optional: if you still use manual/bulk update endpoints elsewhere
+  async manualUpdate(payload: iInventoryCell): Promise<void> {
+    await fetchJson<unknown>("/Inventory/ManualUpdate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+  },
 
-    if (!res.ok) {
-      throw new Error(`Save failed (${res.status}): ${res.statusText}`);
+  async searchPivotInventory(filters: InventorySearchFilters): Promise<iInventoryDisplayRow[]> {
+    const params = new URLSearchParams();
+    if (filters.itemNumber?.trim()) {
+      params.set("ItemNumber", filters.itemNumber.trim());
     }
+    if (filters.description?.trim()) {
+      params.set("Description", filters.description.trim());
+    }
+    if (filters.colorName?.trim()) {
+      params.set("ColorName", filters.colorName.trim());
+    }
+    if (filters.seasonName?.trim()) {
+      params.set("SeasonName", filters.seasonName.trim());
+    }
+
+    const query = params.toString();
+    const path = query ? `${API.searchPivotInventory}?${query}` : API.searchPivotInventory;
+    return fetchJson<iInventoryDisplayRow[]>(path);
+  },
+
+  async bulkUpdate(payload: iInventoryCell[]): Promise<void> {
+    await fetchJson<unknown>("/Inventory/BulkUpdate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
   },
 };
+
+export default InventoryService;

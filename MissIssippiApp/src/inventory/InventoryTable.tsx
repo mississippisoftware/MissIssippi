@@ -24,7 +24,12 @@ interface InventoryTableProps {
   editable?: boolean;
   filteredColumns?: FilterableColumn[];
   loading?: boolean;
-  onQtyChange?: (styleNumber: string, colorName: string, size: string, qty: number) => void;
+  embedded?: boolean;
+  scrollable?: boolean;
+  scrollHeight?: string;
+  showRowTotals?: boolean;
+  rowTotalHeader?: string;
+  onQtyChange?: (itemNumber: string, colorName: string, size: string, qty: number) => void;
   onSave?: (row: iInventoryDisplayRow) => Promise<void> | void;
 }
 
@@ -35,6 +40,11 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
     editable = false,
     filteredColumns = [],
     loading = false,
+    embedded = false,
+    scrollable = true,
+    scrollHeight = "flex",
+    showRowTotals = false,
+    rowTotalHeader = "Total",
     onQtyChange,
     onSave,
   },
@@ -134,7 +144,7 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
         inputClassName="w-full"
         onValueChange={(e) =>
           onQtyChange?.(
-            options.rowData.styleNumber,
+            options.rowData.itemNumber,
             options.rowData.colorName,
             sizeName,
             Number(e.value ?? 0)
@@ -144,61 +154,83 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
     );
   };
 
+  const shouldShowRowTotals = showRowTotals && sizeColumns.length > 0;
+  const getRowTotal = (row: iInventoryDisplayRow) =>
+    sizeColumns.reduce((sum, size) => sum + (row.sizes[size.sizeName]?.qty ?? 0), 0);
+
+  const table = (
+    <div className="inventory-table-wrapper">
+      <DataTable
+        ref={dtRef}
+        value={inventory}
+        dataKey="id"
+        filters={filters}
+        onFilter={(e) => setFilters(e.filters)}
+        filterDisplay="menu"
+        sortMode="multiple"
+        editMode={editable ? "row" : undefined}
+        onRowEditComplete={editable ? onRowEditComplete : undefined}
+        resizableColumns
+        scrollable={scrollable}
+        scrollHeight={scrollable ? scrollHeight : undefined}
+        columnResizeMode="expand"
+        className="p-datatable-gridlines"
+        loading={loading || savingRowId !== null}
+      >
+        {filteredColumns.map((col) => (
+          <Column
+            key={col.field}
+            field={col.field}
+            header={col.header}
+            filter
+            filterMatchMode={col.filterMatchMode || "startsWith"}
+            filterFooter={() => <FilterFooterTemplate field={col.field} />}
+            filterApply={filterApplyTemplate}
+            filterClear={filterClearTemplate}
+            className={col.className}
+            sortable
+          />
+        ))}
+
+        {sizeColumns.map((size) => (
+          <Column
+            key={size.sizeName}
+            header={size.sizeName}
+            body={(row) => row.sizes[size.sizeName]?.qty ?? 0}
+            editor={editable ? (options) => renderSizeEditor(options, size.sizeName) : undefined}
+            style={{ textAlign: "center" }}
+            className="col-size"
+          />
+        ))}
+
+        {shouldShowRowTotals && (
+          <Column
+            key="rowTotal"
+            header={rowTotalHeader}
+            body={(row) => getRowTotal(row)}
+            style={{ textAlign: "center" }}
+            className="col-total"
+          />
+        )}
+
+        {editable && (
+          <Column
+            rowEditor
+            headerStyle={{ width: "10%", minWidth: "8rem" }}
+            bodyStyle={{ textAlign: "center" }}
+          />
+        )}
+      </DataTable>
+    </div>
+  );
+
+  if (embedded) {
+    return table;
+  }
+
   return (
     <div className="container">
-      <div className="content-card">
-        <div className="inventory-table-wrapper">
-          <DataTable
-            ref={dtRef}
-            value={inventory}
-            dataKey="id"
-            filters={filters}
-            onFilter={(e) => setFilters(e.filters)}
-            filterDisplay="menu"
-            editMode={editable ? "row" : undefined}
-            onRowEditComplete={editable ? onRowEditComplete : undefined}
-            resizableColumns
-            scrollable
-            scrollHeight="flex"
-            columnResizeMode="expand"
-            className="p-datatable-gridlines"
-            loading={loading || savingRowId !== null}
-          >
-            {filteredColumns.map((col) => (
-              <Column
-                key={col.field}
-                field={col.field}
-                header={col.header}
-                filter
-                filterMatchMode={col.filterMatchMode || "startsWith"}
-                filterFooter={() => <FilterFooterTemplate field={col.field} />}
-                filterApply={filterApplyTemplate}
-                filterClear={filterClearTemplate}
-                className={col.className}
-              />
-            ))}
-
-            {sizeColumns.map((size) => (
-              <Column
-                key={size.sizeName}
-                header={size.sizeName}
-                body={(row) => row.sizes[size.sizeName]?.qty ?? 0}
-                editor={editable ? (options) => renderSizeEditor(options, size.sizeName) : undefined}
-                style={{ textAlign: "center" }}
-                className="col-size"
-              />
-            ))}
-
-            {editable && (
-              <Column
-                rowEditor
-                headerStyle={{ width: "10%", minWidth: "8rem" }}
-                bodyStyle={{ textAlign: "center" }}
-              />
-            )}
-          </DataTable>
-        </div>
-      </div>
+      <div className="content-card">{table}</div>
     </div>
   );
 });

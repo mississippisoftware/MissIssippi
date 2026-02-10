@@ -15,6 +15,8 @@ builder.Configuration.AddJsonFile("secret-appsettings.json", true, true);
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<MissIssippiAPI.Services.InventoryService>();
+builder.Services.AddScoped<MissIssippiAPI.Services.SkuService>();
+builder.Services.AddScoped<MissIssippiAPI.Services.InventoryUploadService>();
 
 
 

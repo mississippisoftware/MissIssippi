@@ -7,7 +7,7 @@ public partial class InventoryActivityLog
 {
     public int InventoryActivityLogId { get; set; }
 
-    public int StyleColorId { get; set; }
+    public int ItemColorId { get; set; }
 
     public int SizeId { get; set; }
 
@@ -19,5 +19,5 @@ public partial class InventoryActivityLog
 
     public virtual Size Size { get; set; } = null!;
 
-    public virtual StyleColor StyleColor { get; set; } = null!;
+    public virtual ItemColor ItemColor { get; set; } = null!;
 }
