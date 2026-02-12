@@ -7,6 +7,7 @@ import CatalogService, { type ItemColorView } from "../../service/CatalogService
 import CatalogPageLayout from "../../components/CatalogPageLayout";
 import { makeDateStamp } from "../../utils/dateFormat";
 import { printItemList } from "../../utils/printCatalogLists";
+import { useNotifier } from "../../hooks/useNotifier";
 import ItemsColorsColorModal from "../../items/ItemsColorsColorModal";
 import ItemsColorsColorReviewModal from "../../items/ItemsColorsColorReviewModal";
 import type { ItemListRow } from "../../items/itemsColorsTypes";
@@ -20,6 +21,7 @@ import { useColorUpload } from "./useColorUpload";
 
 export default function ItemsColors() {
   const toastRef = useRef<Toast>(null);
+  const notify = useNotifier(toastRef);
 
   const {
     seasons,
@@ -218,27 +220,15 @@ export default function ItemsColors() {
 
   const handleItemSave = async (row: ItemListRow) => {
     if (!row.itemNumber?.trim()) {
-      toastRef.current?.show({
-        severity: "warn",
-        summary: "Style required",
-        detail: "Enter a style number.",
-      });
+      notify("warn", "Style required", "Enter a style number.");
       return false;
     }
     if (!row.seasonId) {
-      toastRef.current?.show({
-        severity: "warn",
-        summary: "Season required",
-        detail: "Select a season.",
-      });
+      notify("warn", "Season required", "Select a season.");
       return false;
     }
     if (!row.description?.trim()) {
-      toastRef.current?.show({
-        severity: "warn",
-        summary: "Description required",
-        detail: "Enter a description.",
-      });
+      notify("warn", "Description required", "Enter a description.");
       return false;
     }
 
@@ -263,19 +253,11 @@ export default function ItemsColors() {
           normalizeName(item.seasonName ?? "") === normalizeName(seasonName)
       );
       setSelectedItem(matched ?? null);
-      toastRef.current?.show({
-        severity: "success",
-        summary: "Style saved",
-        detail: `${row.itemNumber} saved successfully.`,
-      });
+      notify("success", "Style saved", `${row.itemNumber} saved successfully.`);
       return true;
     } catch (err: any) {
       console.error(err);
-      toastRef.current?.show({
-        severity: "error",
-        summary: "Style save failed",
-        detail: err?.message ?? "Unable to save style.",
-      });
+      notify("error", "Style save failed", err?.message ?? "Unable to save style.");
       return false;
     }
   };

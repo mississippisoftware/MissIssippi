@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Card, Col, Row, Table } from "react-bootstrap";
-import { InputNumber } from "primereact/inputnumber";
+import { Button } from "react-bootstrap";
 import { Toast } from "primereact/toast";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { useLocation } from "react-router-dom";
+import { useShallow } from "zustand/shallow";
 import CatalogPageLayout from "../components/CatalogPageLayout";
+import InventoryEditCard from "../components/inventoryEdit/InventoryEditCard";
+import PageActionsRow from "../components/PageActionsRow";
+import { useNotifier } from "../hooks/useNotifier";
 import { useInventoryEditStore } from "../stores/InventoryEditStore";
 import InventorySearchFiltersForm from "../components/InventorySearchFilters";
 import type { InventorySearchFilters as InventorySearchFiltersType } from "../utils/InventorySearchFilters";
 import { buildInventoryCardsHtml } from "../utils/InventoryCardPrint";
+import { printHtml } from "../utils/printHtml";
+import { buildInventoryCardGroups, type InventoryCardGroup } from "../utils/buildInventoryCardGroups";
 
 const EMPTY_FILTERS: InventorySearchFiltersType = {
   itemNumber: "",
@@ -20,23 +25,46 @@ const EMPTY_FILTERS: InventorySearchFiltersType = {
 
 export default function InventoryEdit() {
   const toastRef = useRef<Toast>(null);
+  const notify = useNotifier(toastRef);
+  const getErrorMessage = (err: unknown, fallback: string) =>
+    err instanceof Error ? err.message : fallback;
   const location = useLocation();
   const autoSearchRef = useRef<string | null>(null);
   const [cardColumns, setCardColumns] = useState<1 | 2>(2);
 
-  const results = useInventoryEditStore((s) => s.results);
-  const sizeColumns = useInventoryEditStore((s) => s.sizeColumns);
-  const seasons = useInventoryEditStore((s) => s.seasons);
-  const loading = useInventoryEditStore((s) => s.loading);
-  const searching = useInventoryEditStore((s) => s.searching);
-  const lastFilters = useInventoryEditStore((s) => s.lastFilters);
-  const initializeSizes = useInventoryEditStore((s) => s.initializeSizes);
-  const fetchSeasons = useInventoryEditStore((s) => s.fetchSeasons);
-  const search = useInventoryEditStore((s) => s.search);
-  const clearResults = useInventoryEditStore((s) => s.clearResults);
-  const updateCell = useInventoryEditStore((s) => s.updateCell);
-  const saveByItem = useInventoryEditStore((s) => s.saveByItem);
-  const discardChanges = useInventoryEditStore((s) => s.discardChanges);
+  const {
+    results,
+    sizeColumns,
+    seasons,
+    loading,
+    searching,
+    lastFilters,
+    initializeSizes,
+    fetchSeasons,
+    search,
+    clearResults,
+    updateCell,
+    saveByItem,
+    discardChangesByItem,
+    dirtyItemsSet,
+  } = useInventoryEditStore(
+    useShallow((s) => ({
+      results: s.results,
+      sizeColumns: s.sizeColumns,
+      seasons: s.seasons,
+      loading: s.loading,
+      searching: s.searching,
+      lastFilters: s.lastFilters,
+      initializeSizes: s.initializeSizes,
+      fetchSeasons: s.fetchSeasons,
+      search: s.search,
+      clearResults: s.clearResults,
+      updateCell: s.updateCell,
+      saveByItem: s.saveByItem,
+      discardChangesByItem: s.discardChangesByItem,
+      dirtyItemsSet: s.dirtyItemsSet,
+    }))
+  );
 
   const [form, setForm] = useState<InventorySearchFiltersType>(() => ({
     ...EMPTY_FILTERS,
@@ -77,63 +105,29 @@ export default function InventoryEdit() {
     };
 
     setForm(nextFilters);
-    search(nextFilters).catch((err: any) => {
+    search(nextFilters).catch((err: unknown) => {
       console.error(err);
-      toastRef.current?.show({
-        severity: "error",
-        summary: "Auto search failed",
-        detail: err?.message ?? "Unable to load inventory.",
-      });
+      notify("error", "Auto search failed", getErrorMessage(err, "Unable to load inventory."));
     });
-  }, [location.search, search]);
+  }, [location.search, notify, search]);
 
-  const groupedByItem = useMemo(() => {
-    const groups: Record<string, { description?: string; rows: typeof results }> = {};
-    results.forEach((row) => {
-      if (!groups[row.itemNumber]) {
-        groups[row.itemNumber] = {
-          description: row.description,
-          rows: [],
-        };
-      }
-      groups[row.itemNumber].rows.push(row);
-    });
-    return groups;
-  }, [results]);
-
-  const cardGroups = useMemo(
-    () =>
-      Object.entries(groupedByItem).map(([itemNumber, info]) => ({
-        itemNumber,
-        description: info.description,
-        rows: info.rows,
-      })),
-    [groupedByItem]
-  );
+  const cardGroups = useMemo(() => buildInventoryCardGroups(results), [results]);
 
   const handleSearch = async (filters: InventorySearchFiltersType) => {
     const data = await search(filters);
     if (data.length === 0) {
-      toastRef.current?.show({
-        severity: "info",
-        summary: "No results",
-        detail: "No styles found for that search.",
-      });
+      notify("info", "No results", "No styles found for that search.");
     }
   };
 
   const handleSave = async (itemNumber: string) => {
     try {
       await saveByItem(itemNumber);
-      toastRef.current?.show({ severity: "success", summary: "Saved", detail: `Saved changes for ${itemNumber}` });
-    } catch (err: any) {
+      notify("success", "Saved", `Saved changes for ${itemNumber}`);
+    } catch (err: unknown) {
       console.error(err);
-      toastRef.current?.show({ severity: "error", summary: "Error", detail: err?.message ?? "Failed to save" });
+      notify("error", "Error", getErrorMessage(err, "Failed to save"));
     }
-  };
-
-  const handleDiscard = async () => {
-    await discardChanges();
   };
 
   const handleClear = () => {
@@ -141,67 +135,25 @@ export default function InventoryEdit() {
     clearResults();
   };
 
-  const printHtml = (html: string) => {
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
-      document.body.removeChild(iframe);
-      toastRef.current?.show({ severity: "error", summary: "Error", detail: "Unable to render PDF preview." });
-      return;
-    }
-
-    doc.open();
-    doc.write(html);
-    doc.close();
-
-    iframe.onload = () => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 500);
-    };
+  const handlePrintError = () => {
+    notify("error", "Error", "Unable to render PDF preview.");
   };
 
-  const handleDownloadPdf = (itemNumber: string, info: { description?: string; rows: typeof results }) => {
-    const html = buildInventoryCardsHtml({
-      subtitle: "Edit Inventory",
-      sizeColumns,
-      groups: [
-        {
-          itemNumber,
-          description: info.description,
-          rows: info.rows,
-        },
-      ],
-    });
-    printHtml(html);
+  const downloadGroups = (groups: InventoryCardGroup[]) => {
+    const html = buildInventoryCardsHtml({ subtitle: "Edit Inventory", sizeColumns, groups });
+    printHtml(html, { onError: handlePrintError });
+  };
+
+  const handleDownloadPdf = (group: InventoryCardGroup) => {
+    downloadGroups([group]);
   };
 
   const handleDownloadAll = () => {
     if (cardGroups.length === 0) {
-      toastRef.current?.show({
-        severity: "info",
-        summary: "No results",
-        detail: "Search and load styles before downloading.",
-      });
+      notify("info", "No results", "Search and load styles before downloading.");
       return;
     }
-
-    const html = buildInventoryCardsHtml({
-      subtitle: "Edit Inventory",
-      sizeColumns,
-      groups: cardGroups,
-    });
-    printHtml(html);
+    downloadGroups(cardGroups);
   };
 
   const placeholderImage = "";
@@ -241,132 +193,45 @@ export default function InventoryEdit() {
         </div>
       )}
 
-      <div className="inventory-cards-toolbar">
+      <PageActionsRow className="inventory-cards-toolbar">
         <Button
           type="button"
-          className="portal-btn portal-btn-download portal-page-action"
+          className="btn-info btn-outlined"
           onClick={handleDownloadAll}
           disabled={cardGroups.length === 0}
         >
-          <i className="pi pi-download portal-page-action-icon" aria-hidden="true" />
+          <i className="pi pi-download" aria-hidden="true" />
           Download All
         </Button>
         <Button
           type="button"
-          variant="outline-secondary"
-          className="portal-btn portal-btn-outline inventory-cards-toggle"
+          className="btn-neutral btn-outlined btn-icon"
           onClick={() => setCardColumns((prev) => (prev === 2 ? 1 : 2))}
           aria-label={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
           title={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
         >
-          {cardColumns === 2 ? (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="4" y="5" width="6" height="6" rx="1" />
-              <rect x="14" y="5" width="6" height="6" rx="1" />
-              <rect x="4" y="13" width="6" height="6" rx="1" />
-              <rect x="14" y="13" width="6" height="6" rx="1" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="5" y="5" width="14" height="6" rx="1" />
-              <rect x="5" y="13" width="14" height="6" rx="1" />
-            </svg>
-          )}
+          <i
+            className={cardColumns === 2 ? "pi pi-th-large" : "pi pi-bars"}
+            aria-hidden="true"
+          />
         </Button>
-      </div>
+      </PageActionsRow>
 
       <div className={`inventory-cards-grid ${cardColumns === 1 ? "one-column" : "two-columns"}`}>
-        {Object.entries(groupedByItem).map(([itemNumber, info]) => (
-          <Card key={itemNumber} className="shadow-sm inventory-edit-card">
-            <Card.Header className="bg-white border-0" style={{ flex: "0 0 40%" }}>
-              <Row className="align-items-center inventory-card-header-row">
-                <Col md={4} className="inventory-card-header-left">
-                  <div className="inventory-card-heading">
-                    <span className="scan-section-icon scan-icon-green card-heading-icon" aria-hidden="true">
-                      <i className="pi pi-box" aria-hidden="true"></i>
-                    </span>
-                    <div className="d-flex flex-column">
-                      <span className="fw-bold inventory-card-style-number">{itemNumber}</span>
-                      <span className="text-muted">{info.description || "No description"}</span>
-                    </div>
-                  </div>
-                </Col>
-                <Col
-                  md={8}
-                  className="text-md-end text-center inventory-card-header-divider inventory-card-header-right"
-                >
-                  {placeholderImage ? (
-                    <img src={placeholderImage} alt="style" style={{ maxHeight: "140px", objectFit: "cover" }} />
-                  ) : (
-                    <div className="inventory-card-image-placeholder">No Image Available</div>
-                  )}
-                </Col>
-              </Row>
-            </Card.Header>
-          <Card.Body className="inventory-edit-card-body">
-            <Table responsive bordered hover className="inventory-edit-table">
-              <thead className="table-light">
-                <tr>
-                  <th className="inventory-color-col">Color</th>
-                    {sizeColumns.map((size) => (
-                      <th key={size.sizeId} className="text-center inventory-size-col">
-                        {size.sizeName}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {info.rows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="fw-semibold align-middle inventory-color-cell">{row.colorName}</td>
-                      {sizeColumns.map((size) => {
-                        const cell = row.sizes[size.sizeName];
-                        return (
-                          <td key={`${row.id}-${size.sizeId}`} className="align-middle text-center inventory-size-cell">
-                            <InputNumber
-                              value={cell?.qty ?? 0}
-                              onValueChange={(e) => updateCell(row.itemNumber, row.colorName, size.sizeName, Number(e.value ?? 0))}
-                              min={0}
-                              showButtons={false}
-                              className="inventory-cell-input-wrapper"
-                              inputClassName="text-center inventory-cell-input"
-                            />
-                          </td>
-                        );
-                      })}
-                    </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card.Body>
-          <Card.Footer className="inventory-edit-card-footer">
-            <div className="d-flex justify-content-end gap-2">
-              <Button
-                className="portal-btn portal-btn-download portal-page-action"
-                onClick={() => handleDownloadPdf(itemNumber, info)}
-              >
-                <i className="pi pi-download portal-page-action-icon" aria-hidden="true" />
-                Download
-              </Button>
-              <Button
-                variant="outline-secondary"
-                className="portal-btn portal-btn-outline"
-                onClick={handleDiscard}
-              >
-                Discard
-              </Button>
-              <Button
-                variant="success"
-                className="portal-btn portal-btn-success"
-                onClick={() => handleSave(itemNumber)}
-              >
-                Save
-              </Button>
-            </div>
-          </Card.Footer>
-        </Card>
-      ))}
-    </div>
+        {cardGroups.map((group) => (
+          <InventoryEditCard
+            key={group.itemNumber}
+            group={group}
+            sizeColumns={sizeColumns}
+            onQtyChange={updateCell}
+            onDownload={handleDownloadPdf}
+            onDiscard={discardChangesByItem}
+            onSave={handleSave}
+            isDirty={dirtyItemsSet.has(group.itemNumber)}
+            placeholderImage={placeholderImage}
+          />
+        ))}
+      </div>
     </CatalogPageLayout>
   );
 }

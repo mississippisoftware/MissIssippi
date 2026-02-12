@@ -11,6 +11,7 @@ import { InventoryService } from "../service/InventoryService";
 import { normalizeHeader, normalizeName } from "../items/itemsColorsUtils";
 import { makeDateStamp } from "../utils/dateFormat";
 import { printColorList } from "../utils/printCatalogLists";
+import { useNotifier } from "../hooks/useNotifier";
 
 type SeasonOption = { seasonId: number; seasonName: string };
 
@@ -53,6 +54,7 @@ const saveWorkbook = (workbook: XLSX.WorkBook, baseName: string) => {
 
 export default function ColorList() {
   const toastRef = useRef<Toast>(null);
+  const notify = useNotifier(toastRef);
 
   const [seasons, setSeasons] = useState<SeasonOption[]>([]);
   const [colors, setColors] = useState<ColorListRow[]>([]);
@@ -140,11 +142,7 @@ export default function ColorList() {
       setColors(rows);
     } catch (err: any) {
       console.error(err);
-      toastRef.current?.show({
-        severity: "error",
-        summary: "Color list failed",
-        detail: err?.message ?? "Unable to load color list.",
-      });
+      notify("error", "Color list failed", err?.message ?? "Unable to load color list.");
     } finally {
       setColorListLoading(false);
     }
@@ -196,21 +194,13 @@ export default function ColorList() {
 
   const handleColorSave = async (row: ColorListRow) => {
     if (!row.colorName?.trim()) {
-      toastRef.current?.show({
-        severity: "warn",
-        summary: "Color required",
-        detail: "Enter a color name.",
-      });
+      notify("warn", "Color required", "Enter a color name.");
       return false;
     }
 
     const normalizedHex = normalizeHex(row.hexValue ?? "");
     if (normalizedHex && !isHexValid(normalizedHex)) {
-      toastRef.current?.show({
-        severity: "warn",
-        summary: "Hex format",
-        detail: "Hex should be 6 characters (for example, #1A2B3C).",
-      });
+      notify("warn", "Hex format", "Hex should be 6 characters (for example, #1A2B3C).");
       return false;
     }
 
@@ -223,19 +213,11 @@ export default function ColorList() {
         hexValue: normalizedHex || null,
       });
       await loadColorList();
-      toastRef.current?.show({
-        severity: "success",
-        summary: "Color saved",
-        detail: `${row.colorName} saved successfully.`,
-      });
+      notify("success", "Color saved", `${row.colorName} saved successfully.`);
       return true;
     } catch (err: any) {
       console.error(err);
-      toastRef.current?.show({
-        severity: "error",
-        summary: "Color save failed",
-        detail: err?.message ?? "Unable to save color.",
-      });
+      notify("error", "Color save failed", err?.message ?? "Unable to save color.");
       return false;
     }
   };
