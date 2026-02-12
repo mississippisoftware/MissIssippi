@@ -16,6 +16,9 @@ import { buildScanTableRows } from "../utils/buildScanTableRows";
 type ScanMode = "add" | "remove";
 type ScanTrigger = "auto" | "manual";
 
+const getErrorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error ? err.message : fallback;
+
 export default function InventoryScan() {
   const toastRef = useRef<Toast>(null);
   const notify = useNotifier(toastRef);
@@ -100,9 +103,9 @@ export default function InventoryScan() {
 
       clearScansOnly();
       resetStatus();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      notify("error", "Save failed", err?.message ?? "Unable to save adjustments.");
+      notify("error", "Save failed", getErrorMessage(err, "Unable to save adjustments."));
     } finally {
       setSaving(false);
     }

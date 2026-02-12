@@ -45,6 +45,8 @@ export function useItemUpload({
   setColors,
   loadItemList,
 }: UseItemUploadParams) {
+  const getErrorMessage = (err: unknown, fallback: string) =>
+    err instanceof Error ? err.message : fallback;
   const [defaultSeasonId] = useState("");
   const [fileName, setFileName] = useState("");
   const [uploadRows, setUploadRows] = useState<UploadItemRow[]>([]);
@@ -205,9 +207,9 @@ export function useItemUpload({
 
       setUploadRows(parsedRows);
       setParseErrors(errors);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setParseErrors([`Failed to read file: ${err?.message ?? "Unknown error"}`]);
+      setParseErrors([`Failed to read file: ${getErrorMessage(err, "Unknown error")}`]);
     }
   };
 
@@ -467,9 +469,9 @@ export function useItemUpload({
       }
       setUploadSummary(summary);
       await loadItemList();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      summary.errors.push(err?.message ?? "Upload failed.");
+      summary.errors.push(getErrorMessage(err, "Upload failed."));
       setUploadSummary(summary);
     } finally {
       setUploading(false);

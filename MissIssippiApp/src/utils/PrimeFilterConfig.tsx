@@ -1,55 +1,102 @@
-export const stringMatchModes = [
-    { label: 'Starts With', value: 'startsWith' },
-    { label: 'Contains', value: 'contains' },
-    { label: 'Ends With', value: 'endsWith' },
-    { label: 'Equals', value: 'equals' },
-];
-
 import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
+import type { DataTableFilterConstraint, DataTableFilterMeta, PrimeFilterMatchMode } from "./PrimeFilterTypes";
+
+type SimpleFilterOptions = {
+  value?: unknown;
+  filterCallback: (value: unknown) => void;
+};
+
+type DropdownOption = {
+  label: string;
+  value: unknown;
+};
+
+type MultiRuleFilterOptions = {
+  filterCallback: (constraints: DataTableFilterConstraint[], operator: DataTableFilterMeta["operator"]) => void;
+  constraints?: DataTableFilterConstraint[];
+  operator: DataTableFilterMeta["operator"];
+};
+
+type MultiRuleTextFilterProps = {
+  value?: unknown;
+  filterApplyCallback?: (value: unknown) => void;
+};
+
+export const stringMatchModes: Array<{ label: string; value: PrimeFilterMatchMode }> = [
+  { label: "Starts With", value: "startsWith" },
+  { label: "Contains", value: "contains" },
+  { label: "Ends With", value: "endsWith" },
+  { label: "Equals", value: "equals" },
+];
 
 // Generic Text Filter
-export const textFilterTemplate = (placeholder: string) => (options: any) => {
+export const textFilterTemplate = (placeholder: string) => (options: SimpleFilterOptions) => {
     const { value, filterCallback } = options;
     return (
         <div className="p-d-flex p-flex-column">
             <input
                 type="text"
-                value={value || ""}
+                value={typeof value === "string" || typeof value === "number" ? value : ""}
                 onChange={(e) => filterCallback(e.target.value)}
                 placeholder={placeholder}
                 className="p-inputtext p-component p-mb-2"
             />
             <div className="p-d-flex p-jc-between">
-                <Button label="Apply" icon="pi pi-check" onClick={() => filterCallback(value)} size="small" />
-                <Button label="Clear" icon="pi pi-times" onClick={() => filterCallback("")} size="small" className="p-button-secondary" />
+                <Button
+                    label="Apply"
+                    icon="pi pi-search"
+                    onClick={() => filterCallback(value)}
+                    size="small"
+                    className="btn-primary btn-outlined"
+                />
+                <Button
+                    label="Clear"
+                    icon="pi pi-filter-slash"
+                    onClick={() => filterCallback("")}
+                    size="small"
+                    className="btn-text"
+                />
             </div>
         </div>
     );
 };
 
 // Generic Numeric Filter
-export const numericFilterTemplate = (placeholder: string) => (options: any) => {
+export const numericFilterTemplate = (placeholder: string) => (options: SimpleFilterOptions) => {
     const { value, filterCallback } = options;
     return (
         <div className="p-d-flex p-flex-column">
             <input
                 type="number"
-                value={value || ""}
+                value={typeof value === "string" || typeof value === "number" ? value : ""}
                 onChange={(e) => filterCallback(e.target.value)}
                 placeholder={placeholder}
                 className="p-inputtext p-component p-mb-2"
             />
             <div className="p-d-flex p-jc-between">
-                <Button label="Apply" icon="pi pi-check" onClick={() => filterCallback(value)} size="small" />
-                <Button label="Clear" icon="pi pi-times" onClick={() => filterCallback("")} size="small" className="p-button-secondary" />
+                <Button
+                    label="Apply"
+                    icon="pi pi-search"
+                    onClick={() => filterCallback(value)}
+                    size="small"
+                    className="btn-primary btn-outlined"
+                />
+                <Button
+                    label="Clear"
+                    icon="pi pi-filter-slash"
+                    onClick={() => filterCallback("")}
+                    size="small"
+                    className="btn-text"
+                />
             </div>
         </div>
     );
 };
 
 // Generic Dropdown Filter
-export const dropdownFilterTemplate = (optionsList: any[], placeholder: string) => (options: any) => {
+export const dropdownFilterTemplate = (optionsList: DropdownOption[], placeholder: string) =>
+  (options: SimpleFilterOptions) => {
     const { value, filterCallback } = options;
     return (
         <div className="p-d-flex p-flex-column">
@@ -62,32 +109,50 @@ export const dropdownFilterTemplate = (optionsList: any[], placeholder: string) 
                 showClear
             />
             <div className="p-d-flex p-jc-between">
-                <Button label="Apply" icon="pi pi-check" onClick={() => filterCallback(value)} size="small" />
-                <Button label="Clear" icon="pi pi-times" onClick={() => filterCallback("")} size="small" className="p-button-secondary" />
+                <Button
+                    label="Apply"
+                    icon="pi pi-search"
+                    onClick={() => filterCallback(value)}
+                    size="small"
+                    className="btn-primary btn-outlined"
+                />
+                <Button
+                    label="Clear"
+                    icon="pi pi-filter-slash"
+                    onClick={() => filterCallback("")}
+                    size="small"
+                    className="btn-text"
+                />
             </div>
         </div>
     );
 };
 
 
-const matchModes = [
-    { label: "Starts With", value: "startsWith" },
-    { label: "Contains", value: "contains" },
-    { label: "Equals", value: "equals" },
-    { label: "Ends With", value: "endsWith" },
+const matchModes: Array<{ label: string; value: PrimeFilterMatchMode }> = [
+  { label: "Starts With", value: "startsWith" },
+  { label: "Contains", value: "contains" },
+  { label: "Equals", value: "equals" },
+  { label: "Ends With", value: "endsWith" },
 ];
 
-export const multiRuleTextFilterTemplate = (placeholder: string) => (options: any) => {
+export const multiRuleTextFilterTemplate = (placeholder: string) =>
+  (options: MultiRuleFilterOptions) => {
     const { filterCallback, constraints, operator } = options;
 
     // Single constraint for simplicity (can extend to multiple)
-    const currentConstraint = constraints?.[0] || { value: "", matchMode: "startsWith" };
+    const currentConstraint: DataTableFilterConstraint =
+      constraints?.[0] ?? { value: "", matchMode: "startsWith" };
 
     return (
         <div className="p-d-flex p-flex-column">
             <input
                 type="text"
-                value={currentConstraint.value || ""}
+                value={
+                  typeof currentConstraint.value === "string" || typeof currentConstraint.value === "number"
+                    ? currentConstraint.value
+                    : ""
+                }
                 onChange={(e) =>
                     filterCallback([{ ...currentConstraint, value: e.target.value }], operator)
                 }
@@ -106,29 +171,30 @@ export const multiRuleTextFilterTemplate = (placeholder: string) => (options: an
             <div className="p-d-flex p-jc-between">
                 <Button
                     label="Apply"
-                    icon="pi pi-check"
+                    icon="pi pi-search"
                     onClick={() => filterCallback([currentConstraint], operator)}
                     size="small"
+                    className="btn-primary btn-outlined"
                 />
                 <Button
                     label="Clear"
-                    icon="pi pi-times"
+                    icon="pi pi-filter-slash"
                     onClick={() => filterCallback([], operator)}
                     size="small"
-                    className="p-button-secondary"
+                    className="btn-text"
                 />
             </div>
         </div>
     );
 };
 
-export function multiRuleTextFilterWithoutButtons(props: any) {
+export function multiRuleTextFilterWithoutButtons(props: MultiRuleTextFilterProps) {
   const { value, filterApplyCallback } = props;
 
   return (
     <div className="p-d-flex p-flex-column p-gap-2">
       <input
-        value={value ?? ""}
+        value={typeof value === "string" || typeof value === "number" ? value : ""}
         onChange={(e) => filterApplyCallback?.(e.target.value)}
         placeholder="Filter..."
       />

@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
 import CatalogPageLayout from "../components/CatalogPageLayout";
 import CatalogService, { type ItemView } from "../service/CatalogService";
@@ -32,6 +32,9 @@ type UploadSummary = {
 const buildItemKey = (seasonName: string, itemNumber: string) =>
   `${normalizeName(seasonName)}|${normalizeName(itemNumber)}`;
 
+const getErrorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error ? err.message : fallback;
+
 export default function PriceList() {
   const [items, setItems] = useState<ItemView[]>([]);
   const [seasons, setSeasons] = useState<SeasonOption[]>([]);
@@ -63,7 +66,7 @@ export default function PriceList() {
     return map;
   }, [items]);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     setLoading(true);
     setLookupError(null);
     try {
@@ -81,17 +84,17 @@ export default function PriceList() {
         seasonName: item.seasonName ?? localSeasonMap.get(item.seasonId) ?? "",
       }));
       setItems(rows);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setLookupError(err?.message ?? "Failed to load items.");
+      setLookupError(getErrorMessage(err, "Failed to load items."));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadItems();
-  }, []);
+  }, [loadItems]);
 
   useEffect(() => {
     if (seasons.length === 0) return;
@@ -205,9 +208,9 @@ export default function PriceList() {
 
       setUploadRows(parsedRows);
       setParseErrors(errors);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setParseErrors([`Failed to read file: ${err?.message ?? "Unknown error"}`]);
+      setParseErrors([`Failed to read file: ${getErrorMessage(err, "Unknown error")}`]);
     }
   };
 
@@ -243,8 +246,8 @@ export default function PriceList() {
           weight: item.weight ?? null,
         });
         updated += 1;
-      } catch (err: any) {
-        errors.push(`Row ${row.rowNumber}: ${err?.message ?? "Update failed."}`);
+      } catch (err: unknown) {
+        errors.push(`Row ${row.rowNumber}: ${getErrorMessage(err, "Update failed.")}`);
       }
     }
 

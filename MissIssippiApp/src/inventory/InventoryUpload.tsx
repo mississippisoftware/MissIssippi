@@ -1,223 +1,45 @@
-import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
-import * as XLSX from "xlsx";
 import CatalogPageLayout from "../components/CatalogPageLayout";
-import InventoryService from "../service/InventoryService";
+import { useInventorySizes } from "../hooks/useInventorySizes";
+import { useInventoryUpload } from "../hooks/useInventoryUpload";
 import {
   type InventoryUploadError,
-  type InventoryUploadResult,
-  type InventoryUploadRow,
-  type InventoryUploadMode,
   InventoryUploadService,
 } from "../service/InventoryUploadService";
-import type { iSize } from "../utils/DataInterfaces";
-
-const REQUIRED_HEADERS = {
-  season: ["season", "season name", "seasonname"],
-  style: ["style", "style number", "stylenumber", "style #", "style no"],
-  color: ["color", "color name", "colorname"],
-};
-
-const normalizeHeader = (value: unknown) => String(value ?? "").trim().toLowerCase();
+import { downloadInventoryUploadTemplate } from "../utils/inventoryUploadTemplate";
 
 export default function InventoryUpload() {
-  const [sizes, setSizes] = useState<iSize[]>([]);
-  const [loadingSizes, setLoadingSizes] = useState(true);
-  const [fileName, setFileName] = useState("");
-  const [rows, setRows] = useState<InventoryUploadRow[]>([]);
-  const [parseErrors, setParseErrors] = useState<string[]>([]);
-  const [uploadResult, setUploadResult] = useState<InventoryUploadResult | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadMode, setUploadMode] = useState<InventoryUploadMode>("replace");
+  const [pageError, setPageError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    setLoadingSizes(true);
-    InventoryService.getSizes()
-      .then((data) => {
-        if (!isMounted) return;
-        const ordered = [...data].sort((a, b) => {
-          const sequenceA = a.sizeSequence ?? 0;
-          const sequenceB = b.sizeSequence ?? 0;
-          if (sequenceA !== sequenceB) return sequenceA - sequenceB;
-          return String(a.sizeName ?? "").localeCompare(String(b.sizeName ?? ""));
-        });
-        const cleanSizes = ordered.map((size) => ({
-          ...size,
-          sizeName: (size.sizeName ?? "").trim(),
-        }));
-        setSizes(cleanSizes);
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        setParseErrors([`Failed to load sizes: ${err?.message ?? "Unknown error"}`]);
-      })
-      .finally(() => {
-        if (!isMounted) return;
-        setLoadingSizes(false);
-      });
+  const { sizeColumns: sizes, sizeLoading: loadingSizes, sizeError } = useInventorySizes();
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const sizeErrorMessage = sizeError ? `Failed to load sizes: ${sizeError}` : null;
+  const effectivePageError = pageError ?? sizeErrorMessage;
 
   const sizeNames = useMemo(() => sizes.map((size) => size.sizeName), [sizes]);
+  const {
+    fileName,
+    rows,
+    parseErrors,
+    uploadResult,
+    uploading,
+    uploadMode,
+    setUploadMode,
+    setFile,
+    upload,
+  } = useInventoryUpload({
+    sizeNames,
+    uploadInventory: InventoryUploadService.uploadInventory,
+  });
 
   const handleDownloadTemplate = () => {
-    if (sizes.length === 0) return;
-
-    const headers = ["Season", "Style", "Color", ...sizeNames];
-    const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory Upload");
-
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
-      now.getDate()
-    ).padStart(2, "0")}`;
-    XLSX.writeFile(workbook, `inventory_upload_template_${timestamp}.xlsx`);
+    downloadInventoryUploadTemplate(sizes);
   };
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      setFileName("");
-      setRows([]);
-      setParseErrors([]);
-      setUploadResult(null);
-      return;
-    }
-
-    setFileName(file.name);
-    setRows([]);
-    setParseErrors([]);
-    setUploadResult(null);
-
-    try {
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      if (!sheetName) {
-        setParseErrors(["No worksheet found in the file."]);
-        return;
-      }
-
-      const worksheet = workbook.Sheets[sheetName];
-      const rawRows = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1, defval: "" });
-
-      if (rawRows.length === 0) {
-        setParseErrors(["The worksheet is empty."]);
-        return;
-      }
-
-      const headerRow = rawRows[0] as unknown[];
-      const normalizedHeaders = headerRow.map(normalizeHeader);
-
-      const findHeaderIndex = (candidates: string[]) => {
-        for (const candidate of candidates) {
-          const index = normalizedHeaders.indexOf(normalizeHeader(candidate));
-          if (index >= 0) {
-            return index;
-          }
-        }
-        return -1;
-      };
-
-      const seasonIndex = findHeaderIndex(REQUIRED_HEADERS.season);
-      const styleIndex = findHeaderIndex(REQUIRED_HEADERS.style);
-      const colorIndex = findHeaderIndex(REQUIRED_HEADERS.color);
-
-      const missingRequired = [
-        seasonIndex < 0 ? "Season" : null,
-        styleIndex < 0 ? "Style" : null,
-        colorIndex < 0 ? "Color" : null,
-      ].filter(Boolean);
-
-      if (missingRequired.length > 0) {
-        setParseErrors([`Missing required columns: ${missingRequired.join(", ")}.`]);
-        return;
-      }
-
-      const sizeIndexMap = new Map<string, number>();
-      normalizedHeaders.forEach((header, index) => {
-        if (!header) return;
-        sizeIndexMap.set(header, index);
-      });
-
-      const missingSizes = sizeNames.filter(
-        (sizeName) => !sizeIndexMap.has(normalizeHeader(sizeName))
-      );
-
-      if (missingSizes.length > 0) {
-        setParseErrors([`Missing size columns: ${missingSizes.join(", ")}.`]);
-        return;
-      }
-
-      const parsedRows: InventoryUploadRow[] = [];
-      const errors: string[] = [];
-
-      rawRows.slice(1).forEach((row, rowIndex) => {
-        const values = row as Array<unknown>;
-        const rowNumber = rowIndex + 2;
-
-        const seasonName = String(values[seasonIndex] ?? "").trim();
-        const itemNumber = String(values[styleIndex] ?? "").trim();
-        const colorName = String(values[colorIndex] ?? "").trim();
-
-        const hasSizeValues = sizeNames.some((sizeName) => {
-          const sizeIndex = sizeIndexMap.get(normalizeHeader(sizeName)) ?? -1;
-          const cell = values[sizeIndex];
-          return cell !== "" && cell !== null && cell !== undefined;
-        });
-
-        if (!seasonName && !itemNumber && !colorName && !hasSizeValues) {
-          return;
-        }
-
-        if (!seasonName) {
-          errors.push(`Row ${rowNumber}: Season is required.`);
-        }
-        if (!itemNumber) {
-          errors.push(`Row ${rowNumber}: Style is required.`);
-        }
-        if (!colorName) {
-          errors.push(`Row ${rowNumber}: Color is required.`);
-        }
-
-        const sizesPayload: Record<string, number | null> = {};
-        sizeNames.forEach((sizeName) => {
-          const sizeIndex = sizeIndexMap.get(normalizeHeader(sizeName)) ?? -1;
-          const rawValue = values[sizeIndex];
-          if (rawValue === "" || rawValue === null || rawValue === undefined) {
-            sizesPayload[sizeName] = 0;
-            return;
-          }
-
-          const numericValue = typeof rawValue === "number" ? rawValue : Number(String(rawValue).trim());
-          if (Number.isNaN(numericValue)) {
-            errors.push(`Row ${rowNumber}: Quantity for size '${sizeName}' is not a number.`);
-            sizesPayload[sizeName] = 0;
-            return;
-          }
-
-          sizesPayload[sizeName] = Math.max(0, Math.floor(numericValue));
-        });
-
-        parsedRows.push({
-          rowNumber,
-          seasonName,
-          itemNumber,
-          colorName,
-          sizes: sizesPayload,
-        });
-      });
-
-      setRows(parsedRows);
-      setParseErrors(errors);
-    } catch (err: any) {
-      setParseErrors([`Failed to read file: ${err?.message ?? "Unknown error"}`]);
-    }
+    await setFile(event.target.files?.[0] ?? null);
+    setPageError(null);
   };
 
   const uploadErrors: InventoryUploadError[] = uploadResult?.errors ?? [];
@@ -228,16 +50,11 @@ export default function InventoryUpload() {
       return;
     }
 
-    setUploading(true);
-    setUploadResult(null);
-
     try {
-      const result = await InventoryUploadService.uploadInventory(rows, uploadMode);
-      setUploadResult(result);
-    } catch (err: any) {
-      setParseErrors([`Upload failed: ${err?.message ?? "Unknown error"}`]);
-    } finally {
-      setUploading(false);
+      await upload();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setPageError(`Upload failed: ${message}`);
     }
   };
 
@@ -250,27 +67,20 @@ export default function InventoryUpload() {
         <Card.Body>
           <Row className="align-items-center gy-3">
             <Col md={8}>
-              <h5 className="mb-1 card-heading-title">Template</h5>
+              <h5 className="mb-1 card-heading-title">Inventory Template</h5>
               <p className="text-muted mb-0">
-                Seasons, styles, and colors must already exist in the system. Unknown values will be
-                rejected.
+                Seasons, styles, and colors must already exist in the system. <br /> New styles can be added in Item List page.
               </p>
             </Col>
             <Col md={4} className="text-md-end">
               <Button
                 type="button"
-                className="portal-btn portal-btn-download portal-page-action"
+                className="btn-info btn-outlined"
                 onClick={handleDownloadTemplate}
                 disabled={loadingSizes}
               >
-                {loadingSizes ? (
-                  "Loading sizes..."
-                ) : (
-                  <>
-                    <i className="pi pi-download portal-page-action-icon" aria-hidden="true" />
-                    Download Template
-                  </>
-                )}
+                <i className="pi pi-download" aria-hidden="true" />
+                {loadingSizes ? "Loading sizes..." : "Download Template"}
               </Button>
             </Col>
           </Row>
@@ -288,37 +98,39 @@ export default function InventoryUpload() {
               <div className="inventory-upload-mode-group">
                 <Button
                   type="button"
-                  className={`portal-btn inventory-upload-mode-btn inventory-upload-mode-change${
-                    uploadMode === "replace" ? " is-active" : ""
-                  }`}
+                  className={`btn-mode btn-neutral ${uploadMode === "replace" ? "" : "btn-outlined"}`}
                   onClick={() => setUploadMode("replace")}
                 >
+                  <i className="pi pi-pencil" aria-hidden="true" />
                   Change
                 </Button>
                 <Button
                   type="button"
-                  className={`portal-btn inventory-upload-mode-btn inventory-upload-mode-add${
-                    uploadMode === "add" ? " is-active" : ""
-                  }`}
+                  className={`btn-mode btn-success ${uploadMode === "add" ? "" : "btn-outlined"}`}
                   onClick={() => setUploadMode("add")}
                 >
+                  <i className="pi pi-plus" aria-hidden="true" />
                   Add
                 </Button>
                 <Button
                   type="button"
-                  className={`portal-btn inventory-upload-mode-btn inventory-upload-mode-subtract${
-                    uploadMode === "subtract" ? " is-active" : ""
-                  }`}
+                  className={`btn-mode btn-danger ${uploadMode === "subtract" ? "" : "btn-outlined"}`}
                   onClick={() => setUploadMode("subtract")}
                 >
+                  <i className="pi pi-trash" aria-hidden="true" />
                   Subtract
                 </Button>
               </div>
               <Form.Text className="text-muted">
-                Change replaces quantities. Add/Subtract adjust totals and clamp at 0.
+                Change replaces quantities. Add/Subtract adjust totals.
               </Form.Text>
             </Col>
           </Row>
+          {effectivePageError && (
+            <Alert variant="danger" className="mt-3">
+              {effectivePageError}
+            </Alert>
+          )}
           <Row className="gy-3 align-items-center">
             <Col md={8}>
               <Form.Group controlId="inventoryUploadFile">
@@ -330,7 +142,7 @@ export default function InventoryUpload() {
                   disabled={loadingSizes}
                 />
                 <Form.Text className="text-muted">
-                  Columns expected: Season, Style, Color, then all size columns ({sizeNames.join(", ")}).
+                  Columns expected: Season, Style, Color, Sizes.
                 </Form.Text>
               </Form.Group>
               {fileName && (
@@ -340,17 +152,19 @@ export default function InventoryUpload() {
             <Col md={4} className="text-md-end">
               <Button
                 type="button"
-                className="portal-btn portal-btn-upload portal-page-action"
+                className="btn-success"
                 onClick={handleUpload}
                 disabled={rows.length === 0 || parseErrors.length > 0 || uploading}
               >
                 {uploading ? (
                   <>
-                    <Spinner animation="border" size="sm" className="me-2" /> Uploading...
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    <i className="pi pi-upload" aria-hidden="true" />
+                    Uploading...
                   </>
                 ) : (
                   <>
-                    <i className="pi pi-upload portal-page-action-icon" aria-hidden="true" />
+                    <i className="pi pi-upload" aria-hidden="true" />
                     Upload Inventory
                   </>
                 )}
@@ -360,6 +174,15 @@ export default function InventoryUpload() {
 
           {rows.length > 0 && (
             <div className="text-muted mt-3">Rows ready to upload: {rows.length}</div>
+          )}
+
+          {sizeError && (
+            <Alert variant="danger" className="mt-3">
+              <strong>Fix these issues before uploading:</strong>
+              <ul className="mb-0">
+                <li>Failed to load sizes: {sizeError}</li>
+              </ul>
+            </Alert>
           )}
 
           {parseErrors.length > 0 && (

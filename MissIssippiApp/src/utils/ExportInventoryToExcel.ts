@@ -1,3 +1,4 @@
+import type { Range, WorkSheet } from "xlsx";
 import type { iInventoryDisplayRow, iSize } from "./DataInterfaces";
 import type { FilterableColumn } from "../inventory/InventoryTable";
 import {
@@ -36,13 +37,16 @@ export function exportInventoryToExcel({
     ...sizeColumns.map((s) => s.sizeName),
   ];
 
-  const dataRows = rows.map((r) => ([
-    ...uiColumns.map((c) => (r as any)[c.field] ?? ""),
-    ...sizeColumns.map((s) => r.sizes?.[s.sizeName]?.qty ?? 0),
-  ]));
+  const dataRows = rows.map((row) => {
+    const record = row as unknown as Record<string, unknown>;
+    return [
+      ...uiColumns.map((c) => record[c.field] ?? ""),
+      ...sizeColumns.map((s) => row.sizes?.[s.sizeName]?.qty ?? 0),
+    ];
+  });
 
   // Title + timestamp + blank row + headers + data
-  const aoa: any[][] = [
+  const aoa: Array<Array<unknown>> = [
     [title],
     [timestamp],
     [],
@@ -50,14 +54,15 @@ export function exportInventoryToExcel({
     ...dataRows,
   ];
 
-  const ws = sheetFromAoa(aoa);
+  const ws = sheetFromAoa(aoa) as WorkSheet;
 
   // Merge title/timestamp across all columns
   const lastCol = Math.max(headers.length - 1, 0);
-  (ws as any)["!merges"] = [
+  const merges: Range[] = [
     { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } },
     { s: { r: 1, c: 0 }, e: { r: 1, c: lastCol } },
   ];
+  ws["!merges"] = merges;
 
   const wb = createWorkbook();
   appendSheet(wb, ws, sheetName);

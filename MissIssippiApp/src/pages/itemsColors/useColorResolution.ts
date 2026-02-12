@@ -336,9 +336,10 @@ export function useColorResolution({
         "Colors saved",
         `Added ${added} color(s). Skipped ${skipped} existing link(s).`
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      notify("error", "Color save failed", err?.message ?? "Unable to save colors.");
+      const message = err instanceof Error ? err.message : "Unable to save colors.";
+      notify("error", "Color save failed", message);
     } finally {
       setSavingColors(false);
     }

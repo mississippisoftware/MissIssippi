@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Button, Modal } from "react-bootstrap";
-import type { DataTableRowEditCompleteEvent } from "primereact/datatable";
+import type { DataTableRowEditCompleteEvent, DataTableRowClickEvent } from "primereact/datatable";
 import { Toast } from "primereact/toast";
 import CatalogService, { type ItemColorView } from "../../service/CatalogService";
 import CatalogPageLayout from "../../components/CatalogPageLayout";
@@ -21,6 +21,8 @@ import { useColorUpload } from "./useColorUpload";
 export default function ItemsColors() {
   const toastRef = useRef<Toast>(null);
   const notify = useNotifier(toastRef);
+  const getErrorMessage = (err: unknown, fallback: string) =>
+    err instanceof Error ? err.message : fallback;
 
   const {
     seasons,
@@ -155,8 +157,11 @@ export default function ItemsColors() {
     loadItemList,
   });
 
-  const resolveSeasonName = (seasonId: number | string) =>
-    seasons.find((season) => season.seasonId === Number(seasonId))?.seasonName ?? "";
+  const resolveSeasonName = useCallback(
+    (seasonId: number | string) =>
+      seasons.find((season) => season.seasonId === Number(seasonId))?.seasonName ?? "",
+    [seasons]
+  );
 
   const seasonSummary = useMemo(() => {
     if (seasonFilterId) {
@@ -166,7 +171,7 @@ export default function ItemsColors() {
       new Set(filteredItems.map((row) => row.seasonName).filter((name): name is string => Boolean(name)))
     );
     return names.length ? names.join(", ") : "All seasons";
-  }, [filteredItems, seasonFilterId, seasons]);
+  }, [filteredItems, seasonFilterId, resolveSeasonName]);
 
   const handleExpandAll = () => {
     const next: Record<string, boolean> = {};
@@ -247,9 +252,9 @@ export default function ItemsColors() {
       setSelectedItem(matched ?? null);
       notify("success", "Style saved", `${row.itemNumber} saved successfully.`);
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      notify("error", "Style save failed", err?.message ?? "Unable to save style.");
+      notify("error", "Style save failed", getErrorMessage(err, "Unable to save style."));
       return false;
     }
   };
@@ -308,7 +313,7 @@ export default function ItemsColors() {
     });
   };
 
-  const handleRowClick = (event: any) => {
+  const handleRowClick = (event: DataTableRowClickEvent) => {
     const target = event.originalEvent?.target as HTMLElement | null;
     if (
       target?.closest(
@@ -317,7 +322,7 @@ export default function ItemsColors() {
     ) {
       return;
     }
-    toggleRowExpansion(event.data);
+    toggleRowExpansion(event.data as ItemListRow);
   };
 
   const getUniqueColors = (colorsForItem: ItemColorView[]) => {

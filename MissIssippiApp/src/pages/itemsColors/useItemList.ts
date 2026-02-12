@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useMemo, useState } from "react";
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Toast } from "primereact/toast";
 import { InventoryService } from "../../service/InventoryService";
 import CatalogService, { type ColorOption, type ItemColorView } from "../../service/CatalogService";
@@ -10,6 +10,9 @@ import { useNotifier } from "../../hooks/useNotifier";
 type UseItemListParams = {
   toastRef: RefObject<Toast | null>;
 };
+
+const getErrorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error ? err.message : fallback;
 
 export function useItemList({ toastRef }: UseItemListParams) {
   const notify = useNotifier(toastRef);
@@ -43,7 +46,7 @@ export function useItemList({ toastRef }: UseItemListParams) {
     return filterSeasonActiveRows(itemList, { seasonFilterId, activeFilter });
   }, [itemList, seasonFilterId, activeFilter]);
 
-  const loadLookups = async () => {
+  const loadLookups = useCallback(async () => {
     setLoadingLookups(true);
     setLookupError(null);
     try {
@@ -53,15 +56,15 @@ export function useItemList({ toastRef }: UseItemListParams) {
       ]);
       setSeasons(seasonData);
       setColors(colorData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setLookupError(err?.message ?? "Failed to load catalog lookups.");
+      setLookupError(getErrorMessage(err, "Failed to load catalog lookups."));
     } finally {
       setLoadingLookups(false);
     }
-  };
+  }, []);
 
-  const loadItemList = async () => {
+  const loadItemList = useCallback(async () => {
     setItemListLoading(true);
     try {
       const [itemsData, itemColorData] = await Promise.all([
@@ -94,19 +97,23 @@ export function useItemList({ toastRef }: UseItemListParams) {
         setColorModalItem(match ?? null);
       }
       return rows;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      notify("error", "Item list failed", err?.message ?? "Unable to load items list.");
+      notify("error", "Item list failed", getErrorMessage(err, "Unable to load items list."));
       return [];
     } finally {
       setItemListLoading(false);
     }
-  };
+  }, [colorModalItem, notify, selectedItem]);
+
+  const didInit = useRef(false);
 
   useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
     loadLookups();
     loadItemList();
-  }, []);
+  }, [loadItemList, loadLookups]);
 
   return {
     seasons,

@@ -1,10 +1,16 @@
 import { DataTable } from "primereact/datatable";
-import type { DataTable as DataTableRef, DataTableRowEditCompleteEvent } from "primereact/datatable";
+import type {
+  DataTable as DataTableRef,
+  DataTableProps,
+  DataTableRowEditCompleteEvent,
+} from "primereact/datatable";
 import { Column } from "primereact/column";
+import type { ColumnProps } from "primereact/column";
 import { Button } from "primereact/button";
 import { InputNumber } from "primereact/inputnumber";
 import type { iInventoryDisplayRow, iSize } from "../utils/DataInterfaces";
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle, useMemo, useCallback } from "react";
+import type { ReactNode } from "react";
 import { inventoryFieldLabels } from "../utils/LabelMap";
 
 export interface FilterableColumn {
@@ -33,6 +39,23 @@ interface InventoryTableProps {
   onSave?: (row: iInventoryDisplayRow) => Promise<void> | void;
 }
 
+type DataTableFilterMeta = NonNullable<DataTableProps<iInventoryDisplayRow[]>["filters"]>;
+type FilterApplyTemplateOptions = Parameters<
+  Exclude<ColumnProps["filterApply"], ReactNode | undefined>
+>[0];
+type FilterClearTemplateOptions = Parameters<
+  Exclude<ColumnProps["filterClear"], ReactNode | undefined>
+>[0];
+
+const buildInitialFilters = (columns: FilterableColumn[]): DataTableFilterMeta =>
+  columns.reduce<DataTableFilterMeta>((acc, col) => {
+    acc[col.field] = {
+      operator: "and",
+      constraints: [{ value: null, matchMode: col.filterMatchMode || "startsWith" }],
+    };
+    return acc;
+  }, {});
+
 const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(function InventoryTable(
   {
     inventory,
@@ -50,78 +73,83 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
   },
   ref
 ) {
-  const [filters, setFilters] = useState<any>({});
+  const initialFilters = useMemo(() => buildInitialFilters(filteredColumns), [filteredColumns]);
+  const [filters, setFilters] = useState<DataTableFilterMeta>(initialFilters);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
-  const dtRef = useRef<DataTableRef<iInventoryDisplayRow[]>>(null);
+  const dtRef = useRef<DataTableRef<iInventoryDisplayRow[]> | null>(null);
 
   useImperativeHandle(ref, () => ({
-    getProcessedRows: () =>
-      (dtRef.current?.getProcessedData?.() as iInventoryDisplayRow[]) ?? [],
+    getProcessedRows: () => dtRef.current?.getProcessedData?.() ?? [],
   }));
 
-  // Initialize filters
-  useEffect(() => {
-    const f: any = {};
-    filteredColumns.forEach((col) => {
-      f[col.field] = {
-        operator: "and",
-        constraints: [{ value: null, matchMode: col.filterMatchMode || "startsWith" }],
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reset filters when columns change
+  useEffect(() => setFilters(initialFilters), [initialFilters]);
+
+  const renderFilterFooter = useCallback(
+    (field: string) => {
+      const columnFilter = filters[field];
+      const constraints =
+        columnFilter && "constraints" in columnFilter ? columnFilter.constraints : undefined;
+      const isFiltered =
+        constraints?.some((constraint) => constraint.value !== null && constraint.value !== "") ??
+        false;
+
+      const clearFilter = () => {
+        if (!columnFilter || !("constraints" in columnFilter)) return;
+        const newFilters: DataTableFilterMeta = { ...filters };
+        newFilters[field] = {
+          ...columnFilter,
+          constraints: columnFilter.constraints.map((constraint, index) =>
+            index === 0 ? { ...constraint, value: null } : constraint
+          ),
+        };
+        setFilters(newFilters);
       };
-    });
-    setFilters(f);
-  }, [filteredColumns]);
 
-  const FilterFooterTemplate = ({ field }: { field: string }) => {
-    const columnFilter = filters[field];
-    const isFiltered = columnFilter?.constraints?.some(
-      (c: any) => c.value !== null && c.value !== ""
-    );
+      const label = inventoryFieldLabels[field] || field;
 
-    const clearFilter = () => {
-      if (!columnFilter?.constraints) return;
-      const newFilters = { ...filters };
-      newFilters[field] = {
-        ...newFilters[field],
-        constraints: newFilters[field].constraints.map((c: any, i: number) =>
-          i === 0 ? { ...c, value: null } : c
-        ),
-      };
-      setFilters(newFilters);
-    };
-
-    const label = inventoryFieldLabels[field] || field;
-
-    return (
-      <div className="p-column-filter-footer-info">
-        <span>
-          Filter by <strong>{label}</strong>
-        </span>
-        {isFiltered && (
-          <Button
-            icon="pi pi-times"
-            className="p-button-rounded p-button-text p-button-danger"
-            onClick={clearFilter}
-            tooltip="Clear filter"
-          />
-        )}
-      </div>
-    );
-  };
-
-  const filterApplyTemplate = (options: any) => (
-    <Button
-      icon="pi pi-check"
-      className="p-button-success p-button-icon-only p-button-secondary"
-      onClick={options.filterApplyCallback}
-    />
+      return (
+        <div className="p-column-filter-footer-info">
+          <span>
+            Filter by <strong>{label}</strong>
+          </span>
+          {isFiltered && (
+            <Button
+              icon="pi pi-filter-slash"
+              className="btn-neutral btn-text btn-icon"
+              onClick={clearFilter}
+              aria-label="Clear filter"
+              tooltip="Clear filter"
+            />
+          )}
+        </div>
+      );
+    },
+    [filters]
   );
 
-  const filterClearTemplate = (options: any) => (
-    <Button
-      icon="pi pi-times"
-      className="p-button p-button-icon-only p-button-secondary"
-      onClick={options.filterClearCallback}
-    />
+  const filterApplyTemplate = useCallback(
+    (options: FilterApplyTemplateOptions) => (
+      <Button
+        icon="pi pi-search"
+        className="btn-primary btn-text btn-icon"
+        onClick={options.filterApplyCallback}
+        aria-label="Apply filter"
+      />
+    ),
+    []
+  );
+
+  const filterClearTemplate = useCallback(
+    (options: FilterClearTemplateOptions) => (
+      <Button
+        icon="pi pi-filter-slash"
+        className="btn-neutral btn-text btn-icon"
+        onClick={options.filterClearCallback}
+        aria-label="Clear filter"
+      />
+    ),
+    []
   );
 
   const onRowEditComplete = async ({ newData }: DataTableRowEditCompleteEvent) => {
@@ -184,7 +212,7 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
             header={col.header}
             filter
             filterMatchMode={col.filterMatchMode || "startsWith"}
-            filterFooter={() => <FilterFooterTemplate field={col.field} />}
+            filterFooter={() => renderFilterFooter(col.field)}
             filterApply={filterApplyTemplate}
             filterClear={filterClearTemplate}
             className={col.className}
@@ -224,11 +252,9 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
     </div>
   );
 
-  if (embedded) {
-    return table;
-  }
-
-  return (
+  return embedded ? (
+    table
+  ) : (
     <div className="container">
       <div className="content-card">{table}</div>
     </div>

@@ -76,6 +76,7 @@ export default function InventoryEdit() {
   }, [initializeSizes, fetchSeasons]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- keep form in sync with stored filters
     setForm({ ...EMPTY_FILTERS, ...(lastFilters ?? {}) });
   }, [lastFilters]);
 
@@ -103,6 +104,7 @@ export default function InventoryEdit() {
       seasonName,
     };
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- keep form in sync with URL query params
     setForm(nextFilters);
     search(nextFilters).catch((err: unknown) => {
       console.error(err);

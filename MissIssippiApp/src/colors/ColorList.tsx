@@ -37,6 +37,12 @@ type UploadSummary = {
   errors: string[];
 };
 
+type EditorOptions<T> = {
+  value?: unknown;
+  rowData: T;
+  editorCallback?: (value: unknown) => void;
+};
+
 const buildColorKey = (name: string, seasonId?: number | null) =>
   `${normalizeName(name)}|${seasonId ?? ""}`;
 
@@ -52,6 +58,15 @@ const isHexValid = (value: string) => {
   if (!value) return true;
   const cleaned = value.replace("#", "");
   return cleaned.length === 6;
+};
+
+const getErrorMessage = (err: unknown, fallback: string) => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object" && err && "message" in err) {
+    const message = (err as { message?: unknown }).message;
+    return typeof message === "string" ? message : fallback;
+  }
+  return fallback;
 };
 
 export default function ColorList() {
@@ -122,9 +137,9 @@ export default function ColorList() {
         seasonName: color.seasonId ? localSeasonMap.get(color.seasonId) ?? "" : "",
       }));
       setColors(rows);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setLookupError(err?.message ?? "Failed to load colors.");
+      setLookupError(getErrorMessage(err, "Failed to load colors."));
     } finally {
       setLoadingLookups(false);
     }
@@ -139,9 +154,9 @@ export default function ColorList() {
         seasonName: color.seasonId ? seasonMap.get(color.seasonId) ?? "" : "",
       }));
       setColors(rows);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      notify("error", "Color list failed", err?.message ?? "Unable to load color list.");
+      notify("error", "Color list failed", getErrorMessage(err, "Unable to load color list."));
     } finally {
       setColorListLoading(false);
     }
@@ -214,9 +229,9 @@ export default function ColorList() {
       await loadColorList();
       notify("success", "Color saved", `${row.colorName} saved successfully.`);
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      notify("error", "Color save failed", err?.message ?? "Unable to save color.");
+      notify("error", "Color save failed", getErrorMessage(err, "Unable to save color."));
       return false;
     }
   };
@@ -231,7 +246,7 @@ export default function ColorList() {
     setEditingRows({});
   };
 
-  const renderSeasonEditor = (options: any) => (
+  const renderSeasonEditor = (options: EditorOptions<ColorListRow>) => (
     <Form.Select
       value={options.rowData.seasonId ?? ""}
       onChange={(e) => {
@@ -239,7 +254,7 @@ export default function ColorList() {
         const seasonName = seasonMap.get(nextId) ?? "";
         options.rowData.seasonId = nextId || null;
         options.rowData.seasonName = seasonName;
-        options.editorCallback(nextId || null);
+        options.editorCallback?.(nextId || null);
       }}
     >
       <option value="">No season</option>
@@ -251,17 +266,17 @@ export default function ColorList() {
     </Form.Select>
   );
 
-  const renderTextEditor = (options: any) => (
+  const renderTextEditor = (options: EditorOptions<ColorListRow>) => (
     <Form.Control
-      value={options.value ?? ""}
-      onChange={(e) => options.editorCallback(e.target.value)}
+      value={typeof options.value === "string" || typeof options.value === "number" ? options.value : ""}
+      onChange={(e) => options.editorCallback?.(e.target.value)}
     />
   );
 
-  const renderHexEditor = (options: any) => (
+  const renderHexEditor = (options: EditorOptions<ColorListRow>) => (
     <Form.Control
-      value={options.value ?? ""}
-      onChange={(e) => options.editorCallback(e.target.value)}
+      value={typeof options.value === "string" || typeof options.value === "number" ? options.value : ""}
+      onChange={(e) => options.editorCallback?.(e.target.value)}
       placeholder="#FFFFFF"
     />
   );
@@ -389,9 +404,9 @@ export default function ColorList() {
 
       setUploadRows(parsedRows);
       setParseErrors(errors);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setParseErrors([`Failed to read file: ${err?.message ?? "Unknown error"}`]);
+      setParseErrors([`Failed to read file: ${getErrorMessage(err, "Unknown error")}`]);
     }
   };
 
@@ -422,8 +437,8 @@ export default function ColorList() {
           hexValue: row.hexValue?.trim() || null,
         });
         processed += 1;
-      } catch (err: any) {
-        errors.push(`Row ${row.rowNumber}: ${err?.message ?? "Upload failed."}`);
+      } catch (err: unknown) {
+        errors.push(`Row ${row.rowNumber}: ${getErrorMessage(err, "Upload failed.")}`);
       }
     }
 

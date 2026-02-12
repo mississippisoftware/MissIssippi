@@ -19,8 +19,8 @@ export type PrimeFilterMatchMode =
     | "dateAfter";
 
 export interface DataTableFilterConstraint {
-    value: any;
-    matchMode: string;
+    value: unknown;
+    matchMode: PrimeFilterMatchMode;
 }
 
 export interface DataTableFilterMeta {

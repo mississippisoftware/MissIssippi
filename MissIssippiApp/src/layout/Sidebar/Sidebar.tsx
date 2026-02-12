@@ -2,7 +2,7 @@ import { PanelMenu } from "primereact/panelmenu";
 import type { MenuItem } from "primereact/menuitem";
 import { useLocation, useNavigate } from "react-router-dom";
 import { menuItems } from "./menuItems";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface SidebarMenuItem {
   label: string;
@@ -73,24 +73,21 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const [flyoutKey, setFlyoutKey] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLElement | null>(null);
 
-  const handleNavigate = (to: string) => {
-    if (!isOpen) {
-      onToggle();
-      setExpandedKeys({});
-      setFlyoutKey(null);
-    }
-    navigate(to);
-  };
-
-  const model = useMemo(
-    () => toPanelMenuModel(menuItems, pathname, handleNavigate),
-    [pathname, handleNavigate]
+  const handleNavigate = useCallback(
+    (to: string) => {
+      if (!isOpen) {
+        onToggle();
+        setExpandedKeys({});
+        setFlyoutKey(null);
+      }
+      navigate(to);
+    },
+    [isOpen, navigate, onToggle]
   );
 
-  useEffect(() => {
+  const autoExpandedKeys = useMemo(() => {
     if (!isOpen) {
-      setExpandedKeys({});
-      return;
+      return {};
     }
     const nextExpanded: Record<string, boolean> = {};
     const walk = (items: SidebarMenuItem[]) => {
@@ -105,14 +102,18 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
       });
     };
     walk(menuItems);
-    setExpandedKeys((prev) => ({ ...prev, ...nextExpanded }));
-  }, [pathname, isOpen]);
+    return nextExpanded;
+  }, [isOpen, pathname]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setFlyoutKey(null);
-    }
-  }, [isOpen]);
+  const model = useMemo(
+    () => toPanelMenuModel(menuItems, pathname, handleNavigate),
+    [pathname, handleNavigate]
+  );
+
+  const resolvedExpandedKeys = useMemo(
+    () => (isOpen ? { ...expandedKeys, ...autoExpandedKeys } : {}),
+    [autoExpandedKeys, expandedKeys, isOpen]
+  );
 
   useEffect(() => {
     if (isOpen || !flyoutKey) {
@@ -149,7 +150,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           type="button"
           className="sidebar-toggle"
           aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
-          onClick={onToggle}
+          onClick={() => {
+            if (isOpen) {
+              setExpandedKeys({});
+            }
+            setFlyoutKey(null);
+            onToggle();
+          }}
         >
           <i className="pi pi-bars" aria-hidden="true" />
         </button>
@@ -158,7 +165,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
       <nav className="sidebar-menu">
         <PanelMenu
           model={model}
-          expandedKeys={expandedKeys}
+          expandedKeys={resolvedExpandedKeys}
           multiple
           onExpandedKeysChange={(next) => {
             if (!isOpen) {

@@ -194,9 +194,10 @@ export function useColorUpload({
 
       setColorUploadRows(parsedRows);
       setColorParseErrors(errors);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setColorParseErrors([`Failed to read file: ${err?.message ?? "Unknown error"}`]);
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setColorParseErrors([`Failed to read file: ${message}`]);
     }
   };
 
@@ -346,9 +347,10 @@ export function useColorUpload({
 
       setColorUploadSummary(summary);
       await loadItemList();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      summary.errors.push(err?.message ?? "Upload failed.");
+      const message = err instanceof Error ? err.message : "Upload failed.";
+      summary.errors.push(message);
       setColorUploadSummary(summary);
     } finally {
       setColorUploading(false);
