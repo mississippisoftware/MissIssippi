@@ -1,14 +1,16 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Card, Col, Form, Modal, Row } from "react-bootstrap";
+import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
 import { DataTable, type DataTableRowEditCompleteEvent } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Toast } from "primereact/toast";
 import * as XLSX from "xlsx";
 import CatalogPageLayout from "../components/CatalogPageLayout";
+import UploadModal from "../components/UploadModal";
 import CatalogService, { type ColorOption } from "../service/CatalogService";
 import { InventoryService } from "../service/InventoryService";
-import { getReadableTextColor, normalizeHeader, normalizeName } from "../items/itemsColorsUtils";
-import { printHtml } from "../utils/printHtml";
+import { normalizeHeader, normalizeName } from "../items/itemsColorsUtils";
+import { makeDateStamp } from "../utils/dateFormat";
+import { printColorList } from "../utils/printCatalogLists";
 
 type SeasonOption = { seasonId: number; seasonName: string };
 
@@ -42,6 +44,11 @@ const isHexValid = (value: string) => {
   if (!value) return true;
   const cleaned = value.replace("#", "");
   return cleaned.length === 6;
+};
+
+const saveWorkbook = (workbook: XLSX.WorkBook, baseName: string) => {
+  const timestamp = makeDateStamp();
+  XLSX.writeFile(workbook, `${baseName}_${timestamp}.xlsx`);
 };
 
 export default function ColorList() {
@@ -174,15 +181,17 @@ export default function ColorList() {
     setEditingRows((prev) => ({ ...prev, [String(newId)]: true }));
   };
 
-  const handleRowEditCancel = (event: { data: ColorListRow }) => {
-    const row = event.data;
-    if (row?.colorId < 0) {
+  const handleRowEditCancel = (event: unknown) => {
+    const row = (event as { data?: ColorListRow })?.data;
+    if (!row) return;
+    if (row.colorId < 0) {
       setColors((prev) => prev.filter((entry) => entry.colorId !== row.colorId));
     }
   };
 
-  const handleRowEditChange = (event: { data: Record<string, boolean> }) => {
-    setEditingRows(event.data ?? {});
+  const handleRowEditChange = (event: unknown) => {
+    const next = (event as { data?: Record<string, boolean> })?.data;
+    setEditingRows(next ?? {});
   };
 
   const handleColorSave = async (row: ColorListRow) => {
@@ -295,12 +304,7 @@ export default function ColorList() {
     const worksheet = XLSX.utils.aoa_to_sheet([headers]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Colors");
-
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
-      now.getDate()
-    ).padStart(2, "0")}`;
-    XLSX.writeFile(workbook, `color_list_template_${timestamp}.xlsx`);
+    saveWorkbook(workbook, "color_list_template");
   };
 
   const handleDownloadColorList = () => {
@@ -314,70 +318,11 @@ export default function ColorList() {
     const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Color List");
-
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
-      now.getDate()
-    ).padStart(2, "0")}`;
-    XLSX.writeFile(workbook, `color_list_${timestamp}.xlsx`);
-  };
-
-  const buildColorListHtml = (rows: ColorListRow[]) => {
-    const timestamp = new Date().toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-
-    const cards = rows
-      .map((row) => {
-        const bg = row.hexValue ?? "#f8fafc";
-        const text = row.hexValue ? getReadableTextColor(row.hexValue) ?? "#334155" : "#334155";
-        return `<div class="color-card">
-  <div class="color-swatch" style="background:${bg};color:${text}">${row.colorName}</div>
-  <div class="color-meta">
-    <div><span class="label">Season</span>${row.seasonName ?? ""}</div>
-    <div><span class="label">Pantone</span>${row.pantoneColor ?? "--"}</div>
-    <div><span class="label">Hex</span>${row.hexValue ?? "--"}</div>
-  </div>
-</div>`;
-      })
-      .join("");
-
-    return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Color List</title>
-    <style>
-      * { box-sizing: border-box; }
-      body { font-family: "Segoe UI", Arial, sans-serif; color: #111827; margin: 24px; }
-      h1 { font-size: 20px; margin: 0 0 4px 0; }
-      .timestamp { color: #6b7280; font-size: 12px; margin-bottom: 16px; }
-      .color-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-      .color-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; display: grid; gap: 8px; }
-      .color-swatch { border-radius: 8px; padding: 10px 12px; font-weight: 600; text-align: center; border: 1px solid rgba(0,0,0,0.08); }
-      .color-meta { display: grid; gap: 4px; font-size: 12px; color: #475569; }
-      .label { display: inline-block; width: 70px; color: #94a3b8; }
-      @media print {
-        .color-grid { grid-template-columns: 1fr; }
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Color List</h1>
-    <div class="timestamp">${timestamp}</div>
-    <div class="color-grid">${cards}</div>
-  </body>
-</html>`;
+    saveWorkbook(workbook, "color_list");
   };
 
   const handlePrintColorList = () => {
-    if (filteredColors.length === 0) return;
-    const html = buildColorListHtml(filteredColors);
-    printHtml(html);
+    printColorList(filteredColors);
   };
 
   const handleUploadFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -536,21 +481,21 @@ export default function ColorList() {
           onClick: handleDownloadColorList,
           variant: "primary",
           icon: "pi pi-download",
-          className: "portal-btn-download",
+          className: "btn-info btn-outlined",
         },
         {
           label: "Print Color List",
           onClick: handlePrintColorList,
           variant: "primary",
           icon: "pi pi-print",
-          className: "portal-btn-print",
+          className: "btn-warn btn-outlined",
         },
         {
           label: "Upload Colors",
           onClick: () => setShowUploadModal(true),
           variant: "primary",
           icon: "pi pi-upload",
-          className: "portal-btn-upload",
+          className: "btn-success",
         },
       ]}
     >
@@ -564,18 +509,20 @@ export default function ColorList() {
             <Col className="d-flex flex-wrap gap-2 justify-content-md-end">
               <Button
                 type="button"
-                className="portal-btn portal-btn-outline"
+                className="btn-primary btn-outlined"
                 onClick={handleAddColorRow}
                 disabled={loadingLookups}
               >
+                <i className="pi pi-plus" aria-hidden="true" />
                 Add Color
               </Button>
               <Button
                 type="button"
-                className="portal-btn portal-btn-outline"
+                className="btn-neutral btn-outlined"
                 onClick={loadColorList}
                 disabled={colorListLoading}
               >
+                <i className="pi pi-refresh" aria-hidden="true" />
                 {colorListLoading ? "Refreshing..." : "Refresh list"}
               </Button>
             </Col>
@@ -645,119 +592,98 @@ export default function ColorList() {
         </Card.Body>
       </Card>
 
-      <Modal show={showUploadModal} onHide={() => setShowUploadModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Upload Colors</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="upload-section">
-            <div className="upload-section-header">
-              <div>
-                <h6 className="mb-1">Upload color list</h6>
-                <p className="text-muted mb-0">Add or update colors with season, Pantone, and hex values.</p>
-              </div>
-              <Button
-                type="button"
-                className="portal-btn portal-btn-download portal-page-action"
-                onClick={handleDownloadTemplate}
-              >
-                <i className="pi pi-download portal-page-action-icon" aria-hidden="true" />
-                Download Template
-              </Button>
-            </div>
+      <UploadModal
+        show={showUploadModal}
+        title="Upload Colors"
+        onClose={() => setShowUploadModal(false)}
+        closeDisabled={uploading}
+        headerContent={
+          <>
+            <h6 className="mb-1">Upload color list</h6>
+            <p className="text-muted mb-0">Add or update colors with season, Pantone, and hex values.</p>
+          </>
+        }
+        downloadAction={
+          <Button type="button" className="btn-info btn-outlined" onClick={handleDownloadTemplate}>
+            <i className="pi pi-download" aria-hidden="true" />
+            Download Template
+          </Button>
+        }
+      >
+        <Row className="gy-3 mt-2">
+          <Col md={6}>
+            <Form.Label>Default Season (optional)</Form.Label>
+            <Form.Select
+              value={defaultSeasonId}
+              onChange={(e) => setDefaultSeasonId(e.target.value)}
+              disabled={loadingLookups}
+            >
+              <option value="">Choose season</option>
+              {seasons.map((season) => (
+                <option key={season.seasonId} value={season.seasonId}>
+                  {season.seasonName}
+                </option>
+              ))}
+            </Form.Select>
+          </Col>
+          <Col md={6}>
+            <Form.Label>Upload file</Form.Label>
+            <Form.Control type="file" accept=".xlsx,.xls" onChange={handleUploadFile} />
+          </Col>
+        </Row>
 
-            <Row className="gy-3 mt-2">
-              <Col md={6}>
-                <Form.Label>Default Season (optional)</Form.Label>
-                <Form.Select
-                  value={defaultSeasonId}
-                  onChange={(e) => setDefaultSeasonId(e.target.value)}
-                  disabled={loadingLookups}
-                >
-                  <option value="">Choose season</option>
-                  {seasons.map((season) => (
-                    <option key={season.seasonId} value={season.seasonId}>
-                      {season.seasonName}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
-              <Col md={6}>
-                <Form.Label>Upload file</Form.Label>
-                <Form.Control type="file" accept=".xlsx,.xls" onChange={handleUploadFile} />
-              </Col>
-            </Row>
+        {fileName && <div className="text-muted mt-2">Selected file: {fileName}</div>}
 
-            {fileName && <div className="text-muted mt-2">Selected file: {fileName}</div>}
-
-            {parseErrors.length > 0 && (
-              <Alert variant="danger" className="mt-3">
-                <strong>Fix these issues before uploading:</strong>
-                <ul className="mb-0">
-                  {parseErrors.slice(0, 8).map((error) => (
-                    <li key={error}>{error}</li>
-                  ))}
-                </ul>
-                {parseErrors.length > 8 && (
-                  <div className="mt-2 text-muted">{parseErrors.length - 8} more issue(s) not shown.</div>
-                )}
-              </Alert>
+        {parseErrors.length > 0 && (
+          <Alert variant="danger" className="mt-3">
+            <strong>Fix these issues before uploading:</strong>
+            <ul className="mb-0">
+              {parseErrors.slice(0, 8).map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+            {parseErrors.length > 8 && (
+              <div className="mt-2 text-muted">{parseErrors.length - 8} more issue(s) not shown.</div>
             )}
+          </Alert>
+        )}
 
-            {uploadSummary && !hasUploadErrors && (
-              <Alert variant="success" className="mt-3">
-                Upload successful. Processed {uploadSummary.processed} color(s).
-              </Alert>
+        {uploadSummary && !hasUploadErrors && (
+          <Alert variant="success" className="mt-3">
+            Upload successful. Processed {uploadSummary.processed} color(s).
+          </Alert>
+        )}
+
+        {uploadSummary && hasUploadErrors && (
+          <Alert variant="danger" className="mt-3">
+            <strong>Upload completed with issues:</strong>
+            <ul className="mb-0">
+              {uploadErrors.slice(0, 8).map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+            {uploadErrors.length > 8 && (
+              <div className="mt-2 text-muted">{uploadErrors.length - 8} more issue(s) not shown.</div>
             )}
+          </Alert>
+        )}
 
-            {uploadSummary && hasUploadErrors && (
-              <Alert variant="danger" className="mt-3">
-                <strong>Upload completed with issues:</strong>
-                <ul className="mb-0">
-                  {uploadErrors.slice(0, 8).map((error) => (
-                    <li key={error}>{error}</li>
-                  ))}
-                </ul>
-                {uploadErrors.length > 8 && (
-                  <div className="mt-2 text-muted">{uploadErrors.length - 8} more issue(s) not shown.</div>
-                )}
-              </Alert>
-            )}
+        {uploadRows.length > 0 && (
+          <div className="text-muted mt-2">Rows ready to upload: {uploadRows.length}</div>
+        )}
 
-            {uploadRows.length > 0 && (
-              <div className="text-muted mt-2">Rows ready to upload: {uploadRows.length}</div>
-            )}
-
-            <div className="text-end mt-3">
-              <Button
-                type="button"
-                className="portal-btn portal-btn-upload portal-page-action"
-                onClick={handleUploadColors}
-                disabled={uploadRows.length === 0 || parseErrors.length > 0 || uploading}
-              >
-                {uploading ? (
-                  "Uploading..."
-                ) : (
-                  <>
-                    <i className="pi pi-upload portal-page-action-icon" aria-hidden="true" />
-                    Upload colors
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
+        <div className="text-end mt-3">
           <Button
             type="button"
-            className="portal-btn portal-btn-outline"
-            onClick={() => setShowUploadModal(false)}
-            disabled={uploading}
+            className="btn-success"
+            onClick={handleUploadColors}
+            disabled={uploadRows.length === 0 || parseErrors.length > 0 || uploading}
           >
-            Close
+            <i className="pi pi-upload" aria-hidden="true" />
+            {uploading ? "Uploading..." : "Upload colors"}
           </Button>
-        </Modal.Footer>
-      </Modal>
+        </div>
+      </UploadModal>
     </CatalogPageLayout>
   );
 }
