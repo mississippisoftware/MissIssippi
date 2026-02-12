@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "react-bootstrap";
 import { Toast } from "primereact/toast";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { useLocation } from "react-router-dom";
 import { useShallow } from "zustand/shallow";
+import ActionButton from "../components/ActionButton";
 import CatalogPageLayout from "../components/CatalogPageLayout";
 import InventoryEditCard from "../components/inventoryEdit/InventoryEditCard";
-import PageActionsRow from "../components/PageActionsRow";
 import { useNotifier } from "../hooks/useNotifier";
 import { useInventoryEditStore } from "../stores/InventoryEditStore";
 import InventorySearchFiltersForm from "../components/InventorySearchFilters";
@@ -180,60 +179,59 @@ export default function InventoryEdit() {
         />
       </div>
 
-      {loading ? (
-        <div className="d-flex justify-content-center py-5">
-          <ProgressSpinner />
+      <div className="content-card inventory-edit-panel">
+        <div className="inventory-view-card-header inventory-edit-panel-header">
+          <div className="inventory-view-card-actions inventory-edit-panel-actions">
+            <ActionButton
+              label="Download All"
+              icon="pi pi-download"
+              className="btn-info btn-outlined"
+              onClick={handleDownloadAll}
+              disabled={cardGroups.length === 0}
+              title="Download All"
+            />
+            <ActionButton
+              icon={cardColumns === 2 ? "pi pi-th-large" : "pi pi-bars"}
+              className="btn-neutral btn-outlined"
+              onClick={() => setCardColumns((prev) => (prev === 2 ? 1 : 2))}
+              ariaLabel={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
+              title={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
+              iconOnly
+            />
+          </div>
         </div>
-      ) : null}
 
-      {!loading && !searching && results.length === 0 && (
-        <div className="text-center text-muted">Search to load styles and start editing.</div>
-      )}
+        {loading ? (
+          <div className="d-flex justify-content-center py-5">
+            <ProgressSpinner />
+          </div>
+        ) : null}
 
-      {searching && (
-        <div className="d-flex justify-content-center py-4">
-          <ProgressSpinner />
+        {!loading && !searching && results.length === 0 && (
+          <div className="text-center text-muted">Search to load styles and start editing.</div>
+        )}
+
+        {searching && (
+          <div className="d-flex justify-content-center py-4">
+            <ProgressSpinner />
+          </div>
+        )}
+
+        <div className={`inventory-cards-grid ${cardColumns === 1 ? "one-column" : "two-columns"}`}>
+          {cardGroups.map((group) => (
+            <InventoryEditCard
+              key={group.itemNumber}
+              group={group}
+              sizeColumns={sizeColumns}
+              onQtyChange={updateCell}
+              onDownload={handleDownloadPdf}
+              onDiscard={discardChangesByItem}
+              onSave={handleSave}
+              isDirty={dirtyItemsSet.has(group.itemNumber)}
+              placeholderImage={placeholderImage}
+            />
+          ))}
         </div>
-      )}
-
-      <PageActionsRow className="inventory-cards-toolbar">
-        <Button
-          type="button"
-          className="btn-info btn-outlined"
-          onClick={handleDownloadAll}
-          disabled={cardGroups.length === 0}
-        >
-          <i className="pi pi-download" aria-hidden="true" />
-          Download All
-        </Button>
-        <Button
-          type="button"
-          className="btn-neutral btn-outlined btn-icon"
-          onClick={() => setCardColumns((prev) => (prev === 2 ? 1 : 2))}
-          aria-label={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
-          title={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
-        >
-          <i
-            className={cardColumns === 2 ? "pi pi-th-large" : "pi pi-bars"}
-            aria-hidden="true"
-          />
-        </Button>
-      </PageActionsRow>
-
-      <div className={`inventory-cards-grid ${cardColumns === 1 ? "one-column" : "two-columns"}`}>
-        {cardGroups.map((group) => (
-          <InventoryEditCard
-            key={group.itemNumber}
-            group={group}
-            sizeColumns={sizeColumns}
-            onQtyChange={updateCell}
-            onDownload={handleDownloadPdf}
-            onDiscard={discardChangesByItem}
-            onSave={handleSave}
-            isDirty={dirtyItemsSet.has(group.itemNumber)}
-            placeholderImage={placeholderImage}
-          />
-        ))}
       </div>
     </CatalogPageLayout>
   );
