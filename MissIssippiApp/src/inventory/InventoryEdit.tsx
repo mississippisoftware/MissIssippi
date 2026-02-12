@@ -11,9 +11,8 @@ import { useNotifier } from "../hooks/useNotifier";
 import { useInventoryEditStore } from "../stores/InventoryEditStore";
 import InventorySearchFiltersForm from "../components/InventorySearchFilters";
 import type { InventorySearchFilters as InventorySearchFiltersType } from "../utils/InventorySearchFilters";
-import { buildInventoryCardsHtml } from "../utils/InventoryCardPrint";
-import { printHtml } from "../utils/printHtml";
 import { buildInventoryCardGroups, type InventoryCardGroup } from "../utils/buildInventoryCardGroups";
+import { printInventoryCards } from "../utils/printInventory";
 
 const EMPTY_FILTERS: InventorySearchFiltersType = {
   itemNumber: "",
@@ -140,8 +139,10 @@ export default function InventoryEdit() {
   };
 
   const downloadGroups = (groups: InventoryCardGroup[]) => {
-    const html = buildInventoryCardsHtml({ subtitle: "Edit Inventory", sizeColumns, groups });
-    printHtml(html, { onError: handlePrintError });
+    printInventoryCards(
+      { subtitle: "Edit Inventory", sizeColumns, groups },
+      { onError: handlePrintError }
+    );
   };
 
   const handleDownloadPdf = (group: InventoryCardGroup) => {
