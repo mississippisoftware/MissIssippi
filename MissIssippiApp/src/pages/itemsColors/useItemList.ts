@@ -4,6 +4,7 @@ import { InventoryService } from "../../service/InventoryService";
 import CatalogService, { type ColorOption, type ItemColorView } from "../../service/CatalogService";
 import type { ItemListRow, SeasonOption } from "../../items/itemsColorsTypes";
 import { normalizeName } from "../../items/itemsColorsUtils";
+import { filterSeasonActiveRows } from "../../utils/filterSeasonActiveRows";
 import { useNotifier } from "../../hooks/useNotifier";
 
 type UseItemListParams = {
@@ -39,19 +40,7 @@ export function useItemList({ toastRef }: UseItemListParams) {
   }, [itemList]);
 
   const filteredItems = useMemo(() => {
-    let next = itemList;
-    if (seasonFilterId) {
-      const seasonId = Number(seasonFilterId);
-      if (seasonId) {
-        next = next.filter((row) => row.seasonId === seasonId);
-      }
-    }
-    if (activeFilter === "active") {
-      next = next.filter((row) => row.inProduction);
-    } else if (activeFilter === "inactive") {
-      next = next.filter((row) => !row.inProduction);
-    }
-    return next;
+    return filterSeasonActiveRows(itemList, { seasonFilterId, activeFilter });
   }, [itemList, seasonFilterId, activeFilter]);
 
   const loadLookups = async () => {

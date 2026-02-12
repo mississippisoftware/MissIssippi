@@ -10,6 +10,7 @@ import CatalogService, { type ColorOption } from "../service/CatalogService";
 import { InventoryService } from "../service/InventoryService";
 import { normalizeHeader, normalizeName } from "../items/itemsColorsUtils";
 import { makeDateStamp } from "../utils/dateFormat";
+import { filterSeasonActiveRows } from "../utils/filterSeasonActiveRows";
 import { printColorList } from "../utils/printCatalogLists";
 import { useNotifier } from "../hooks/useNotifier";
 
@@ -99,10 +100,7 @@ export default function ColorList() {
   }, [colors]);
 
   const filteredColors = useMemo(() => {
-    if (!seasonFilterId) return colors;
-    const seasonId = Number(seasonFilterId);
-    if (!seasonId) return colors;
-    return colors.filter((row) => row.seasonId === seasonId);
+    return filterSeasonActiveRows(colors, { seasonFilterId });
   }, [colors, seasonFilterId]);
 
   const loadLookups = async () => {
