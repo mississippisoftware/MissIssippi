@@ -1,6 +1,12 @@
-import * as XLSX from "xlsx";
 import type { iInventoryDisplayRow, iSize } from "./DataInterfaces";
 import type { FilterableColumn } from "../inventory/InventoryTable";
+import {
+  appendSheet,
+  buildTimestampedFilename,
+  createWorkbook,
+  sheetFromAoa,
+  writeWorkbook,
+} from "./xlsxUtils";
 
 interface ExportArgs {
   rows: iInventoryDisplayRow[];
@@ -44,7 +50,7 @@ export function exportInventoryToExcel({
     ...dataRows,
   ];
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const ws = sheetFromAoa(aoa);
 
   // Merge title/timestamp across all columns
   const lastCol = Math.max(headers.length - 1, 0);
@@ -53,11 +59,10 @@ export function exportInventoryToExcel({
     { s: { r: 1, c: 0 }, e: { r: 1, c: lastCol } },
   ];
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  const wb = createWorkbook();
+  appendSheet(wb, ws, sheetName);
 
-  const safeDefault =
-    `inventory_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.xlsx`;
+  const safeDefault = buildTimestampedFilename("inventory", now);
 
-  XLSX.writeFile(wb, filename || safeDefault);
+  writeWorkbook(wb, filename || safeDefault);
 }

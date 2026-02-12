@@ -2,11 +2,10 @@ import { useMemo, useRef, useState } from "react";
 import { Alert, Button, Modal } from "react-bootstrap";
 import type { DataTableRowEditCompleteEvent } from "primereact/datatable";
 import { Toast } from "primereact/toast";
-import * as XLSX from "xlsx";
 import CatalogService, { type ItemColorView } from "../../service/CatalogService";
 import CatalogPageLayout from "../../components/CatalogPageLayout";
-import { makeDateStamp } from "../../utils/dateFormat";
 import { printItemList } from "../../utils/printCatalogLists";
+import { appendSheet, createWorkbook, saveWorkbook, sheetFromJson } from "../../utils/xlsxUtils";
 import { useNotifier } from "../../hooks/useNotifier";
 import ItemsColorsColorModal from "../../items/ItemsColorsColorModal";
 import ItemsColorsColorReviewModal from "../../items/ItemsColorsColorReviewModal";
@@ -98,11 +97,6 @@ export default function ItemsColors() {
   const formatPrice = (value?: number | null) =>
     value === null || value === undefined ? "--" : priceFormatter.format(value);
 
-  const saveWorkbook = (workbook: XLSX.WorkBook, baseName: string) => {
-    const timestamp = makeDateStamp();
-    XLSX.writeFile(workbook, `${baseName}_${timestamp}.xlsx`);
-  };
-
   const {
     fileName,
     uploadRows,
@@ -130,7 +124,6 @@ export default function ItemsColors() {
     setShowColorReview,
     setColors,
     loadItemList,
-    saveWorkbook,
   });
 
   const {
@@ -160,7 +153,6 @@ export default function ItemsColors() {
     setShowColorReview,
     setColors,
     loadItemList,
-    saveWorkbook,
   });
 
   const resolveSeasonName = (seasonId: number | string) =>
@@ -352,9 +344,9 @@ export default function ItemsColors() {
         Colors: colors,
       };
     });
-    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Item List");
+    const worksheet = sheetFromJson(rows, { header: headers });
+    const workbook = createWorkbook();
+    appendSheet(workbook, worksheet, "Item List");
     saveWorkbook(workbook, "item_list");
   };
 

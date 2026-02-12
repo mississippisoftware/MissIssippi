@@ -9,7 +9,13 @@ import UploadModal from "../components/UploadModal";
 import CatalogService, { type ColorOption } from "../service/CatalogService";
 import { InventoryService } from "../service/InventoryService";
 import { normalizeHeader, normalizeName } from "../items/itemsColorsUtils";
-import { makeDateStamp } from "../utils/dateFormat";
+import {
+  appendSheet,
+  createWorkbook,
+  saveWorkbook,
+  sheetFromAoa,
+  sheetFromJson,
+} from "../utils/xlsxUtils";
 import { filterSeasonActiveRows } from "../utils/filterSeasonActiveRows";
 import { printColorList } from "../utils/printCatalogLists";
 import { useNotifier } from "../hooks/useNotifier";
@@ -46,11 +52,6 @@ const isHexValid = (value: string) => {
   if (!value) return true;
   const cleaned = value.replace("#", "");
   return cleaned.length === 6;
-};
-
-const saveWorkbook = (workbook: XLSX.WorkBook, baseName: string) => {
-  const timestamp = makeDateStamp();
-  XLSX.writeFile(workbook, `${baseName}_${timestamp}.xlsx`);
 };
 
 export default function ColorList() {
@@ -281,9 +282,9 @@ export default function ColorList() {
 
   const handleDownloadTemplate = () => {
     const headers = ["Season", "Color", "Pantone", "Hex"];
-    const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Colors");
+    const worksheet = sheetFromAoa([headers]);
+    const workbook = createWorkbook();
+    appendSheet(workbook, worksheet, "Colors");
     saveWorkbook(workbook, "color_list_template");
   };
 
@@ -295,9 +296,9 @@ export default function ColorList() {
       Pantone: row.pantoneColor ?? "",
       Hex: row.hexValue ?? "",
     }));
-    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Color List");
+    const worksheet = sheetFromJson(rows, { header: headers });
+    const workbook = createWorkbook();
+    appendSheet(workbook, worksheet, "Color List");
     saveWorkbook(workbook, "color_list");
   };
 

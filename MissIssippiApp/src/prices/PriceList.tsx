@@ -5,6 +5,7 @@ import CatalogPageLayout from "../components/CatalogPageLayout";
 import CatalogService, { type ItemView } from "../service/CatalogService";
 import { InventoryService } from "../service/InventoryService";
 import { normalizeHeader, normalizeName } from "../items/itemsColorsUtils";
+import { appendSheet, createWorkbook, saveWorkbook, sheetFromJson } from "../utils/xlsxUtils";
 
 type SeasonOption = { seasonId: number; seasonName: string };
 
@@ -120,15 +121,10 @@ export default function PriceList() {
       Wholesale: item.wholesalePrice ?? "",
       Retail: item.costPrice ?? "",
     }));
-    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Price List");
-
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
-      now.getDate()
-    ).padStart(2, "0")}`;
-    XLSX.writeFile(workbook, `price_list_${timestamp}.xlsx`);
+    const worksheet = sheetFromJson(rows, { header: headers });
+    const workbook = createWorkbook();
+    appendSheet(workbook, worksheet, "Price List");
+    saveWorkbook(workbook, "price_list");
   };
 
   const handleUploadFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -291,7 +287,7 @@ export default function PriceList() {
           variant: "primary",
           disabled: loading || items.length === 0,
           icon: "pi pi-download",
-          className: "portal-btn-download",
+          className: "btn-info btn-outlined",
         },
       ]}
     >
@@ -313,17 +309,19 @@ export default function PriceList() {
             <Col md={4} className="text-md-end">
               <Button
                 type="button"
-                className="portal-btn portal-btn-upload portal-page-action"
+                className="btn-success"
                 onClick={handleUploadPrices}
                 disabled={uploadRows.length === 0 || parseErrors.length > 0 || uploading}
               >
                 {uploading ? (
                   <>
-                    <Spinner animation="border" size="sm" className="me-2" /> Uploading...
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    <i className="pi pi-upload" aria-hidden="true" />
+                    Uploading...
                   </>
                 ) : (
                   <>
-                    <i className="pi pi-upload portal-page-action-icon" aria-hidden="true" />
+                    <i className="pi pi-upload" aria-hidden="true" />
                     Upload Prices
                   </>
                 )}
@@ -393,9 +391,10 @@ export default function PriceList() {
         <Modal.Footer>
           <Button
             type="button"
-            className="portal-btn portal-btn-outline"
+            className="btn-neutral btn-outlined"
             onClick={() => setShowMissingModal(false)}
           >
+            <i className="pi pi-times" aria-hidden="true" />
             Close
           </Button>
         </Modal.Footer>
