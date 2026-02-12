@@ -1,11 +1,11 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
-import * as XLSX from "xlsx";
 import CatalogPageLayout from "../components/CatalogPageLayout";
 import CatalogService, { type ItemView } from "../service/CatalogService";
 import { InventoryService } from "../service/InventoryService";
-import { normalizeHeader, normalizeName } from "../items/itemsColorsUtils";
+import { normalizeName } from "../items/itemsColorsUtils";
 import { appendSheet, createWorkbook, saveWorkbook, sheetFromJson } from "../utils/xlsxUtils";
+import { findHeaderIndex, normalizeHeaders, parseOptionalNumber, readFirstSheetRows } from "../utils/xlsxParse";
 
 type SeasonOption = { seasonId: number; seasonName: string };
 
@@ -27,15 +27,6 @@ type UploadSummary = {
   processed: number;
   updated: number;
   errors: string[];
-};
-
-const parseOptionalNumber = (value: unknown) => {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "number" && !Number.isNaN(value)) return value;
-  const raw = String(value).trim();
-  if (!raw) return null;
-  const parsed = Number(raw);
-  return Number.isNaN(parsed) ? null : parsed;
 };
 
 const buildItemKey = (seasonName: string, itemNumber: string) =>
@@ -146,34 +137,29 @@ export default function PriceList() {
 
     try {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      if (!sheetName) {
-        setParseErrors(["No worksheet found in the file."]);
-        return;
-      }
-
-      const worksheet = workbook.Sheets[sheetName];
-      const rawRows = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1, defval: "" });
-      if (rawRows.length === 0) {
-        setParseErrors(["The worksheet is empty."]);
+      const { rows: rawRows, errors: sheetErrors } = readFirstSheetRows(buffer);
+      if (sheetErrors.length > 0) {
+        setParseErrors(sheetErrors);
         return;
       }
 
       const headerRow = rawRows[0] as unknown[];
-      const normalizedHeaders = headerRow.map(normalizeHeader);
-      const findHeaderIndex = (candidates: string[]) => {
-        for (const candidate of candidates) {
-          const index = normalizedHeaders.indexOf(normalizeHeader(candidate));
-          if (index >= 0) return index;
-        }
-        return -1;
-      };
+      const normalizedHeaders = normalizeHeaders(headerRow);
 
-      const seasonIndex = findHeaderIndex(["season", "season name", "seasonname"]);
-      const itemIndex = findHeaderIndex(["style", "style number", "stylenumber", "style #", "style no"]);
-      const wholesaleIndex = findHeaderIndex(["wholesale", "wholesale price", "wholesaleprice"]);
-      const retailIndex = findHeaderIndex(["retail", "retail price", "retailprice"]);
+      const seasonIndex = findHeaderIndex(normalizedHeaders, ["season", "season name", "seasonname"]);
+      const itemIndex = findHeaderIndex(normalizedHeaders, [
+        "style",
+        "style number",
+        "stylenumber",
+        "style #",
+        "style no",
+      ]);
+      const wholesaleIndex = findHeaderIndex(normalizedHeaders, [
+        "wholesale",
+        "wholesale price",
+        "wholesaleprice",
+      ]);
+      const retailIndex = findHeaderIndex(normalizedHeaders, ["retail", "retail price", "retailprice"]);
 
       const missingRequired = [
         seasonIndex < 0 ? "Season" : null,

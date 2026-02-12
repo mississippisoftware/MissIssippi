@@ -3,12 +3,11 @@ import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
 import { DataTable, type DataTableRowEditCompleteEvent } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Toast } from "primereact/toast";
-import * as XLSX from "xlsx";
 import CatalogPageLayout from "../components/CatalogPageLayout";
 import UploadModal from "../components/UploadModal";
 import CatalogService, { type ColorOption } from "../service/CatalogService";
 import { InventoryService } from "../service/InventoryService";
-import { normalizeHeader, normalizeName } from "../items/itemsColorsUtils";
+import { normalizeName } from "../items/itemsColorsUtils";
 import {
   appendSheet,
   createWorkbook,
@@ -16,6 +15,7 @@ import {
   sheetFromAoa,
   sheetFromJson,
 } from "../utils/xlsxUtils";
+import { findHeaderIndex, normalizeHeaders, readFirstSheetRows } from "../utils/xlsxParse";
 import { filterSeasonActiveRows } from "../utils/filterSeasonActiveRows";
 import { printColorList } from "../utils/printCatalogLists";
 import { useNotifier } from "../hooks/useNotifier";
@@ -323,34 +323,19 @@ export default function ColorList() {
 
     try {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      if (!sheetName) {
-        setParseErrors(["No worksheet found in the file."]);
-        return;
-      }
-
-      const worksheet = workbook.Sheets[sheetName];
-      const rawRows = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1, defval: "" });
-      if (rawRows.length === 0) {
-        setParseErrors(["The worksheet is empty."]);
+      const { rows: rawRows, errors: sheetErrors } = readFirstSheetRows(buffer);
+      if (sheetErrors.length > 0) {
+        setParseErrors(sheetErrors);
         return;
       }
 
       const headerRow = rawRows[0] as unknown[];
-      const normalizedHeaders = headerRow.map(normalizeHeader);
-      const findHeaderIndex = (candidates: string[]) => {
-        for (const candidate of candidates) {
-          const index = normalizedHeaders.indexOf(normalizeHeader(candidate));
-          if (index >= 0) return index;
-        }
-        return -1;
-      };
+      const normalizedHeaders = normalizeHeaders(headerRow);
 
-      const seasonIndex = findHeaderIndex(["season", "season name", "seasonname"]);
-      const colorIndex = findHeaderIndex(["color", "color name", "colorname"]);
-      const pantoneIndex = findHeaderIndex(["pantone", "pantone color", "pantonecolor"]);
-      const hexIndex = findHeaderIndex(["hex", "hex value", "hexvalue", "hex#"]);
+      const seasonIndex = findHeaderIndex(normalizedHeaders, ["season", "season name", "seasonname"]);
+      const colorIndex = findHeaderIndex(normalizedHeaders, ["color", "color name", "colorname"]);
+      const pantoneIndex = findHeaderIndex(normalizedHeaders, ["pantone", "pantone color", "pantonecolor"]);
+      const hexIndex = findHeaderIndex(normalizedHeaders, ["hex", "hex value", "hexvalue", "hex#"]);
 
       const missingRequired = [
         colorIndex < 0 ? "Color" : null,

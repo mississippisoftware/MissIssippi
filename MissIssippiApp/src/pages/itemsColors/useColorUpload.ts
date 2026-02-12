@@ -1,5 +1,4 @@
 import { type ChangeEvent, type Dispatch, type SetStateAction, useState } from "react";
-import * as XLSX from "xlsx";
 import CatalogService, { type ColorOption } from "../../service/CatalogService";
 import type {
   ColorResolutionMap,
@@ -10,8 +9,9 @@ import type {
   SeasonOption,
   UploadColorRow,
 } from "../../items/itemsColorsTypes";
-import { MAX_COLOR_COLUMNS, normalizeHeader, normalizeName } from "../../items/itemsColorsUtils";
+import { MAX_COLOR_COLUMNS, normalizeName } from "../../items/itemsColorsUtils";
 import { appendSheet, createWorkbook, saveWorkbook, sheetFromAoa } from "../../utils/xlsxUtils";
+import { findHeaderIndex, normalizeHeaders, readFirstSheetRows } from "../../utils/xlsxParse";
 
 type UseColorUploadParams = {
   seasons: SeasonOption[];
@@ -96,32 +96,23 @@ export function useColorUpload({
 
     try {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      if (!sheetName) {
-        setColorParseErrors(["No worksheet found in the file."]);
-        return;
-      }
-
-      const worksheet = workbook.Sheets[sheetName];
-      const rawRows = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1, defval: "" });
-      if (rawRows.length === 0) {
-        setColorParseErrors(["The worksheet is empty."]);
+      const { rows: rawRows, errors: sheetErrors } = readFirstSheetRows(buffer);
+      if (sheetErrors.length > 0) {
+        setColorParseErrors(sheetErrors);
         return;
       }
 
       const headerRow = rawRows[0] as unknown[];
-      const normalizedHeaders = headerRow.map(normalizeHeader);
-      const findHeaderIndex = (candidates: string[]) => {
-        for (const candidate of candidates) {
-          const index = normalizedHeaders.indexOf(normalizeHeader(candidate));
-          if (index >= 0) return index;
-        }
-        return -1;
-      };
+      const normalizedHeaders = normalizeHeaders(headerRow);
 
-      const seasonIndex = findHeaderIndex(["season", "season name", "seasonname"]);
-      const itemIndex = findHeaderIndex(["style", "style number", "stylenumber", "style #", "style no"]);
+      const seasonIndex = findHeaderIndex(normalizedHeaders, ["season", "season name", "seasonname"]);
+      const itemIndex = findHeaderIndex(normalizedHeaders, [
+        "style",
+        "style number",
+        "stylenumber",
+        "style #",
+        "style no",
+      ]);
 
       const colorIndexes = normalizedHeaders
         .map((header, index) => (header.startsWith("color") ? index : -1))
