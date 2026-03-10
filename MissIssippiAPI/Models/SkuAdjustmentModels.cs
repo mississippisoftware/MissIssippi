@@ -12,6 +12,8 @@ public class SkuAdjustmentRequest
 public class SkuAdjustmentsRequest
 {
     public List<SkuAdjustmentRequest> Adjustments { get; set; } = new();
+
+    public string? Notes { get; set; }
 }
 
 public class SkuAdjustmentsResult

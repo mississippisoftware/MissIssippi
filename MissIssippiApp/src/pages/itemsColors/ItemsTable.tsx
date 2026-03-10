@@ -2,8 +2,10 @@ import { type Dispatch, type SetStateAction } from "react";
 import { Button, Card, Col, Form, Row } from "react-bootstrap";
 import { DataTable, type DataTableRowEditCompleteEvent, type DataTableRowClickEvent } from "primereact/datatable";
 import { Column } from "primereact/column";
+import PageActionsRow from "../../components/PageActionsRow";
 import type { ItemListRow, SeasonOption } from "../../items/itemsColorsTypes";
 import type { ItemColorView } from "../../service/CatalogService";
+import type { EditorOptions } from "../../types/editor";
 
 type ItemsTableProps = {
   seasons: SeasonOption[];
@@ -24,8 +26,6 @@ type ItemsTableProps = {
   loadItemList: () => void;
   handleExpandAll: () => void;
   handleCollapseAll: () => void;
-  seasonFilterId: string;
-  setSeasonFilterId: (value: string) => void;
   activeFilter: string;
   setActiveFilter: (value: string) => void;
   resolveSeasonName: (seasonId: number | string) => string;
@@ -33,12 +33,7 @@ type ItemsTableProps = {
   openColorModal: (row: ItemListRow) => void;
   getUniqueColors: (colorsForItem: ItemColorView[]) => ItemColorView[];
   getReadableTextColor: (hex?: string | null) => string | undefined;
-};
-
-type EditorOptions<T> = {
-  value?: unknown;
-  rowData: T;
-  editorCallback?: (value: unknown) => void;
+  onCopyColorName: (colorName: string) => void;
 };
 
 export default function ItemsTable({
@@ -60,8 +55,6 @@ export default function ItemsTable({
   loadItemList,
   handleExpandAll,
   handleCollapseAll,
-  seasonFilterId,
-  setSeasonFilterId,
   activeFilter,
   setActiveFilter,
   resolveSeasonName,
@@ -69,6 +62,7 @@ export default function ItemsTable({
   openColorModal,
   getUniqueColors,
   getReadableTextColor,
+  onCopyColorName,
 }: ItemsTableProps) {
   const renderSeasonEditor = (options: EditorOptions<ItemListRow>) => (
     <Form.Select
@@ -209,17 +203,24 @@ export default function ItemsTable({
         ) : (
           <div className="item-color-rect-list">
             {colorsForItem.map((color) => (
-              <span
+              <button
+                type="button"
                 key={`${row.itemId}-rect-${color.colorId}`}
-                className={`item-color-rect${color.hexValue ? " has-hex" : ""}`}
+                className={`item-color-rect item-color-rect-button${color.hexValue ? " has-hex" : ""}`}
                 style={
                   color.hexValue
                     ? { backgroundColor: color.hexValue, color: getReadableTextColor(color.hexValue) }
                     : undefined
                 }
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onCopyColorName(color.colorName);
+                }}
+                title={`Copy ${color.colorName}`}
+                aria-label={`Copy color name ${color.colorName}`}
               >
                 {color.colorName}
-              </span>
+              </button>
             ))}
           </div>
         )}
@@ -231,43 +232,30 @@ export default function ItemsTable({
     <Card className="portal-content-card items-colors-main">
       <Card.Body>
         <Row className="items-actions-row align-items-center gy-2">
-          <Col className="d-flex flex-wrap gap-2 justify-content-md-end">
-            <Button
-              type="button"
-              className="btn-primary btn-outlined"
-              onClick={handleAddItemRow}
-              disabled={loadingLookups}
-            >
-              <i className="pi pi-plus" aria-hidden="true" />
-              Add Item
-            </Button>
-            <Button
-              type="button"
-              className="btn-neutral btn-outlined"
-              onClick={loadItemList}
-              disabled={itemListLoading}
-            >
-              <i className="pi pi-refresh" aria-hidden="true" />
-              {itemListLoading ? "Refreshing..." : "Refresh list"}
-            </Button>
+          <Col>
+            <PageActionsRow justifyClassName="justify-content-md-end" className="flex-wrap">
+              <Button
+                type="button"
+                className="btn-primary btn-outlined"
+                onClick={handleAddItemRow}
+                disabled={loadingLookups}
+              >
+                <i className="pi pi-plus" aria-hidden="true" />
+                Add Item
+              </Button>
+              <Button
+                type="button"
+                className="btn-neutral btn-outlined"
+                onClick={loadItemList}
+                disabled={itemListLoading}
+              >
+                <i className="pi pi-refresh" aria-hidden="true" />
+                {itemListLoading ? "Refreshing..." : "Refresh list"}
+              </Button>
+            </PageActionsRow>
           </Col>
         </Row>
         <Row className="items-filter-row mt-3 gy-2 align-items-end">
-          <Col md={4}>
-            <Form.Label>Season</Form.Label>
-            <Form.Select
-              value={seasonFilterId}
-              onChange={(e) => setSeasonFilterId(e.target.value)}
-              disabled={loadingLookups}
-            >
-              <option value="">All seasons</option>
-              {seasons.map((season) => (
-                <option key={season.seasonId} value={season.seasonId}>
-                  {season.seasonName}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
           <Col md={3}>
             <Form.Label>Active</Form.Label>
             <Form.Select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>

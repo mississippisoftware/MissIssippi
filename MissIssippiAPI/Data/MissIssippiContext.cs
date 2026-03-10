@@ -18,13 +18,17 @@ public partial class MissIssippiContext : DbContext
 
     public virtual DbSet<Color> Colors { get; set; }
 
+    public virtual DbSet<Collection> Collections { get; set; }
+
     public virtual DbSet<ImageType> ImageTypes { get; set; }
 
     public virtual DbSet<Inventory> Inventories { get; set; }
 
     public virtual DbSet<InventoryActivityLog> InventoryActivityLogs { get; set; }
 
-    public virtual DbSet<InventoryView> InventoryViews { get; set; }
+    public virtual DbSet<InventoryAdjustmentBatch> InventoryAdjustmentBatches { get; set; }
+
+    public virtual DbSet<InventoryUploadBatch> InventoryUploadBatches { get; set; }
 
     public virtual DbSet<ItemImage> ItemImages { get; set; }
 
@@ -38,13 +42,7 @@ public partial class MissIssippiContext : DbContext
 
     public virtual DbSet<ItemColor> ItemColors { get; set; }
 
-    public virtual DbSet<ItemColorView> ItemColorViews { get; set; }
-
-    public virtual DbSet<ItemView> ItemViews { get; set; }
-
-   // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-      // => optionsBuilder.UseSqlServer("Server=tcp:miss-issippi.database.windows.net,1433;Initial Catalog=Miss_Issippi_DB-Dev;Persist Security Info=False;User ID=miss_issippi_admin;Password=Frills101;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
+    public virtual DbSet<ItemColorSecondaryColor> ItemColorSecondaryColors { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,7 +52,8 @@ public partial class MissIssippiContext : DbContext
 
             entity.ToTable("Color");
 
-            entity.HasIndex(e => e.ColorName, "u_Color_ColorName").IsUnique();
+            entity.HasIndex(e => new { e.ColorName, e.SeasonId, e.CollectionId }, "u_Color_ColorName_SeasonId_CollectionId")
+                .IsUnique();
 
             entity.Property(e => e.ColorName)
                 .HasMaxLength(75)
@@ -68,9 +67,26 @@ public partial class MissIssippiContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
 
+            entity.HasOne(d => d.Collection).WithMany(p => p.Colors)
+                .HasForeignKey(d => d.CollectionId)
+                .HasConstraintName("f_Collection_Color");
+
             entity.HasOne(d => d.Season).WithMany()
                 .HasForeignKey(d => d.SeasonId)
                 .HasConstraintName("f_Season_Color");
+        });
+
+        modelBuilder.Entity<Collection>(entity =>
+        {
+            entity.HasKey(e => e.CollectionId).HasName("PK__Collect__D1CCDFE1B35E33F2");
+
+            entity.ToTable("Collection");
+
+            entity.HasIndex(e => e.CollectionName, "u_Collection_CollectionName").IsUnique();
+
+            entity.Property(e => e.CollectionName)
+                .HasMaxLength(75)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<ImageType>(entity =>
@@ -113,10 +129,19 @@ public partial class MissIssippiContext : DbContext
 
             entity.ToTable("InventoryActivityLog");
 
+            entity.Property(e => e.BatchId);
+
             entity.Property(e => e.ActionType)
                 .HasMaxLength(150)
                 .IsUnicode(false);
+            entity.Property(e => e.Delta).HasDefaultValue(0);
             entity.Property(e => e.InventoryActivityDate).HasColumnType("datetime");
+            entity.Property(e => e.LogTimestamp)
+                .HasColumnType("datetime2(3)")
+                .HasDefaultValueSql("sysutcdatetime()")
+                .ValueGeneratedOnAdd();
+            entity.Property(e => e.NewQty).HasDefaultValue(0);
+            entity.Property(e => e.OldQty).HasDefaultValue(0);
 
             entity.HasOne(d => d.Size).WithMany(p => p.InventoryActivityLogs)
                 .HasForeignKey(d => d.SizeId)
@@ -127,29 +152,81 @@ public partial class MissIssippiContext : DbContext
                 .HasForeignKey(d => d.ItemColorId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("f_ItemColor_InventoryActivityLog");
+
+            entity.HasOne(d => d.Batch).WithMany(p => p.InventoryActivityLogs)
+                .HasForeignKey(d => d.BatchId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("f_InventoryAdjustmentBatch_InventoryActivityLog");
         });
 
-        modelBuilder.Entity<InventoryView>(entity =>
+        modelBuilder.Entity<InventoryAdjustmentBatch>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToView("InventoryView");
+            entity.HasKey(e => e.BatchId).HasName("PK_InventoryAdjustmentBatch");
 
-            entity.Property(e => e.ColorName)
-                .HasMaxLength(75)
+            entity.ToTable("InventoryAdjustmentBatch");
+
+            entity.Property(e => e.BatchId)
+                .HasDefaultValueSql("newsequentialid()");
+
+            entity.Property(e => e.BatchTimestamp)
+                .HasColumnType("datetime2(3)")
+                .HasDefaultValueSql("sysutcdatetime()")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.Source)
+                .HasMaxLength(30)
                 .IsUnicode(false);
-            entity.Property(e => e.Description)
+
+            entity.Property(e => e.Notes)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<InventoryUploadBatch>(entity =>
+        {
+            entity.HasKey(e => e.UploadBatchId).HasName("PK_InventoryUploadBatch");
+
+            entity.ToTable("InventoryUploadBatch");
+
+            entity.HasIndex(e => e.CreatedAt, "ix_InventoryUploadBatch_CreatedAt");
+            entity.HasIndex(e => new { e.DatasetHash, e.Mode, e.IsUndone }, "ix_InventoryUploadBatch_Hash_Mode_Undone");
+            entity.HasIndex(e => e.IdempotencyKey, "u_InventoryUploadBatch_IdempotencyKey")
+                .IsUnique()
+                .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+            entity.Property(e => e.UploadBatchId)
+                .HasDefaultValueSql("newsequentialid()");
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime2(3)")
+                .HasDefaultValueSql("sysutcdatetime()")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.Status)
+                .HasMaxLength(30)
+                .IsUnicode(false);
+
+            entity.Property(e => e.Mode)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+
+            entity.Property(e => e.DatasetHash)
+                .HasMaxLength(64)
+                .IsUnicode(false);
+
+            entity.Property(e => e.IdempotencyKey)
+                .HasMaxLength(120)
+                .IsUnicode(false);
+
+            entity.Property(e => e.Message)
                 .HasMaxLength(500)
                 .IsUnicode(false);
-            entity.Property(e => e.SeasonName)
-                .HasMaxLength(10)
-                .IsUnicode(false);
-            entity.Property(e => e.SizeName)
-                .HasMaxLength(10)
-                .IsUnicode(false);
-            entity.Property(e => e.ItemNumber)
-                .HasMaxLength(75)
-                .IsUnicode(false);
+
+            entity.Property(e => e.IsUndone)
+                .HasDefaultValue(false);
+
+            entity.Property(e => e.ResultJson)
+                .HasColumnType("nvarchar(max)");
         });
 
         modelBuilder.Entity<ItemImage>(entity =>
@@ -258,7 +335,14 @@ public partial class MissIssippiContext : DbContext
 
             entity.ToTable("ItemColor");
 
-            entity.HasIndex(e => new { e.ItemId, e.ColorId }, "u_ItemColor_ItemId_ColorId").IsUnique();
+            entity.HasIndex(e => new { e.ItemId, e.ColorId, e.CompositeSignature }, "u_ItemColor_ItemId_ColorId_CompositeSignature").IsUnique();
+
+            entity.Property(e => e.Active)
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.CompositeSignature)
+                .HasMaxLength(500)
+                .HasDefaultValue("");
 
             entity.HasOne(d => d.Color).WithMany(p => p.ItemColors)
                 .HasForeignKey(d => d.ColorId)
@@ -271,49 +355,24 @@ public partial class MissIssippiContext : DbContext
                 .HasConstraintName("f_Item_ItemColor");
         });
 
-        modelBuilder.Entity<ItemColorView>(entity =>
+        modelBuilder.Entity<ItemColorSecondaryColor>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToView("ItemColorView");
+            entity.HasKey(e => new { e.ItemColorId, e.SecondaryColorId })
+                .HasName("PK_ItemColorSecondaryColor");
 
-            entity.Property(e => e.ColorName)
-                .HasMaxLength(75)
-                .IsUnicode(false);
-            entity.Property(e => e.HexValue)
-                .HasMaxLength(7)
-                .IsUnicode(false);
-            entity.Property(e => e.PantoneColor)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.SeasonName)
-                .HasMaxLength(10)
-                .IsUnicode(false);
-            entity.Property(e => e.ItemNumber)
-                .HasMaxLength(75)
-                .IsUnicode(false);
-        });
+            entity.ToTable("ItemColorSecondaryColor");
 
-        modelBuilder.Entity<ItemView>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("ItemView");
+            entity.Property(e => e.SortOrder).HasDefaultValue(1);
 
-            entity.Property(e => e.CostPrice).HasColumnType("decimal(18, 0)");
-            entity.Property(e => e.Description)
-                .HasMaxLength(500)
-                .IsUnicode(false);
-            entity.Property(e => e.SeasonDateCreated).HasColumnType("datetime");
-            entity.Property(e => e.SeasonName)
-                .HasMaxLength(10)
-                .IsUnicode(false);
-            entity.Property(e => e.ItemDateCreated).HasColumnType("datetime");
-            entity.Property(e => e.ItemNumber)
-                .HasMaxLength(75)
-                .IsUnicode(false);
-            entity.Property(e => e.Weight).HasColumnType("decimal(18, 0)");
-            entity.Property(e => e.WholesalePrice).HasColumnType("decimal(18, 0)");
+            entity.HasOne(d => d.ItemColor).WithMany(p => p.ItemColorSecondaryColors)
+                .HasForeignKey(d => d.ItemColorId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("f_ItemColor_ItemColorSecondaryColor");
+
+            entity.HasOne(d => d.SecondaryColor).WithMany(p => p.ItemColorSecondaryColors)
+                .HasForeignKey(d => d.SecondaryColorId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("f_Color_ItemColorSecondaryColor");
         });
 
         OnModelCreatingPartial(modelBuilder);

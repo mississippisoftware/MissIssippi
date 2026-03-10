@@ -11,13 +11,13 @@ export default function ExportButton({
   className,
   label = "Export to Excel",
 }: ExportButtonProps) {
+  const buttonClassName = className ?? "btn-info btn-outlined";
   return (
     <Button
       label={label}
       icon="pi pi-download"
-      severity="secondary"
       onClick={onClick}
-      className={className}
+      className={buttonClassName}
     />
   );
 }

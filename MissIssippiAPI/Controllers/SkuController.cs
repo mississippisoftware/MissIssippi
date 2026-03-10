@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using MissIssippiAPI.Models;
 using MissIssippiAPI.Services;
 
-namespace MissIssippiAPI
+namespace MissIssippiAPI.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
@@ -40,7 +40,7 @@ namespace MissIssippiAPI
                 return BadRequest("Adjustments are required.");
             }
 
-            var result = await _skuService.ApplyAdjustmentsAsync(request.Adjustments);
+            var result = await _skuService.ApplyAdjustmentsAsync(request.Adjustments, request.Notes);
             return Ok(result);
         }
     }

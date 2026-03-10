@@ -1,11 +1,16 @@
-import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
 import CatalogPageLayout from "../components/CatalogPageLayout";
 import CatalogService, { type ItemView } from "../service/CatalogService";
 import { InventoryService } from "../service/InventoryService";
 import { normalizeName } from "../items/itemsColorsUtils";
 import { appendSheet, createWorkbook, saveWorkbook, sheetFromJson } from "../utils/xlsxUtils";
 import { findHeaderIndex, normalizeHeaders, parseOptionalNumber, readFirstSheetRows } from "../utils/xlsxParse";
+import { getErrorMessage } from "../utils/errors";
+import { shouldSubmitOnEnter } from "../utils/modalKeyHandlers";
+import { printPriceList } from "../utils/printCatalogLists";
 
 type SeasonOption = { seasonId: number; seasonName: string };
 
@@ -32,8 +37,15 @@ type UploadSummary = {
 const buildItemKey = (seasonName: string, itemNumber: string) =>
   `${normalizeName(seasonName)}|${normalizeName(itemNumber)}`;
 
-const getErrorMessage = (err: unknown, fallback: string) =>
-  err instanceof Error ? err.message : fallback;
+const formatPrice = (value: number | null | undefined) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "";
+  return Number(value).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
 
 export default function PriceList() {
   const [items, setItems] = useState<ItemView[]>([]);
@@ -48,6 +60,8 @@ export default function PriceList() {
   const [missingItems, setMissingItems] = useState<MissingItemRow[]>([]);
   const [showMissingModal, setShowMissingModal] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [defaultUploadSeasonId, setDefaultUploadSeasonId] = useState("");
+  const [uploadMissingSeasonColumn, setUploadMissingSeasonColumn] = useState(false);
 
   const seasonMap = useMemo(() => {
     const map = new Map<number, string>();
@@ -79,6 +93,9 @@ export default function PriceList() {
         localSeasonMap.set(season.seasonId, season.seasonName);
       });
       setSeasons(seasonData);
+      if (seasonData.length > 0) {
+        setDefaultUploadSeasonId((prev) => (prev ? prev : String(seasonData[0].seasonId)));
+      }
       const rows = itemsData.map((item) => ({
         ...item,
         seasonName: item.seasonName ?? localSeasonMap.get(item.seasonId) ?? "",
@@ -129,6 +146,7 @@ export default function PriceList() {
       setParseErrors([]);
       setUploadSummary(null);
       setMissingItems([]);
+      setUploadMissingSeasonColumn(false);
       return;
     }
 
@@ -137,6 +155,7 @@ export default function PriceList() {
     setParseErrors([]);
     setUploadSummary(null);
     setMissingItems([]);
+    setUploadMissingSeasonColumn(false);
 
     try {
       const buffer = await file.arrayBuffer();
@@ -164,10 +183,9 @@ export default function PriceList() {
       ]);
       const retailIndex = findHeaderIndex(normalizedHeaders, ["retail", "retail price", "retailprice"]);
 
-      const missingRequired = [
-        seasonIndex < 0 ? "Season" : null,
-        itemIndex < 0 ? "Style Number" : null,
-      ].filter(Boolean);
+      setUploadMissingSeasonColumn(seasonIndex < 0);
+
+      const missingRequired = [itemIndex < 0 ? "Style Number" : null].filter(Boolean);
 
       if (missingRequired.length > 0) {
         setParseErrors([`Missing required columns: ${missingRequired.join(", ")}.`]);
@@ -190,7 +208,7 @@ export default function PriceList() {
           return;
         }
 
-        if (!seasonName) {
+        if (seasonIndex >= 0 && !seasonName) {
           errors.push(`Row ${rowNumber}: Season is required.`);
         }
         if (!itemNumber) {
@@ -216,6 +234,18 @@ export default function PriceList() {
 
   const handleUploadPrices = async () => {
     if (uploadRows.length === 0 || parseErrors.length > 0) return;
+    const defaultSeasonName =
+      uploadMissingSeasonColumn && defaultUploadSeasonId
+        ? seasons.find((season) => String(season.seasonId) === defaultUploadSeasonId)?.seasonName ?? ""
+        : "";
+    if (uploadMissingSeasonColumn && !defaultSeasonName) {
+      setUploadSummary({
+        processed: 0,
+        updated: 0,
+        errors: ["Select a season for this file before uploading."],
+      });
+      return;
+    }
 
     setUploading(true);
     setUploadSummary(null);
@@ -224,10 +254,11 @@ export default function PriceList() {
     let updated = 0;
 
     for (const row of uploadRows) {
-      const key = buildItemKey(row.seasonName, row.itemNumber);
+      const effectiveSeasonName = row.seasonName || defaultSeasonName;
+      const key = buildItemKey(effectiveSeasonName, row.itemNumber);
       const item = itemKeyMap.get(key);
       if (!item) {
-        missing.push({ rowNumber: row.rowNumber, seasonName: row.seasonName, itemNumber: row.itemNumber });
+        missing.push({ rowNumber: row.rowNumber, seasonName: effectiveSeasonName, itemNumber: row.itemNumber });
         continue;
       }
 
@@ -264,6 +295,19 @@ export default function PriceList() {
 
   const uploadErrors = uploadSummary?.errors ?? [];
   const hasUploadErrors = uploadErrors.length > 0;
+  const priceRows = useMemo(
+    () =>
+      [...items].sort((a, b) => {
+        const seasonDiff = String(a.seasonName ?? "").localeCompare(String(b.seasonName ?? ""));
+        if (seasonDiff !== 0) return seasonDiff;
+        return String(a.itemNumber ?? "").localeCompare(String(b.itemNumber ?? ""));
+      }),
+    [items]
+  );
+
+  const handlePrintPriceList = () => {
+    printPriceList({ rows: priceRows, formatPrice });
+  };
 
   return (
     <CatalogPageLayout
@@ -277,6 +321,13 @@ export default function PriceList() {
           disabled: loading || items.length === 0,
           icon: "pi pi-download",
           className: "btn-info btn-outlined",
+        },
+        {
+          label: "Print Price List",
+          onClick: handlePrintPriceList,
+          disabled: loading || priceRows.length === 0,
+          icon: "pi pi-print",
+          className: "btn-neutral btn-outlined",
         },
       ]}
     >
@@ -293,6 +344,26 @@ export default function PriceList() {
                   Columns expected: Season, Style Number, Wholesale, Retail.
                 </Form.Text>
               </Form.Group>
+              {uploadMissingSeasonColumn && (
+                <Form.Group className="mt-3" controlId="priceListSeasonForFile">
+                  <Form.Label>Season for this file</Form.Label>
+                  <Form.Select
+                    value={defaultUploadSeasonId}
+                    onChange={(e) => setDefaultUploadSeasonId(e.target.value)}
+                    disabled={loading || seasons.length === 0}
+                  >
+                    <option value="">Choose season</option>
+                    {seasons.map((season) => (
+                      <option key={season.seasonId} value={season.seasonId}>
+                        {season.seasonName}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <Form.Text className="text-muted">
+                    This file has no Season column. One season is required.
+                  </Form.Text>
+                </Form.Group>
+              )}
               {fileName && <div className="text-muted mt-2">Selected file: {fileName}</div>}
             </Col>
             <Col md={4} className="text-md-end">
@@ -300,7 +371,12 @@ export default function PriceList() {
                 type="button"
                 className="btn-success"
                 onClick={handleUploadPrices}
-                disabled={uploadRows.length === 0 || parseErrors.length > 0 || uploading}
+                disabled={
+                  uploadRows.length === 0 ||
+                  parseErrors.length > 0 ||
+                  uploading ||
+                  (uploadMissingSeasonColumn && !defaultUploadSeasonId)
+                }
               >
                 {uploading ? (
                   <>
@@ -358,7 +434,61 @@ export default function PriceList() {
         </Card.Body>
       </Card>
 
-      <Modal show={showMissingModal} onHide={() => setShowMissingModal(false)} centered>
+      <Card className="portal-content-card inventory-upload-card mt-4">
+        <Card.Body>
+          <Row className="align-items-center gy-2 mb-3">
+            <Col>
+              <h5 className="mb-1 card-heading-title">Current Price List</h5>
+              <p className="text-muted mb-0">
+                View item wholesale and retail prices currently in the system.
+              </p>
+            </Col>
+          </Row>
+
+          <div className="items-table-wrapper">
+            <DataTable
+              value={priceRows}
+              dataKey="itemId"
+              loading={loading}
+              rowHover
+              paginator
+              rows={25}
+              rowsPerPageOptions={[25, 50, 100]}
+              className="p-datatable-gridlines items-colors-table"
+              sortField="itemNumber"
+              sortOrder={1}
+              responsiveLayout="scroll"
+            >
+              <Column field="seasonName" header="Season" sortable />
+              <Column field="itemNumber" header="Style" sortable />
+              <Column field="description" header="Description" sortable />
+              <Column
+                field="wholesalePrice"
+                header="Wholesale"
+                sortable
+                body={(row: ItemView) => formatPrice(row.wholesalePrice ?? null)}
+              />
+              <Column
+                field="costPrice"
+                header="Retail"
+                sortable
+                body={(row: ItemView) => formatPrice(row.costPrice ?? null)}
+              />
+            </DataTable>
+          </div>
+        </Card.Body>
+      </Card>
+
+      <Modal
+        show={showMissingModal}
+        onHide={() => setShowMissingModal(false)}
+        centered
+        onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+          if (!shouldSubmitOnEnter(event)) return;
+          event.preventDefault();
+          setShowMissingModal(false);
+        }}
+      >
         <Modal.Header closeButton>
           <Modal.Title>Items not found</Modal.Title>
         </Modal.Header>

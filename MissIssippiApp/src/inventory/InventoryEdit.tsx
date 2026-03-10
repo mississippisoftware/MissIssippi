@@ -12,6 +12,7 @@ import InventorySearchFiltersForm from "../components/InventorySearchFilters";
 import type { InventorySearchFilters as InventorySearchFiltersType } from "../utils/InventorySearchFilters";
 import { buildInventoryCardGroups, type InventoryCardGroup } from "../utils/buildInventoryCardGroups";
 import { printInventoryCards } from "../utils/printInventory";
+import { getErrorMessage } from "../utils/errors";
 
 const EMPTY_FILTERS: InventorySearchFiltersType = {
   itemNumber: "",
@@ -24,8 +25,6 @@ const EMPTY_FILTERS: InventorySearchFiltersType = {
 export default function InventoryEdit() {
   const toastRef = useRef<Toast>(null);
   const notify = useNotifier(toastRef);
-  const getErrorMessage = (err: unknown, fallback: string) =>
-    err instanceof Error ? err.message : fallback;
   const location = useLocation();
   const autoSearchRef = useRef<string | null>(null);
   const [cardColumns, setCardColumns] = useState<1 | 2>(2);
@@ -112,6 +111,7 @@ export default function InventoryEdit() {
   }, [location.search, notify, search]);
 
   const cardGroups = useMemo(() => buildInventoryCardGroups(results), [results]);
+  const hasCards = cardGroups.length > 0;
 
   const handleSearch = async (filters: InventorySearchFiltersType) => {
     const data = await search(filters);
@@ -169,70 +169,75 @@ export default function InventoryEdit() {
       <Toast ref={toastRef} position="top-right" />
 
       <div className="inventory-edit-header-actions">
-        <InventorySearchFiltersForm
-          filters={form}
-          seasons={seasons}
-          searching={searching}
-          onChange={setForm}
-          onSubmit={handleSearch}
-          onClear={handleClear}
-        />
-      </div>
-
-      <div className="content-card inventory-edit-panel">
-        <div className="inventory-view-card-header inventory-edit-panel-header">
-          <div className="inventory-view-card-actions inventory-edit-panel-actions">
-            <ActionButton
-              label="Download All"
-              icon="pi pi-download"
-              className="btn-info btn-outlined"
-              onClick={handleDownloadAll}
-              disabled={cardGroups.length === 0}
-              title="Download All"
-            />
-            <ActionButton
-              icon={cardColumns === 2 ? "pi pi-th-large" : "pi pi-bars"}
-              className="btn-neutral btn-outlined"
-              onClick={() => setCardColumns((prev) => (prev === 2 ? 1 : 2))}
-              ariaLabel={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
-              title={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
-              iconOnly
-            />
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="d-flex justify-content-center py-5">
-            <ProgressSpinner />
-          </div>
-        ) : null}
-
-        {!loading && !searching && results.length === 0 && (
-          <div className="text-center text-muted">Search to load styles and start editing.</div>
-        )}
-
-        {searching && (
-          <div className="d-flex justify-content-center py-4">
-            <ProgressSpinner />
-          </div>
-        )}
-
-        <div className={`inventory-cards-grid ${cardColumns === 1 ? "one-column" : "two-columns"}`}>
-          {cardGroups.map((group) => (
-            <InventoryEditCard
-              key={group.itemNumber}
-              group={group}
-              sizeColumns={sizeColumns}
-              onQtyChange={updateCell}
-              onDownload={handleDownloadPdf}
-              onDiscard={discardChangesByItem}
-              onSave={handleSave}
-              isDirty={dirtyItemsSet.has(group.itemNumber)}
-              placeholderImage={placeholderImage}
-            />
-          ))}
+        <div className="content-card inventory-edit-search-card">
+          <InventorySearchFiltersForm
+            filters={form}
+            seasons={seasons}
+            searching={searching}
+            onChange={setForm}
+            onSubmit={handleSearch}
+            onClear={handleClear}
+          />
         </div>
       </div>
+
+      {loading && (
+        <div className="inventory-edit-status d-flex justify-content-center py-5">
+          <ProgressSpinner />
+        </div>
+      )}
+
+      {!loading && !searching && results.length === 0 && (
+        <div className="inventory-edit-status text-center text-muted">
+          Search to load styles and start editing.
+        </div>
+      )}
+
+      {searching && (
+        <div className="inventory-edit-status d-flex justify-content-center py-4">
+          <ProgressSpinner />
+        </div>
+      )}
+
+      {hasCards && (
+        <div className="inventory-edit-panel">
+          <div className="inventory-view-card-header inventory-edit-panel-header">
+            <div className="inventory-view-card-actions inventory-edit-panel-actions">
+              <ActionButton
+                label="Download All"
+                icon="pi pi-download"
+                className="btn-info btn-outlined"
+                onClick={handleDownloadAll}
+                title="Download All"
+              />
+              <ActionButton
+                icon={cardColumns === 2 ? "pi pi-th-large" : "pi pi-bars"}
+                className="btn-neutral btn-outlined"
+                onClick={() => setCardColumns((prev) => (prev === 2 ? 1 : 2))}
+                ariaLabel={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
+                title={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
+                iconOnly
+              />
+            </div>
+          </div>
+
+          <div className={`inventory-cards-grid ${cardColumns === 1 ? "one-column" : "two-columns"}`}>
+            {cardGroups.map((group) => (
+              <InventoryEditCard
+                key={group.itemNumber}
+                group={group}
+                sizeColumns={sizeColumns}
+                onQtyChange={updateCell}
+                onDownload={handleDownloadPdf}
+                onDiscard={discardChangesByItem}
+                onSave={handleSave}
+                isDirty={dirtyItemsSet.has(group.itemNumber)}
+                placeholderImage={placeholderImage}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </CatalogPageLayout>
   );
 }

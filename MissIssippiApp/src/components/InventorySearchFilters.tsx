@@ -70,15 +70,12 @@ export default function InventorySearchFiltersForm({
         ))}
       </div>
       <div className="inventory-search-actions">
-        <Button type="submit" disabled={searching} variant="primary" className="portal-btn portal-btn-primary">
+        <Button type="submit" disabled={searching} className="btn-text">
+          <i className="pi pi-search" aria-hidden="true" />
           {searching ? "Searching..." : "Search"}
         </Button>
-        <Button
-          type="button"
-          variant="outline-secondary"
-          onClick={onClear}
-          className="portal-btn portal-btn-outline"
-        >
+        <Button type="button" onClick={onClear} className="btn-neutral btn-outlined">
+          <i className="pi pi-filter-slash" aria-hidden="true" />
           Clear
         </Button>
       </div>

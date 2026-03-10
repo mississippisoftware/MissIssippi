@@ -24,17 +24,6 @@ function getItemKey(item: SidebarMenuItem) {
 
 function hasActiveChild(pathname: string, item: SidebarMenuItem): boolean {
   if (!item.items?.length) return false;
-  const basePath = item.items
-    .map((child) => child.to)
-    .find((to): to is string => Boolean(to))
-    ?.split("/")
-    .slice(0, 2)
-    .join("/");
-
-  if (basePath && pathname.startsWith(basePath)) {
-    return true;
-  }
-
   return item.items.some((child) => isPathActive(pathname, child.to) || hasActiveChild(pathname, child));
 }
 

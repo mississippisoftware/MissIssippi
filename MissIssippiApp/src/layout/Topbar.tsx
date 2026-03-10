@@ -8,7 +8,7 @@ export default function Topbar() {
       </div>
 
       <div className="topbar-right">
-        <Button icon="pi pi-user" className="p-button-text" />
+        <Button icon="pi pi-user" className="btn-text btn-icon" aria-label="User menu" />
       </div>
     </header>
   );

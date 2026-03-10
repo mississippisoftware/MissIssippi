@@ -35,7 +35,13 @@ interface InventoryTableProps {
   scrollHeight?: string;
   showRowTotals?: boolean;
   rowTotalHeader?: string;
-  onQtyChange?: (itemNumber: string, colorName: string, size: string, qty: number) => void;
+  onQtyChange?: (
+    itemNumber: string,
+    colorName: string,
+    size: string,
+    qty: number,
+    row?: iInventoryDisplayRow
+  ) => void;
   onSave?: (row: iInventoryDisplayRow) => Promise<void> | void;
 }
 
@@ -175,7 +181,8 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
             options.rowData.itemNumber,
             options.rowData.colorName,
             sizeName,
-            Number(e.value ?? 0)
+            Number(e.value ?? 0),
+            options.rowData
           )
         }
       />

@@ -10,12 +10,15 @@ import {
 const REQUIRED_HEADERS = {
   season: ["season", "season name", "seasonname"],
   style: ["style", "style number", "stylenumber", "style #", "style no"],
-  color: ["color", "color name", "colorname"],
+  color: ["color", "colour", "color name", "colour name", "colorname", "colourname"],
 };
 
 export type ParseInventoryUploadResult = {
   rows: InventoryUploadRow[];
   errors: string[];
+  seasonColumnDetected: boolean;
+  detectedSizeColumns: string[];
+  ignoredHeaderColumns: string[];
 };
 
 export const parseInventoryUploadFile = (args: {
@@ -25,7 +28,13 @@ export const parseInventoryUploadFile = (args: {
   const { buffer, sizeNames } = args;
   const { rows: rawRows, errors: sheetErrors } = readFirstSheetRows(buffer);
   if (sheetErrors.length > 0) {
-    return { rows: [], errors: sheetErrors };
+    return {
+      rows: [],
+      errors: sheetErrors,
+      seasonColumnDetected: false,
+      detectedSizeColumns: [],
+      ignoredHeaderColumns: [],
+    };
   }
 
   const headerRow = rawRows[0] as unknown[];
@@ -36,24 +45,50 @@ export const parseInventoryUploadFile = (args: {
   const colorIndex = findHeaderIndex(normalizedHeaders, REQUIRED_HEADERS.color);
 
   const missingRequired = [
-    seasonIndex < 0 ? "Season" : null,
     styleIndex < 0 ? "Style" : null,
     colorIndex < 0 ? "Color" : null,
   ].filter(Boolean) as string[];
 
   if (missingRequired.length > 0) {
-    return { rows: [], errors: [`Missing required columns: ${missingRequired.join(", ")}.`] };
+    return {
+      rows: [],
+      errors: [`Missing required columns: ${missingRequired.join(", ")}.`],
+      seasonColumnDetected: seasonIndex >= 0,
+      detectedSizeColumns: [],
+      ignoredHeaderColumns: [],
+    };
   }
 
   const sizeIndexMap = buildHeaderIndexMap(normalizedHeaders);
-
-  const missingSizes = sizeNames.filter(
-    (sizeName) => !sizeIndexMap.has(normalizeHeaderValue(sizeName))
+  const availableSizeColumns = sizeNames.filter((sizeName) =>
+    sizeIndexMap.has(normalizeHeaderValue(sizeName))
   );
 
-  if (missingSizes.length > 0) {
-    return { rows: [], errors: [`Missing size columns: ${missingSizes.join(", ")}.`] };
+  if (availableSizeColumns.length === 0) {
+    return {
+      rows: [],
+      errors: ["No recognized size columns found in the file header."],
+      seasonColumnDetected: seasonIndex >= 0,
+      detectedSizeColumns: [],
+      ignoredHeaderColumns: [],
+    };
   }
+
+  const requiredHeaderCandidates = new Set<string>([
+    ...REQUIRED_HEADERS.season,
+    ...REQUIRED_HEADERS.style,
+    ...REQUIRED_HEADERS.color,
+  ].map(normalizeHeaderValue));
+  const knownSizeCandidates = new Set(sizeNames.map((sizeName) => normalizeHeaderValue(sizeName)));
+  const ignoredHeaderColumns = headerRow
+    .map((value, index) => ({ raw: String(value ?? "").trim(), normalized: normalizedHeaders[index] ?? "" }))
+    .filter((column) => column.raw && column.normalized)
+    .filter(
+      (column) =>
+        !requiredHeaderCandidates.has(column.normalized) &&
+        !knownSizeCandidates.has(column.normalized)
+    )
+    .map((column) => column.raw);
 
   const parsedRows: InventoryUploadRow[] = [];
   const errors: string[] = [];
@@ -62,11 +97,11 @@ export const parseInventoryUploadFile = (args: {
     const values = row as Array<unknown>;
     const rowNumber = rowIndex + 2;
 
-    const seasonName = String(values[seasonIndex] ?? "").trim();
+    const seasonName = seasonIndex >= 0 ? String(values[seasonIndex] ?? "").trim() : "";
     const itemNumber = String(values[styleIndex] ?? "").trim();
     const colorName = String(values[colorIndex] ?? "").trim();
 
-    const hasSizeValues = sizeNames.some((sizeName) => {
+    const hasSizeValues = availableSizeColumns.some((sizeName) => {
       const sizeIndex = sizeIndexMap.get(normalizeHeaderValue(sizeName)) ?? -1;
       const cell = values[sizeIndex];
       return cell !== "" && cell !== null && cell !== undefined;
@@ -76,7 +111,7 @@ export const parseInventoryUploadFile = (args: {
       return;
     }
 
-    if (!seasonName) {
+    if (seasonIndex >= 0 && !seasonName) {
       errors.push(`Row ${rowNumber}: Season is required.`);
     }
     if (!itemNumber) {
@@ -91,7 +126,7 @@ export const parseInventoryUploadFile = (args: {
       const sizeIndex = sizeIndexMap.get(normalizeHeaderValue(sizeName)) ?? -1;
       const rawValue = values[sizeIndex];
       if (rawValue === "" || rawValue === null || rawValue === undefined) {
-        sizesPayload[sizeName] = 0;
+        sizesPayload[sizeName] = null;
         return;
       }
 
@@ -99,7 +134,7 @@ export const parseInventoryUploadFile = (args: {
         typeof rawValue === "number" ? rawValue : Number(String(rawValue).trim());
       if (Number.isNaN(numericValue)) {
         errors.push(`Row ${rowNumber}: Quantity for size '${sizeName}' is not a number.`);
-        sizesPayload[sizeName] = 0;
+        sizesPayload[sizeName] = null;
         return;
       }
 
@@ -115,5 +150,11 @@ export const parseInventoryUploadFile = (args: {
     });
   });
 
-  return { rows: parsedRows, errors };
+  return {
+    rows: parsedRows,
+    errors,
+    seasonColumnDetected: seasonIndex >= 0,
+    detectedSizeColumns: availableSizeColumns,
+    ignoredHeaderColumns,
+  };
 };

@@ -5,7 +5,7 @@ using MissIssippiAPI.Data;
 using MissIssippiAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace MissIssippiAPI
+namespace MissIssippiAPI.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
@@ -40,28 +40,31 @@ namespace MissIssippiAPI
         [HttpPost]
         public async Task<bool> AddOrUpdateSize(Size? size)
         {
-            if (size != null)
+            if (size == null || string.IsNullOrWhiteSpace(size.SizeName))
             {
-                var existingSize = await _context.Sizes.Where(x => x.SizeId == size.SizeId).FirstOrDefaultAsync();
-
-                if (existingSize != null)
-                {
-                    existingSize.SizeName = size.SizeName;
-                    existingSize.SizeSequence = size.SizeSequence;
-
-                }
-
-                if (existingSize == null)
-                {
-                    existingSize.SizeName = size.SizeName;
-                    existingSize.SizeSequence = size.SizeSequence;
-                    _context.AddAsync(existingSize);
-
-                }
-                _context.SaveChangesAsync();
-                return true;
+                return false;
             }
-            return false;
+
+            var normalizedName = size.SizeName.Trim();
+            var existingSize = await _context.Sizes.Where(x => x.SizeId == size.SizeId).FirstOrDefaultAsync();
+
+            if (existingSize != null)
+            {
+                existingSize.SizeName = normalizedName;
+                existingSize.SizeSequence = size.SizeSequence;
+            }
+            else
+            {
+                existingSize = new Size
+                {
+                    SizeName = normalizedName,
+                    SizeSequence = size.SizeSequence
+                };
+                await _context.Sizes.AddAsync(existingSize);
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         [HttpDelete]

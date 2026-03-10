@@ -5,7 +5,7 @@ using MissIssippiAPI.Data;
 using MissIssippiAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace MissIssippiAPI
+namespace MissIssippiAPI.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
@@ -39,31 +39,49 @@ namespace MissIssippiAPI
         }
 
         [HttpPost]
-        public async Task<bool> AddOrUpdateSeason(Season? season)
+        public async Task<IActionResult> AddOrUpdateSeason(Season? season)
         {
-            if (season != null)
+            if (season == null || string.IsNullOrWhiteSpace(season.SeasonName))
             {
-                var existingSeason = await _context.Seasons.Where(x => x.SeasonId == season.SeasonId).FirstOrDefaultAsync();
-
-                if (existingSeason != null)
-                {
-                    existingSeason.SeasonName = season.SeasonName;
-                    existingSeason.Active = season.Active;
-
-                }
-
-                if (existingSeason == null)
-                {
-                    existingSeason.SeasonName = season.SeasonName;
-                    existingSeason.SeasonDateCreated = DateTime.Now;
-                    existingSeason.Active = season.Active == null ? false : true;
-                    _context.AddAsync(existingSeason);
-
-                }
-                _context.SaveChangesAsync();
-                return true;
+                return Ok(false);
             }
-            return false;
+
+            var normalizedName = season.SeasonName.Trim();
+            var hasDuplicate = await _context.Seasons
+                .AnyAsync(x => x.SeasonId != season.SeasonId && x.SeasonName == normalizedName);
+
+            if (hasDuplicate)
+            {
+                return Conflict($"Season '{normalizedName}' already exists.");
+            }
+
+            var existingSeason = await _context.Seasons.Where(x => x.SeasonId == season.SeasonId).FirstOrDefaultAsync();
+
+            if (existingSeason != null)
+            {
+                existingSeason.SeasonName = normalizedName;
+                existingSeason.Active = season.Active ?? false;
+            }
+            else
+            {
+                existingSeason = new Season
+                {
+                    SeasonName = normalizedName,
+                    SeasonDateCreated = DateTime.UtcNow,
+                    Active = season.Active ?? false
+                };
+                _context.Seasons.Add(existingSeason);
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return Ok(true);
+            }
+            catch (DbUpdateException)
+            {
+                return Conflict($"Season '{normalizedName}' already exists.");
+            }
         }
 
         [HttpDelete]

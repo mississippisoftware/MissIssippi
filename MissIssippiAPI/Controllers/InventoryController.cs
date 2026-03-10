@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using MissIssippiAPI.Dtos;
 using MissIssippiAPI.Models;
 using MissIssippiAPI.Services;
 
-namespace MissIssippiAPI
+namespace MissIssippiAPI.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
@@ -16,7 +17,7 @@ namespace MissIssippiAPI
         }
 
         [HttpGet]
-        public async Task<List<InventoryView>> GetInventory(string? ItemNumber = null,
+        public async Task<List<InventoryRowDto>> GetInventory(string? ItemNumber = null,
                                                             string? Description = null,
                                                             string? ColorName = null,
                                                             string? SizeName = null,
@@ -70,15 +71,37 @@ namespace MissIssippiAPI
         }
 
         [HttpPost]
-        public async Task<bool> AddOrUpdateInventory(InventoryView? Inventory)
+        public async Task<IActionResult> AddOrUpdateInventory(InventoryRowDto? Inventory)
         {
-            return await _inventoryService.AddOrUpdateInventoryAsync(Inventory);
+            if (Inventory == null)
+            {
+                return BadRequest("Inventory update is required.");
+            }
+
+            var result = await _inventoryService.AddOrUpdateInventoryAsync(Inventory);
+            if (!result)
+            {
+                return BadRequest("Inventory update failed.");
+            }
+
+            return Ok(true);
         }
 
         [HttpPost]
-        public async Task<bool> SaveInventoryUpdates([FromBody] List<InventoryView> updates)
+        public async Task<IActionResult> SaveInventoryUpdates([FromBody] List<InventoryRowDto> updates)
         {
-            return await _inventoryService.SaveInventoryUpdatesAsync(updates);
+            if (updates == null || updates.Count == 0)
+            {
+                return BadRequest("No updates provided.");
+            }
+
+            var result = await _inventoryService.SaveInventoryUpdatesAsync(updates);
+            if (!result)
+            {
+                return BadRequest("Inventory updates failed.");
+            }
+
+            return Ok(true);
         }
 
         [HttpPost]
@@ -90,14 +113,20 @@ namespace MissIssippiAPI
                 return BadRequest(validationError);
             }
 
-            var result = await _inventoryService.SavePivotInventoryAsync(updates);
+            var result = await _inventoryService.SavePivotInventoryAsync(updates, "edit");
             return Ok(result);
         }
 
         [HttpDelete]
-        public async Task<bool> DeleteInventory(int InventoryId)
+        public async Task<IActionResult> DeleteInventory(int InventoryId)
         {
-            return await _inventoryService.DeleteInventoryAsync(InventoryId);
+            var deleted = await _inventoryService.DeleteInventoryAsync(InventoryId);
+            if (!deleted)
+            {
+                return NotFound("Inventory not found.");
+            }
+
+            return Ok(true);
         }
     }
 }

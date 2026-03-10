@@ -5,6 +5,7 @@ import "primereact/resources/themes/lara-light-indigo/theme.css"; // PrimeReact 
 import "primereact/resources/primereact.min.css";               // core PrimeReact css
 import "primeicons/primeicons.css";                             // icons
 import "./theme.css";                                           // custom overrides
+import "./styles/action-buttons.css";                           // action button system
 
 import router from "./routes"; // your react-router config
 import React from "react";

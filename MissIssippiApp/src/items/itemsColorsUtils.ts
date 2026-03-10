@@ -5,6 +5,23 @@ export const normalizeName = (value: string) =>
 
 export const normalizeHeader = (value: unknown) => String(value ?? "").trim().toLowerCase();
 
+export const splitCompositeColorName = (value: string) =>
+  value
+    // Treat slash the same as plus for composite colors (e.g. "Black/Denim" == "Black + Denim")
+    .split(/[+/]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+export const getPrimaryColorName = (value: string) => {
+  const [primary] = splitCompositeColorName(value);
+  return primary ?? "";
+};
+
+export const getSecondaryColorNames = (value: string) => {
+  const parts = splitCompositeColorName(value);
+  return parts.length > 1 ? parts.slice(1) : [];
+};
+
 const levenshtein = (a: string, b: string) => {
   if (a === b) return 0;
   if (!a.length) return b.length;

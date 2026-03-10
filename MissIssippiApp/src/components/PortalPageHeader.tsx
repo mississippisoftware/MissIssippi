@@ -43,18 +43,19 @@ export default function PortalPageHeader({
           <div className={actionsClass}>
             {actions.map((action) => {
               const variant = action.variant ?? "outline";
-              const baseClass =
-                variant === "primary" ? "portal-btn portal-btn-primary" : "portal-btn portal-btn-outline";
+              const fallbackClass =
+                variant === "primary" ? "btn-primary" : "btn-neutral btn-outlined";
+              const buttonClass = action.className ?? fallbackClass;
               return (
                 <Button
                   key={action.label}
                   type="button"
-                  className={`${baseClass} portal-page-action ${action.className ?? ""}`.trim()}
+                  className={buttonClass}
                   onClick={action.onClick}
                   disabled={action.disabled}
                 >
                   {action.icon ? (
-                    <i className={`${action.icon} portal-page-action-icon`} aria-hidden="true" />
+                    <i className={action.icon} aria-hidden="true" />
                   ) : null}
                   {action.label}
                 </Button>

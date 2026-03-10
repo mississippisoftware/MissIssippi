@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MissIssippiAPI.Data;
+using MissIssippiAPI.Dtos;
 using MissIssippiAPI.Models;
 
 namespace MissIssippiAPI.Services
@@ -7,13 +8,15 @@ namespace MissIssippiAPI.Services
     public class InventoryService
     {
         private readonly MissIssippiContext _context;
+        private readonly InventoryHistoryLogger _historyLogger;
 
-        public InventoryService(MissIssippiContext context)
+        public InventoryService(MissIssippiContext context, InventoryHistoryLogger historyLogger)
         {
             _context = context;
+            _historyLogger = historyLogger;
         }
 
-        public async Task<List<InventoryView>> GetInventoryAsync(
+        public async Task<List<InventoryRowDto>> GetInventoryAsync(
             string? itemNumber = null,
             string? description = null,
             string? colorName = null,
@@ -26,7 +29,30 @@ namespace MissIssippiAPI.Services
             int? sizeId = null,
             int? seasonId = null)
         {
-            var query = _context.InventoryViews.AsQueryable();
+            var query =
+                from inv in _context.Inventories.AsNoTracking()
+                join sc in _context.ItemColors.AsNoTracking() on inv.ItemColorId equals sc.ItemColorId
+                join item in _context.Items.AsNoTracking() on sc.ItemId equals item.ItemId
+                join season in _context.Seasons.AsNoTracking() on item.SeasonId equals season.SeasonId
+                join color in _context.Colors.AsNoTracking() on sc.ColorId equals color.ColorId
+                join size in _context.Sizes.AsNoTracking() on inv.SizeId equals size.SizeId
+                where sc.Active == true
+                select new
+                {
+                    ItemNumber = item.ItemNumber,
+                    Description = item.Description,
+                    PrimaryColorName = color.ColorName,
+                    SizeName = size.SizeName,
+                    Qty = inv.Qty,
+                    SeasonName = season.SeasonName,
+                    InStock = inv.InStock,
+                    InventoryId = inv.InventoryId,
+                    ItemColorId = inv.ItemColorId,
+                    ItemId = item.ItemId,
+                    ColorId = color.ColorId,
+                    SizeId = inv.SizeId,
+                    SeasonId = season.SeasonId,
+                };
 
             if (!string.IsNullOrWhiteSpace(itemNumber))
             {
@@ -50,11 +76,6 @@ namespace MissIssippiAPI.Services
             if (!string.IsNullOrWhiteSpace(description))
             {
                 query = query.Where(x => x.Description != null && x.Description.Contains(description));
-            }
-
-            if (!string.IsNullOrWhiteSpace(colorName))
-            {
-                query = query.Where(x => x.ColorName.Contains(colorName));
             }
 
             if (!string.IsNullOrWhiteSpace(sizeName))
@@ -97,7 +118,68 @@ namespace MissIssippiAPI.Services
                 query = query.Where(x => x.SeasonId == seasonId.Value);
             }
 
-            return await query.ToListAsync();
+            var baseRows = await query.ToListAsync();
+            if (baseRows.Count == 0)
+            {
+                return new List<InventoryRowDto>();
+            }
+
+            var itemColorIds = baseRows.Select(row => row.ItemColorId).Distinct().ToList();
+            var secondaryRows = await (
+                from isc in _context.ItemColorSecondaryColors.AsNoTracking()
+                join c2 in _context.Colors.AsNoTracking() on isc.SecondaryColorId equals c2.ColorId
+                where itemColorIds.Contains(isc.ItemColorId)
+                orderby isc.ItemColorId, isc.SortOrder, c2.ColorName
+                select new
+                {
+                    isc.ItemColorId,
+                    c2.ColorName
+                }).ToListAsync();
+
+            var secondaryMap = secondaryRows
+                .GroupBy(row => row.ItemColorId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => string.Join("+", group.Select(row => row.ColorName))
+                );
+
+            var results = baseRows.Select(row =>
+            {
+                secondaryMap.TryGetValue(row.ItemColorId, out var secondaryNames);
+                var fullColorName = row.PrimaryColorName;
+                if (!string.IsNullOrWhiteSpace(secondaryNames))
+                {
+                    fullColorName = $"{fullColorName}+{secondaryNames}";
+                }
+
+                return new InventoryRowDto
+                {
+                    ItemNumber = row.ItemNumber,
+                    Description = row.Description,
+                    ColorName = fullColorName,
+                    SizeName = row.SizeName,
+                    Qty = row.Qty,
+                    SeasonName = row.SeasonName,
+                    InStock = row.InStock,
+                    InventoryId = row.InventoryId,
+                    ItemColorId = row.ItemColorId,
+                    ItemId = row.ItemId,
+                    ColorId = row.ColorId,
+                    SizeId = row.SizeId,
+                    SeasonId = row.SeasonId
+                };
+            }).ToList();
+
+            if (!string.IsNullOrWhiteSpace(colorName))
+            {
+                results = results
+                    .Where(row =>
+                        row.ColorName != null
+                        && row.ColorName.IndexOf(colorName, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .ToList();
+            }
+
+            return results;
         }
 
         public async Task<IEnumerable<InventoryPivotRow>> GetPivotInventoryAsync(
@@ -157,7 +239,7 @@ namespace MissIssippiAPI.Services
                 });
         }
 
-        public async Task<bool> AddOrUpdateInventoryAsync(InventoryView? inventory)
+        public async Task<bool> AddOrUpdateInventoryAsync(InventoryRowDto? inventory)
         {
             if (inventory == null)
             {
@@ -189,47 +271,94 @@ namespace MissIssippiAPI.Services
             return true;
         }
 
-        public async Task<bool> SaveInventoryUpdatesAsync(List<InventoryView> updates)
+        public async Task<bool> SaveInventoryUpdatesAsync(List<InventoryRowDto> updates, string? source = null)
         {
             if (updates == null || updates.Count == 0)
             {
                 return false;
             }
 
+            var trackHistory = !string.IsNullOrWhiteSpace(source);
+            var changes = trackHistory ? new List<InventoryHistoryChange>() : null;
+
+            var updateIds = updates
+                .Select(update => update.InventoryId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            var existingInventory = updateIds.Count == 0
+                ? new Dictionary<int, Inventory>()
+                : await _context.Inventories
+                    .Where(x => updateIds.Contains(x.InventoryId))
+                    .ToDictionaryAsync(x => x.InventoryId);
+
             foreach (var update in updates)
             {
-                var existing = await _context.Inventories
-                    .FirstOrDefaultAsync(x => x.InventoryId == update.InventoryId);
-
-                if (existing != null)
+                if (update.InventoryId > 0 && existingInventory.TryGetValue(update.InventoryId, out var existing))
                 {
+                    var oldQty = existing.Qty;
                     existing.Qty = update.Qty;
                     existing.SizeId = update.SizeId;
                     existing.ItemColorId = update.ItemColorId;
-                }
-                else
-                {
-                    _context.Inventories.Add(new Inventory
+                    if (trackHistory && update.Qty != oldQty)
                     {
-                        Qty = update.Qty,
+                        changes!.Add(new InventoryHistoryChange
+                        {
+                            ItemColorId = update.ItemColorId,
+                            SizeId = update.SizeId,
+                            OldQty = oldQty,
+                            NewQty = update.Qty
+                        });
+                    }
+                    continue;
+                }
+
+                var oldNewQty = 0;
+                _context.Inventories.Add(new Inventory
+                {
+                    Qty = update.Qty,
+                    SizeId = update.SizeId,
+                    ItemColorId = update.ItemColorId
+                });
+                if (trackHistory && update.Qty != oldNewQty)
+                {
+                    changes!.Add(new InventoryHistoryChange
+                    {
+                        ItemColorId = update.ItemColorId,
                         SizeId = update.SizeId,
-                        ItemColorId = update.ItemColorId
+                        OldQty = oldNewQty,
+                        NewQty = update.Qty
                     });
                 }
             }
 
             await _context.SaveChangesAsync();
+
+            if (trackHistory && changes!.Count > 0)
+            {
+                try
+                {
+                    await _historyLogger.LogAdjustmentsAsync(source!, changes);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Inventory history logging failed: {ex.Message}");
+                }
+            }
             return true;
         }
 
-        public async Task<bool> SavePivotInventoryAsync(IEnumerable<InventoryPivotRow>? pivotRows)
+        public async Task<bool> SavePivotInventoryAsync(
+            IEnumerable<InventoryPivotRow>? pivotRows,
+            string? source = null)
         {
             if (pivotRows == null)
             {
                 return false;
             }
 
-            var updates = new List<InventoryView>();
+            var updates = new List<InventoryRowDto>();
 
             foreach (var row in pivotRows)
             {
@@ -245,7 +374,7 @@ namespace MissIssippiAPI.Services
                         continue;
                     }
 
-                    updates.Add(new InventoryView
+                    updates.Add(new InventoryRowDto
                     {
                         InventoryId = cell.InventoryId ?? 0,
                         ItemColorId = row.ItemColorId,
@@ -261,7 +390,7 @@ namespace MissIssippiAPI.Services
                 return false;
             }
 
-            return await SaveInventoryUpdatesAsync(updates);
+            return await SaveInventoryUpdatesAsync(updates, source);
         }
 
         public async Task<int> EnsureInventoryForItemColorAsync(int itemColorId)
@@ -365,11 +494,13 @@ namespace MissIssippiAPI.Services
         public async Task<bool> DeleteInventoryAsync(int inventoryId)
         {
             var existingInventory = await _context.Inventories.FindAsync(inventoryId);
-            if (existingInventory != null)
+            if (existingInventory == null)
             {
-                _context.Inventories.Remove(existingInventory);
-                await _context.SaveChangesAsync();
+                return false;
             }
+
+            _context.Inventories.Remove(existingInventory);
+            await _context.SaveChangesAsync();
 
             return true;
         }

@@ -1,224 +1,112 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Card, Col, Form, Row, Table } from "react-bootstrap";
+import { Button, Card, Col, Form, Row } from "react-bootstrap";
+import ActionButton from "../components/ActionButton";
 import CatalogPageLayout from "../components/CatalogPageLayout";
+import ViewToggle from "../components/ViewToggle";
+import PageActionsRow from "../components/PageActionsRow";
+import InventoryCardTable from "../components/inventory/InventoryCardTable";
 import { useInventoryStore } from "../stores/InventoryStore";
 import InventoryTable from "./InventoryTable";
 import type { FilterableColumn, InventoryTableHandle } from "./InventoryTable";
-import { exportInventoryToExcel } from "../utils/ExportInventoryToExcel";
-import { buildInventoryCardsHtml } from "../utils/InventoryCardPrint";
+import { exportInventory } from "../utils/exportInventory";
+import { useShallow } from "zustand/shallow";
+import { buildInventoryCardGroups } from "../utils/buildInventoryCardGroups";
+import { filterInventoryRows } from "../utils/filterInventoryRows";
+import { printInventoryCards, printInventoryList } from "../utils/printInventory";
+
+const INVENTORY_VIEW_COLUMNS: FilterableColumn[] = [
+    { field: "seasonName", header: "Season", filterMatchMode: "startsWith", className: "col-season" },
+    { field: "itemNumber", header: "Style", filterMatchMode: "startsWith", className: "col-style" },
+    { field: "colorName", header: "Color", filterMatchMode: "contains", className: "col-color" },
+];
 
 export default function InventoryView() {
-    const inventory = useInventoryStore((s) => s.inventory);
-    const sizeColumns = useInventoryStore((s) => s.sizeColumns);
-    const loading = useInventoryStore((s) => s.loading);
-    const fetchInventory = useInventoryStore((s) => s.fetchInventory);
+    const { inventory, sizeColumns, loading, fetchInventory } = useInventoryStore(
+        useShallow((s) => ({
+            inventory: s.inventory,
+            sizeColumns: s.sizeColumns,
+            loading: s.loading,
+            fetchInventory: s.fetchInventory,
+        }))
+    );
 
     const tableRef = useRef<InventoryTableHandle>(null);
     const [viewMode, setViewMode] = useState<"list" | "cards">("list");
     const [cardColumns, setCardColumns] = useState<1 | 2>(2);
     const [searchQuery, setSearchQuery] = useState("");
+    const [inStockOnly, setInStockOnly] = useState(false);
 
     useEffect(() => {
         fetchInventory();
     }, [fetchInventory]);
 
-    const filteredColumns: FilterableColumn[] = useMemo(
-        () => [
-            { field: "seasonName", header: "Season", filterMatchMode: "startsWith", className: "col-season" },
-            { field: "itemNumber", header: "Style", filterMatchMode: "startsWith", className: "col-style" },
-            { field: "colorName", header: "Color", filterMatchMode: "contains", className: "col-color" },
-        ],
-        []
-    );
-
     const filteredInventory = useMemo(() => {
-        const query = searchQuery.trim().toLowerCase();
-        if (!query) return inventory;
-        return inventory.filter((row) => {
-            return [
-                row.seasonName,
-                row.itemNumber,
-                row.colorName,
-                row.description,
-            ]
-                .filter(Boolean)
-                .some((value) => String(value).toLowerCase().includes(query));
-        });
-    }, [inventory, searchQuery]);
+        const searched = filterInventoryRows(inventory, searchQuery);
+        if (!inStockOnly) {
+            return searched;
+        }
 
-    const groupedByItem = useMemo(() => {
-        const groups: Record<string, { description?: string; rows: typeof inventory }> = {};
-        filteredInventory.forEach((row) => {
-            if (!groups[row.itemNumber]) {
-                groups[row.itemNumber] = {
-                    description: row.description,
-                    rows: [],
-                };
-            }
-            if (!groups[row.itemNumber].description && row.description) {
-                groups[row.itemNumber].description = row.description;
-            }
-            groups[row.itemNumber].rows.push(row);
-        });
-        return groups;
-    }, [filteredInventory]);
+        return searched.filter((row) =>
+            Object.values(row.sizes ?? {}).some((cell) => Number(cell?.qty ?? 0) > 0)
+        );
+    }, [inventory, searchQuery, inStockOnly]);
 
     const cardGroups = useMemo(
-        () =>
-            Object.entries(groupedByItem).map(([itemNumber, info]) => ({
-                itemNumber,
-                description: info.description,
-                rows: info.rows,
-            })),
-        [groupedByItem]
+        () => buildInventoryCardGroups(filteredInventory),
+        [filteredInventory]
     );
 
     const handleExport = () => {
-        const rows = tableRef.current?.getProcessedRows() ?? filteredInventory;
-        exportInventoryToExcel({
-            rows,
+        exportInventory({
+            tableRef,
+            fallbackRows: filteredInventory,
             sizeColumns,
-            uiColumns: filteredColumns,
+            uiColumns: INVENTORY_VIEW_COLUMNS,
             title: "Inventory Download",
             sheetName: "Inventory",
             filename: "inventory.xlsx",
         });
     };
 
-    const buildInventoryListHtml = (rows: typeof inventory) => {
-        const headerCells = [
-            ...filteredColumns.map((col) => `<th>${col.header}</th>`),
-            ...sizeColumns.map((size) => `<th>${size.sizeName}</th>`),
-        ].join("");
-
-        const bodyRows = rows
-            .map((row) => {
-                const baseCells = filteredColumns
-                    .map((col) => `<td>${(row as any)[col.field] ?? ""}</td>`)
-                    .join("");
-                const sizeCells = sizeColumns
-                    .map((size) => `<td>${row.sizes?.[size.sizeName]?.qty ?? 0}</td>`)
-                    .join("");
-                return `<tr>${baseCells}${sizeCells}</tr>`;
-            })
-            .join("");
-
-        const timestamp = new Date().toLocaleString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-        });
-
-        return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Inventory List</title>
-    <style>
-      * { box-sizing: border-box; }
-      body { font-family: "Segoe UI", Arial, sans-serif; color: #111827; margin: 24px; }
-      h1 { font-size: 20px; margin: 0 0 4px 0; }
-      .timestamp { color: #6b7280; font-size: 12px; margin-bottom: 16px; }
-      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-      th, td { border: 1px solid #e5e7eb; padding: 6px 8px; font-size: 12px; text-align: center; }
-      th { background: #f8fafc; font-weight: 600; }
-      td:first-child, th:first-child { text-align: left; }
-    </style>
-  </head>
-  <body>
-    <h1>Inventory List</h1>
-    <div class="timestamp">${timestamp}</div>
-    <table>
-      <thead>
-        <tr>${headerCells}</tr>
-      </thead>
-      <tbody>
-        ${bodyRows}
-      </tbody>
-    </table>
-  </body>
-</html>`;
-    };
-
-    const printHtml = (html: string) => {
-        const iframe = document.createElement("iframe");
-        iframe.style.position = "fixed";
-        iframe.style.right = "0";
-        iframe.style.bottom = "0";
-        iframe.style.width = "0";
-        iframe.style.height = "0";
-        iframe.style.border = "0";
-        document.body.appendChild(iframe);
-
-        const doc = iframe.contentWindow?.document;
-        if (!doc) {
-            document.body.removeChild(iframe);
-            return;
-        }
-
-        doc.open();
-        doc.write(html);
-        doc.close();
-
-        iframe.onload = () => {
-            iframe.contentWindow?.focus();
-            iframe.contentWindow?.print();
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 500);
-        };
-    };
-
     const handlePrintList = () => {
         const rows = tableRef.current?.getProcessedRows() ?? filteredInventory;
-        if (!rows || rows.length === 0) {
-            return;
-        }
-
-        const html = buildInventoryListHtml(rows);
-        printHtml(html);
+        printInventoryList({
+            rows,
+            sizeColumns,
+            uiColumns: INVENTORY_VIEW_COLUMNS,
+            title: "Inventory List",
+        });
     };
 
     const handlePrintCards = () => {
-        if (cardGroups.length === 0) {
-            return;
-        }
-
-        const html = buildInventoryCardsHtml({
+        printInventoryCards({
             subtitle: "View Inventory",
             sizeColumns,
             groups: cardGroups,
         });
-        printHtml(html);
     };
 
     const actionRow = (
-        <div className="inventory-view-row">
+        <PageActionsRow className="inventory-view-row">
             {viewMode === "list" ? (
-                <Button
-                    type="button"
-                    className="portal-btn portal-btn-download portal-page-action"
+                <ActionButton
+                    label="Download"
+                    icon="pi pi-download"
+                    className="btn-info btn-outlined"
                     onClick={handleExport}
                     disabled={filteredInventory.length === 0}
                     title="Download"
-                >
-                    <i className="pi pi-download portal-page-action-icon" aria-hidden="true"></i>
-                    Download
-                </Button>
+                />
             ) : null}
-            <Button
-                type="button"
-                className="portal-btn portal-btn-print portal-page-action"
+            <ActionButton
+                label={viewMode === "list" ? "Print List" : "Print Cards"}
+                icon="pi pi-print"
+                className="btn-warn btn-outlined"
                 onClick={viewMode === "list" ? handlePrintList : handlePrintCards}
                 disabled={filteredInventory.length === 0}
                 title={viewMode === "list" ? "Print list" : "Print cards"}
-            >
-                <i className="pi pi-print portal-page-action-icon" aria-hidden="true"></i>
-                {viewMode === "list" ? "Print List" : "Print Cards"}
-            </Button>
-        </div>
+            />
+        </PageActionsRow>
     );
 
     const searchControls = (
@@ -230,6 +118,13 @@ export default function InventoryView() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Search inventory"
+            />
+            <Form.Check
+                type="switch"
+                id="view-inventory-in-stock-only"
+                label="In Stock Only"
+                checked={inStockOnly}
+                onChange={(e) => setInStockOnly(e.target.checked)}
             />
         </div>
     );
@@ -247,29 +142,22 @@ export default function InventoryView() {
                 <div className="content-card inventory-view-card">
                     <div className="inventory-view-card-header">
                         <div className="inventory-view-toggle-wrapper">
-                            <div className="inventory-view-toggle" role="group" aria-label="View mode">
-                                <span className={`inventory-view-toggle-label ${viewMode === "list" ? "is-active" : ""}`}>
-                                    <span className="scan-section-icon scan-icon-blue" aria-hidden="true">
-                                        <i className="pi pi-list" aria-hidden="true"></i>
-                                    </span>
-                                    List
-                                </span>
-                                <label className="inventory-view-switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={viewMode === "cards"}
-                                        onChange={(e) => setViewMode(e.target.checked ? "cards" : "list")}
-                                        aria-label="Toggle card view"
-                                    />
-                                    <span className="inventory-view-switch-track" aria-hidden="true"></span>
-                                </label>
-                                <span className={`inventory-view-toggle-label ${viewMode === "cards" ? "is-active" : ""}`}>
-                                    <span className="scan-section-icon scan-icon-green" aria-hidden="true">
-                                        <i className="pi pi-th-large" aria-hidden="true"></i>
-                                    </span>
-                                    Card
-                                </span>
-                            </div>
+                            <ViewToggle
+                                ariaLabel="View mode"
+                                leftLabel="List"
+                                rightLabel="Card"
+                                leftActive={viewMode === "list"}
+                                rightActive={viewMode === "cards"}
+                                checked={viewMode === "cards"}
+                                switchAriaLabel="Toggle card view"
+                                leftIcon="pi pi-list"
+                                rightIcon="pi pi-th-large"
+                                leftIconWrapperClassName="scan-section-icon scan-icon-blue"
+                                rightIconWrapperClassName="scan-section-icon scan-icon-green"
+                                onLeftClick={() => setViewMode("list")}
+                                onRightClick={() => setViewMode("cards")}
+                                onToggle={(checked) => setViewMode(checked ? "cards" : "list")}
+                            />
                         </div>
                         <div className="inventory-view-card-actions">{actionRow}</div>
                     </div>
@@ -281,40 +169,30 @@ export default function InventoryView() {
                                     inventory={filteredInventory}
                                     sizeColumns={sizeColumns}
                                     loading={loading}
-                                    filteredColumns={filteredColumns}
+                                    filteredColumns={INVENTORY_VIEW_COLUMNS}
                                     editable={false}
                                     scrollable={false}
                                     embedded
                                 />
                             </div>
                             <div className={`inventory-view-panel ${viewMode === "cards" ? "is-active" : ""}`}>
-                                <div className="inventory-cards-toolbar">
+                                <PageActionsRow className="inventory-cards-toolbar">
                                     <Button
                                         type="button"
-                                        variant="outline-secondary"
-                                        className="portal-btn portal-btn-outline inventory-cards-toggle"
+                                        className="btn-neutral btn-outlined btn-icon"
                                         onClick={() => setCardColumns((prev) => (prev === 2 ? 1 : 2))}
                                         aria-label={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
                                         title={cardColumns === 2 ? "Switch to one column" : "Switch to two columns"}
                                     >
-                                        {cardColumns === 2 ? (
-                                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                                                <rect x="4" y="5" width="10" height="10" rx="1" />
-                                                <rect x="14" y="5" width="10" height="10" rx="1" />
-                                                <rect x="4" y="13" width="10" height="10" rx="1" />
-                                                <rect x="14" y="13" width="10" height="10" rx="1" />
-                                            </svg>
-                                        ) : (
-                                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                                                <rect x="5" y="5" width="14" height="6" rx="1" />
-                                                <rect x="5" y="13" width="14" height="6" rx="1" />
-                                            </svg>
-                                        )}
+                                        <i
+                                            className={cardColumns === 2 ? "pi pi-th-large" : "pi pi-bars"}
+                                            aria-hidden="true"
+                                        />
                                     </Button>
-                                </div>
+                                </PageActionsRow>
                                 <div className={`inventory-cards-grid ${cardColumns === 1 ? "one-column" : "two-columns"}`}>
-                                    {Object.entries(groupedByItem).map(([itemNumber, info]) => (
-                                        <Card key={itemNumber} className="shadow-sm inventory-edit-card">
+                                    {cardGroups.map((group) => (
+                                        <Card key={group.itemNumber} className="inventory-edit-card">
                                             <Card.Header className="bg-white border-0" style={{ flex: "0 0 40%" }}>
                                                 <Row className="align-items-center inventory-card-header-row">
                                                     <Col md={4} className="inventory-card-header-left">
@@ -323,8 +201,8 @@ export default function InventoryView() {
                                                                 <i className="pi pi-box" aria-hidden="true"></i>
                                                             </span>
                                                             <div className="d-flex flex-column">
-                                                                <span className="fw-bold inventory-card-style-number">{itemNumber}</span>
-                                                                <span className="text-muted">{info.description || "No description"}</span>
+                                                                <span className="fw-bold inventory-card-style-number">{group.itemNumber}</span>
+                                                                <span className="text-muted">{group.description || "No description"}</span>
                                                             </div>
                                                         </div>
                                                     </Col>
@@ -337,36 +215,7 @@ export default function InventoryView() {
                                                 </Row>
                                             </Card.Header>
                                             <Card.Body className="inventory-edit-card-body">
-                                                <Table responsive bordered hover className="inventory-edit-table">
-                                                    <thead className="table-light">
-                                                        <tr>
-                                                            <th className="inventory-color-col">Color</th>
-                                                            {sizeColumns.map((size) => (
-                                                                <th key={size.sizeId} className="text-center inventory-size-col">
-                                                                    {size.sizeName}
-                                                                </th>
-                                                            ))}
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {info.rows.map((row) => (
-                                                            <tr key={row.id ?? `${row.itemNumber}-${row.colorName}`}>
-                                                                <td className="fw-semibold align-middle inventory-color-cell">{row.colorName}</td>
-                                                                {sizeColumns.map((size) => {
-                                                                    const cell = row.sizes[size.sizeName];
-                                                                    return (
-                                                                        <td
-                                                                            key={`${row.id ?? row.itemNumber}-${size.sizeId}`}
-                                                                            className="align-middle text-center inventory-size-cell"
-                                                                        >
-                                                                            {cell?.qty ?? 0}
-                                                                        </td>
-                                                                    );
-                                                                })}
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </Table>
+                                                <InventoryCardTable rows={group.rows} sizeColumns={sizeColumns} />
                                             </Card.Body>
                                         </Card>
                                     ))}

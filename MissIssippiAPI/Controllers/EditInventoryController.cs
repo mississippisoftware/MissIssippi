@@ -54,7 +54,7 @@ namespace MissIssippiAPI.Controllers
                 return BadRequest(validationError);
             }
 
-            var result = await _inventoryService.SavePivotInventoryAsync(updates);
+            var result = await _inventoryService.SavePivotInventoryAsync(updates, "edit");
             return Ok(result);
         }
     }

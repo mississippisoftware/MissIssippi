@@ -4,6 +4,7 @@ import { formatPrintTimestamp } from "./dateFormat";
 export type ColorListPrintRow = {
   colorName: string;
   seasonName?: string | null;
+  collection?: string | null;
   pantoneColor?: string | null;
   hexValue?: string | null;
 };
@@ -17,11 +18,12 @@ export const buildColorListHtml = (rows: ColorListPrintRow[]): string => {
       const text = row.hexValue ? getReadableTextColor(row.hexValue) ?? "#334155" : "#334155";
       return `<div class="color-card">
   <div class="color-swatch" style="background:${bg};color:${text}">${row.colorName}</div>
-  <div class="color-meta">
-    <div><span class="label">Season</span>${row.seasonName ?? ""}</div>
-    <div><span class="label">Pantone</span>${row.pantoneColor ?? "--"}</div>
-    <div><span class="label">Hex</span>${row.hexValue ?? "--"}</div>
-  </div>
+    <div class="color-meta">
+      <div><span class="label">Season</span>${row.seasonName ?? ""}</div>
+      <div><span class="label">Collection</span>${row.collection ?? "--"}</div>
+      <div><span class="label">Pantone</span>${row.pantoneColor ?? "--"}</div>
+      <div><span class="label">Hex</span>${row.hexValue ?? "--"}</div>
+    </div>
 </div>`;
     })
     .join("");

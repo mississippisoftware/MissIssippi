@@ -1,25 +1,36 @@
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Toast } from "primereact/toast";
-import { InventoryService } from "../../service/InventoryService";
 import CatalogService, { type ColorOption, type ItemColorView } from "../../service/CatalogService";
-import type { ItemListRow, SeasonOption } from "../../items/itemsColorsTypes";
+import type { ItemListRow } from "../../items/itemsColorsTypes";
 import { normalizeName } from "../../items/itemsColorsUtils";
 import { filterSeasonActiveRows } from "../../utils/filterSeasonActiveRows";
+import type { InventorySearchFilters } from "../../utils/InventorySearchFilters";
+import { getErrorMessage } from "../../utils/errors";
 import { useNotifier } from "../../hooks/useNotifier";
+import { useCatalogLookups } from "../../hooks/useCatalogLookups";
 
 type UseItemListParams = {
   toastRef: RefObject<Toast | null>;
 };
 
-const getErrorMessage = (err: unknown, fallback: string) =>
-  err instanceof Error ? err.message : fallback;
+const EMPTY_SEARCH_FILTERS: InventorySearchFilters = {
+  itemNumber: "",
+  description: "",
+  colorName: "",
+  seasonName: "",
+};
 
 export function useItemList({ toastRef }: UseItemListParams) {
   const notify = useNotifier(toastRef);
-  const [seasons, setSeasons] = useState<SeasonOption[]>([]);
-  const [colors, setColors] = useState<ColorOption[]>([]);
-  const [lookupError, setLookupError] = useState<string | null>(null);
-  const [loadingLookups, setLoadingLookups] = useState(true);
+  const {
+    seasons,
+    colors,
+    setColors,
+    collections,
+    setCollections,
+    loading: loadingLookups,
+    error: lookupError,
+  } = useCatalogLookups<ColorOption>();
 
   const [itemList, setItemList] = useState<ItemListRow[]>([]);
   const [itemListLoading, setItemListLoading] = useState(false);
@@ -27,9 +38,10 @@ export function useItemList({ toastRef }: UseItemListParams) {
   const [selectedItem, setSelectedItem] = useState<ItemListRow | null>(null);
   const [editingRows, setEditingRows] = useState<Record<string, boolean>>({});
   const [tempItemId, setTempItemId] = useState(-1);
-  const [seasonFilterId, setSeasonFilterId] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
   const [colorModalItem, setColorModalItem] = useState<ItemListRow | null>(null);
+  const [searchForm, setSearchForm] = useState<InventorySearchFilters>(EMPTY_SEARCH_FILTERS);
+  const [searchFilters, setSearchFilters] = useState<InventorySearchFilters>(EMPTY_SEARCH_FILTERS);
 
   const buildItemKey = (seasonId: number, itemNumber: string) =>
     `${seasonId}|${normalizeName(itemNumber)}`;
@@ -42,27 +54,52 @@ export function useItemList({ toastRef }: UseItemListParams) {
     return map;
   }, [itemList]);
 
-  const filteredItems = useMemo(() => {
-    return filterSeasonActiveRows(itemList, { seasonFilterId, activeFilter });
-  }, [itemList, seasonFilterId, activeFilter]);
+  const activeSeasonIds = useMemo(
+    () => new Set(seasons.filter((season) => season.active !== false).map((season) => season.seasonId)),
+    [seasons]
+  );
 
-  const loadLookups = useCallback(async () => {
-    setLoadingLookups(true);
-    setLookupError(null);
-    try {
-      const [seasonData, colorData] = await Promise.all([
-        InventoryService.getSeasons(),
-        CatalogService.getColors(),
-      ]);
-      setSeasons(seasonData);
-      setColors(colorData);
-    } catch (err: unknown) {
-      console.error(err);
-      setLookupError(getErrorMessage(err, "Failed to load catalog lookups."));
-    } finally {
-      setLoadingLookups(false);
-    }
+  const applySearchFilters = useCallback((filters: InventorySearchFilters) => {
+    setSearchFilters(filters);
   }, []);
+
+  const clearSearchFilters = useCallback(() => {
+    setSearchForm(EMPTY_SEARCH_FILTERS);
+    setSearchFilters(EMPTY_SEARCH_FILTERS);
+  }, []);
+
+  const filteredItems = useMemo(() => {
+    const baseRows = filterSeasonActiveRows(itemList, { activeFilter });
+    const activeSeasonRows = baseRows.filter((row) => !row.seasonId || activeSeasonIds.has(row.seasonId));
+
+    const itemQuery = normalizeName(searchFilters.itemNumber ?? "");
+    const colorQuery = normalizeName(searchFilters.colorName ?? "");
+    const seasonQuery = normalizeName(searchFilters.seasonName ?? "");
+    const descriptionQuery = (searchFilters.description ?? "").trim().toLowerCase();
+
+    if (!itemQuery && !colorQuery && !seasonQuery && !descriptionQuery) {
+      return activeSeasonRows;
+    }
+
+    return activeSeasonRows.filter((row) => {
+      if (itemQuery && !normalizeName(row.itemNumber ?? "").includes(itemQuery)) {
+        return false;
+      }
+      if (seasonQuery && !normalizeName(row.seasonName ?? "").includes(seasonQuery)) {
+        return false;
+      }
+      if (descriptionQuery && !(row.description ?? "").toLowerCase().includes(descriptionQuery)) {
+        return false;
+      }
+      if (
+        colorQuery &&
+        !(row.colors ?? []).some((color) => normalizeName(color.colorName).includes(colorQuery))
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [itemList, activeFilter, activeSeasonIds, searchFilters]);
 
   const loadItemList = useCallback(async () => {
     setItemListLoading(true);
@@ -111,14 +148,15 @@ export function useItemList({ toastRef }: UseItemListParams) {
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
-    loadLookups();
     loadItemList();
-  }, [loadItemList, loadLookups]);
+  }, [loadItemList]);
 
   return {
     seasons,
     colors,
     setColors,
+    collections,
+    setCollections,
     lookupError,
     loadingLookups,
     itemList,
@@ -127,7 +165,6 @@ export function useItemList({ toastRef }: UseItemListParams) {
     filteredItems,
     itemKeyMap,
     buildItemKey,
-    loadLookups,
     loadItemList,
     expandedRows,
     setExpandedRows,
@@ -137,11 +174,14 @@ export function useItemList({ toastRef }: UseItemListParams) {
     setEditingRows,
     tempItemId,
     setTempItemId,
-    seasonFilterId,
-    setSeasonFilterId,
     activeFilter,
     setActiveFilter,
     colorModalItem,
     setColorModalItem,
+    searchForm,
+    setSearchForm,
+    searchFilters,
+    applySearchFilters,
+    clearSearchFilters,
   };
 }

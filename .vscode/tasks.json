@@ -22,6 +22,8 @@
 				"${workspaceFolder}/MissIssippiAPI",
 				"--configuration",
 				"Release",
+				"--output",
+				"${workspaceFolder}/_deploy/MissIssippiAPI",
 				"/property:GenerateFullPaths=true",
 				"/consoleloggerparameters:NoSummary"
 			],

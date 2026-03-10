@@ -1,6 +1,7 @@
 import type { StateCreator } from "zustand";
 import { InventoryService } from "../../service/InventoryService";
 import type { iInventoryDisplayRow, iSize } from "../../utils/DataInterfaces";
+import { getErrorMessage } from "../../utils/errors";
 import { buildDirtyItemsSet } from "./inventoryRowOpsSlice";
 
 type SeasonOption = { seasonId: number; seasonName: string };
@@ -27,9 +28,6 @@ type InventoryMetaSliceState = InventoryMetaSlice & {
   originalResultsById?: Record<string, iInventoryDisplayRow>;
   dirtyItemsSet?: Set<string>;
 };
-
-const getErrorMessage = (err: unknown, fallback: string) =>
-  err instanceof Error ? err.message : fallback;
 
 const orderSizes = (sizes: iSize[]) => {
   const cleaned = sizes.map((size) => ({

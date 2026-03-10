@@ -1,12 +1,13 @@
 import type { ColorOption, ItemColorView, ItemView } from "../service/CatalogService";
 
-export type SeasonOption = { seasonId: number; seasonName: string };
+export type SeasonOption = { seasonId: number; seasonName: string; active?: boolean | null };
 
 export type UploadItemRow = {
   rowNumber: number;
   seasonName: string;
   itemNumber: string;
   description: string;
+  inProduction?: boolean | null;
   wholesalePrice?: number | null;
   retailPrice?: number | null;
   colorNames: string[];
@@ -22,9 +23,9 @@ export type UploadColorRow = {
 export type PendingColor = {
   name: string;
   normalized: string;
-  colorId?: number;
-  source: "existing" | "new";
+  componentNames: string[];
   seasonId?: number | null;
+  collection?: string | null;
   pantoneColor?: string | null;
   hexValue?: string | null;
 };
@@ -36,6 +37,7 @@ export type UploadSummary = {
   createdColors: number;
   existingColors: number;
   createdItemColors: number;
+  updatedItemColors: number;
   skippedItemColors: number;
   errors: string[];
 };
@@ -46,6 +48,7 @@ export type ColorUploadSummary = {
   createdColors: number;
   existingColors: number;
   createdItemColors: number;
+  updatedItemColors: number;
   skippedItemColors: number;
   errors: string[];
 };
@@ -56,6 +59,7 @@ export type ColorResolution = {
   action: "existing" | "new";
   colorId?: number;
   resolvedName: string;
+  collection?: string | null;
 };
 
 export type ColorResolutionMap = Record<string, ColorResolution>;
@@ -64,14 +68,18 @@ export type ColorReviewItem = {
   inputName: string;
   normalized: string;
   suggestions: Array<ColorOption & { normalized: string }>;
-  choice: "new" | number;
+  choice: "new" | "skip" | number;
+  resolvedName: string;
+  collection: string;
+  sourceItems?: string[];
+  remember?: boolean;
 };
 
 export type ReviewContext =
   | {
       type: "manual";
       baseMap: ColorResolutionMap;
-      normalized: string;
+      inputName: string;
       seasonId?: number | null;
       pantoneColor?: string | null;
       hexValue?: string | null;
