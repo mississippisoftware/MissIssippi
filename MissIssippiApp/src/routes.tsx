@@ -1,8 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "./App";
 import Dashboard from "./pages/Dashboard";
-import EditInventory from "./pages/EditInventory";
-import ViewInventory from "./pages/ViewInventory";
+import InventoryView from "./inventory/inventoryView";
 import ScanInventory from "./pages/ScanInventory";
 import UploadInventory from "./pages/UploadInventory";
 import InventoryHistory from "./pages/InventoryHistory";
@@ -23,9 +22,8 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Dashboard /> },
       { path: "dashboard", element: <Dashboard /> },
-      { path: "inventory", element: <ViewInventory /> },
-      { path: "inventory/view", element: <ViewInventory /> },
-      { path: "inventory/edit", element: <EditInventory /> },
+      { path: "inventory", element: <InventoryView /> },
+      { path: "inventory/edit", element: <InventoryView initialViewMode="cards" /> },
       { path: "inventory/scan", element: <ScanInventory /> },
       { path: "inventory/upload-inventory", element: <UploadInventory /> },
       { path: "inventory/history", element: <InventoryHistory /> },

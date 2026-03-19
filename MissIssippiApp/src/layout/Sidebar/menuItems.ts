@@ -6,9 +6,8 @@ export const menuItems: SidebarMenuItem[] = [
     label: 'Inventory',
     icon: 'pi pi-box',
     items: [
+      { label: 'Inventory', to: '/inventory', icon: 'pi pi-list' },
       { label: 'Scan Inventory', to: '/inventory/scan', icon: 'pi pi-barcode' },
-      { label: 'View Inventory', to: '/inventory/view', icon: 'pi pi-eye' },
-      { label: 'Edit Inventory', to: '/inventory/edit', icon: 'pi pi-pencil' },
       { label: 'Upload Inventory', to: '/inventory/upload-inventory', icon: 'pi pi-upload' },
       { label: 'Inventory Labels', to: '/inventory/labels', icon: 'pi pi-ticket' },
       { label: 'Inventory History', to: '/inventory/history', icon: 'pi pi-history' },
@@ -30,14 +29,6 @@ export const menuItems: SidebarMenuItem[] = [
           { label: 'Size List', to: '/admin/size-list', icon: 'pi pi-arrows-v' },
         ],
       },
-    ],
-  },
-  {
-    label: 'Settings',
-    icon: 'pi pi-cog',
-    items: [
-      { label: 'Profile', to: '/settings/profile', icon: 'pi pi-user' },
-      { label: 'Account', to: '/settings/account', icon: 'pi pi-user-edit' },
     ],
   },
 ];
