@@ -160,6 +160,7 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
   const [pendingTransition, setPendingTransition] = useState<PendingTransition | null>(null);
   const [applyingPending, setApplyingPending] = useState(false);
   const [showLabelsModal, setShowLabelsModal] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   useEffect(() => {
     initializeSizes();
@@ -353,6 +354,7 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
 
   const handleClear = () => {
     setInStockOnly(false);
+    setShowAdvancedFilters(false);
     requestTransition({ type: "clear" });
   };
 
@@ -631,9 +633,11 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
           filters={form}
           seasons={seasons}
           searching={searching}
+          showAdvanced={showAdvancedFilters}
           onChange={setForm}
           onSubmit={handleSearch}
           onClear={handleClear}
+          onToggleAdvanced={() => setShowAdvancedFilters((prev) => !prev)}
           advancedFiltersExtra={
             <>
               <div className="page-filter-field page-filter-field--toggle">
