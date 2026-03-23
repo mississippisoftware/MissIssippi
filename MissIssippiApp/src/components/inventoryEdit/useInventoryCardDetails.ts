@@ -47,55 +47,31 @@ export const useInventoryCardDetails = ({
   const [detailsLoaded, setDetailsLoaded] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [styleColors, setStyleColors] = useState<ItemColorView[]>([]);
-  const [resolvedItemId, setResolvedItemId] = useState<number | null>(itemMeta?.itemId ?? null);
 
   // Reset Details state when the group changes.
   useEffect(() => {
-    const rowItemId =
-      group.rows
-        .map((row) => toPositiveNumber(row.itemId))
-        .find((value): value is number => value !== null) ?? null;
-
     setDetailsLoaded(false);
     setDetailsError(null);
     setStyleColors([]);
-    setResolvedItemId(rowItemId);
   }, [group.itemNumber, group.rows]);
-
-  // Fill resolvedItemId from itemMeta when not yet resolved from row data.
-  useEffect(() => {
-    if (resolvedItemId) {
-      return;
-    }
-    const metaItemId = toPositiveNumber(itemMeta?.itemId);
-    if (metaItemId) {
-      setResolvedItemId(metaItemId);
-    }
-  }, [itemMeta?.itemId, resolvedItemId]);
 
   const loadDetails = useCallback(async () => {
     setDetailsLoading(true);
     setDetailsError(null);
 
     try {
-      const itemIdForQuery =
-        toPositiveNumber(resolvedItemId) ?? toPositiveNumber(itemMeta?.itemId);
+      const itemId =
+        group.rows.map((row) => toPositiveNumber(row.itemId)).find((v): v is number => v !== null) ??
+        toPositiveNumber(itemMeta?.itemId);
+
       const linkedColors = await (
-        itemIdForQuery
-          ? CatalogService.getItemColors({ itemId: itemIdForQuery })
+        itemId
+          ? CatalogService.getItemColors({ itemId })
           : CatalogService.getItemColors({ itemNumber: group.itemNumber })
       );
 
-      const discoveredItemId =
-        itemIdForQuery ??
-        linkedColors.find((row) => row.itemNumber === group.itemNumber)?.itemId ??
-        null;
-      if (discoveredItemId && discoveredItemId !== resolvedItemId) {
-        setResolvedItemId(discoveredItemId);
-      }
-
       const filteredLinked = linkedColors.filter((row) =>
-        discoveredItemId ? row.itemId === discoveredItemId : row.itemNumber === group.itemNumber
+        itemId ? row.itemId === itemId : row.itemNumber === group.itemNumber
       );
 
       setStyleColors(filteredLinked);
@@ -105,7 +81,7 @@ export const useInventoryCardDetails = ({
     } finally {
       setDetailsLoading(false);
     }
-  }, [group.itemNumber, itemMeta?.itemId, resolvedItemId]);
+  }, [group.rows, group.itemNumber, itemMeta?.itemId]);
 
   // Lazy-load the Details tab on first activation.
   useEffect(() => {

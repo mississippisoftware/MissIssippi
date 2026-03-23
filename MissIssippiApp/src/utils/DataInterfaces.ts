@@ -8,7 +8,7 @@ export interface iInventoryDisplayRow {
   id: string;
   itemNumber: string;
   colorName: string;
-  itemId?: number | string;
+  itemId?: number;
   colorId?: number | string;
   itemColorId?: number | string;
   seasonName?: string;
