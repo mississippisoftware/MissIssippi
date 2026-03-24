@@ -101,6 +101,159 @@ export function useItemList({ toastRef }: UseItemListParams) {
     });
   }, [itemList, activeFilter, activeSeasonIds, searchFilters]);
 
+  const handleToggleColorActive = useCallback(
+    async (itemColorId: number, nextActive: boolean) => {
+      try {
+        await CatalogService.setItemColorActive({ itemColorId, active: nextActive });
+        notify(
+          "success",
+          nextActive ? "Color activated" : "Color deactivated",
+          nextActive ? "Color is active again." : "Color is now inactive."
+        );
+        let nextSelected: ItemListRow | null = null;
+        let nextModalItem: ItemListRow | null = null;
+        setItemList((prev) =>
+          prev.map((item) => {
+            if (!(item.colors ?? []).some((color) => color.itemColorId === itemColorId)) {
+              return item;
+            }
+            const nextColors = (item.colors ?? []).map((color) =>
+              color.itemColorId === itemColorId ? { ...color, itemColorActive: nextActive } : color
+            );
+            const updated: ItemListRow = { ...item, colors: nextColors };
+            if (selectedItem?.itemId === item.itemId) {
+              nextSelected = updated;
+            }
+            if (colorModalItem?.itemId === item.itemId) {
+              nextModalItem = updated;
+            }
+            return updated;
+          })
+        );
+        if (nextSelected) {
+          setSelectedItem(nextSelected);
+        }
+        if (nextModalItem) {
+          setColorModalItem(nextModalItem);
+        }
+      } catch (err: unknown) {
+        console.error(err);
+        notify("error", "Update failed", getErrorMessage(err, "Unable to update color status."));
+      }
+    },
+    [colorModalItem, notify, selectedItem]
+  );
+
+  const handleItemSave = useCallback(
+    async (row: ItemListRow): Promise<boolean> => {
+      if (!row.itemNumber?.trim()) {
+        notify("warn", "Style required", "Enter a style number.");
+        return false;
+      }
+      if (!row.seasonId) {
+        notify("warn", "Season required", "Select a season.");
+        return false;
+      }
+      if (!row.description?.trim()) {
+        notify("warn", "Description required", "Enter a description.");
+        return false;
+      }
+
+      try {
+        const isNew = row.itemId <= 0;
+        const trimmedItemNumber = row.itemNumber.trim();
+        const trimmedDescription = row.description.trim();
+        const seasonName =
+          seasons.find((s) => s.seasonId === Number(row.seasonId))?.seasonName ?? "";
+        await CatalogService.addOrUpdateItem({
+          itemId: row.itemId > 0 ? row.itemId : undefined,
+          itemNumber: trimmedItemNumber,
+          description: trimmedDescription,
+          seasonId: Number(row.seasonId),
+          costPrice: row.costPrice,
+          wholesalePrice: row.wholesalePrice,
+          inProduction: row.inProduction ?? false,
+          weight: row.weight,
+        });
+
+        let savedItem: ItemListRow | null = null;
+        if (isNew) {
+          const normalizedItem = normalizeName(trimmedItemNumber);
+          const normalizedSeason = normalizeName(seasonName);
+          const matches = await CatalogService.getItems({
+            itemNumber: trimmedItemNumber,
+            seasonName,
+          });
+          const match = matches.find(
+            (item) =>
+              normalizeName(item.itemNumber) === normalizedItem &&
+              normalizeName(item.seasonName ?? seasonName) === normalizedSeason
+          );
+          if (match) {
+            savedItem = {
+              ...match,
+              seasonName: match.seasonName ?? seasonName,
+              colors: [],
+            };
+          }
+        }
+
+        let nextSelected: ItemListRow | null = null;
+        setItemList((prev) =>
+          prev.map((item) => {
+            if (item.itemId !== row.itemId) return item;
+            const wasInProduction = item.inProduction ?? false;
+            const updated: ItemListRow = {
+              ...item,
+              ...(savedItem ?? {
+                itemId: item.itemId,
+                itemNumber: trimmedItemNumber,
+                description: trimmedDescription,
+                seasonId: Number(row.seasonId),
+                seasonName,
+                costPrice: row.costPrice,
+                wholesalePrice: row.wholesalePrice,
+                weight: row.weight,
+                inProduction: row.inProduction ?? false,
+              }),
+              colors: item.colors ?? [],
+            };
+            if (!wasInProduction && updated.inProduction) {
+              updated.colors = (updated.colors ?? []).map((color) => ({
+                ...color,
+                itemColorActive: true,
+              }));
+            }
+            nextSelected = updated;
+            return updated;
+          })
+        );
+        if (nextSelected) {
+          setSelectedItem(nextSelected);
+          if (colorModalItem?.itemId === row.itemId) {
+            setColorModalItem(nextSelected);
+          }
+          if (savedItem && row.itemId !== savedItem.itemId) {
+            setExpandedRows((prev) => {
+              if (!prev[String(row.itemId)]) return prev;
+              const next = { ...prev };
+              delete next[String(row.itemId)];
+              next[String(savedItem.itemId)] = true;
+              return next;
+            });
+          }
+        }
+        notify("success", "Style saved", `${row.itemNumber} saved successfully.`);
+        return true;
+      } catch (err: unknown) {
+        console.error(err);
+        notify("error", "Style save failed", getErrorMessage(err, "Unable to save style."));
+        return false;
+      }
+    },
+    [colorModalItem, notify, seasons]
+  );
+
   const loadItemList = useCallback(async () => {
     setItemListLoading(true);
     try {
@@ -183,5 +336,7 @@ export function useItemList({ toastRef }: UseItemListParams) {
     searchFilters,
     applySearchFilters,
     clearSearchFilters,
+    handleItemSave,
+    handleToggleColorActive,
   };
 }

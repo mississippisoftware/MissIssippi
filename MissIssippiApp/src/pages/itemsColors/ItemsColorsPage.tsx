@@ -1,9 +1,10 @@
-import { type KeyboardEvent, useCallback, useMemo, useState } from "react";
-import { Alert, Button, Form, Modal } from "react-bootstrap";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Alert, Form } from "react-bootstrap";
 import type { DataTableRowEditCompleteEvent, DataTableRowClickEvent } from "primereact/datatable";
 import { Toast } from "primereact/toast";
 import CatalogService, { type ItemColorView } from "../../service/CatalogService";
 import CatalogPageLayout from "../../components/CatalogPageLayout";
+import PageActionsMenu from "../../components/PageActionsMenu";
 import { printItemList } from "../../utils/printCatalogLists";
 import { appendSheet, createWorkbook, saveWorkbook, sheetFromAoa } from "../../utils/xlsxUtils";
 import ItemsColorsColorModal from "../../items/ItemsColorsColorModal";
@@ -12,16 +13,20 @@ import type { ItemListRow } from "../../items/itemsColorsTypes";
 import { getReadableTextColor, normalizeName } from "../../items/itemsColorsUtils";
 import ItemsTable from "./ItemsTable";
 import ItemUploadActions from "./ItemUploadActions";
+import { ItemsColorsAdminDeleteModal, ItemsColorsDuplicateModal } from "./ItemsColorsDialogs";
 import { useItemList } from "./useItemList";
 import { useColorResolution } from "./useColorResolution";
 import { useItemUpload } from "./useItemUpload";
 import { useColorUpload } from "./useColorUpload";
 import InventorySearchFiltersForm from "../../components/InventorySearchFilters";
-import { shouldSubmitOnEnter } from "../../utils/modalKeyHandlers";
-import { useToastNotifier } from "../../hooks/useToastNotifier";
+import { useNotifier } from "../../hooks/useNotifier";
+import { getErrorMessage } from "../../utils/errors";
+import { formatPrice } from "../../utils/formatters";
+import { dedupeItemColorsByColorId } from "../../utils/itemColorUtils";
 
 export default function ItemsColors() {
-  const { toastRef, notify, getErrorMessage } = useToastNotifier();
+  const toastRef = useRef<Toast | null>(null);
+  const notify = useNotifier(toastRef);
 
   const {
     seasons,
@@ -55,6 +60,8 @@ export default function ItemsColors() {
     searchFilters,
     applySearchFilters,
     clearSearchFilters,
+    handleItemSave,
+    handleToggleColorActive,
   } = useItemList({ toastRef });
 
   const [showColorModal, setShowColorModal] = useState(false);
@@ -62,6 +69,10 @@ export default function ItemsColors() {
   const [adminDeleteMode, setAdminDeleteMode] = useState<"selected" | "filtered" | null>(null);
   const [adminDeletePassword, setAdminDeletePassword] = useState("");
   const [adminDeleteSubmitting, setAdminDeleteSubmitting] = useState(false);
+  const uploadActionRef = useRef<{
+    openItemUpload: () => void;
+    openColorUpload: () => void;
+  } | null>(null);
 
   const activeColorItem = colorModalItem ?? selectedItem;
 
@@ -101,13 +112,6 @@ export default function ItemsColors() {
     setColorModalItem,
   });
 
-  const priceFormatter = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }),
-    []
-  );
-
-  const formatPrice = (value?: number | null) =>
-    value === null || value === undefined ? "--" : priceFormatter.format(value);
 
   const handleCopyColorName = useCallback(
     async (colorName: string) => {
@@ -284,152 +288,6 @@ export default function ItemsColors() {
     setShowColorModal(true);
   };
 
-  const handleToggleColorActive = async (itemColorId: number, nextActive: boolean) => {
-    try {
-      await CatalogService.setItemColorActive({ itemColorId, active: nextActive });
-      notify(
-        "success",
-        nextActive ? "Color activated" : "Color deactivated",
-        nextActive ? "Color is active again." : "Color is now inactive."
-      );
-      let nextSelected: ItemListRow | null = null;
-      let nextModalItem: ItemListRow | null = null;
-      setItemList((prev) =>
-        prev.map((item) => {
-          if (!(item.colors ?? []).some((color) => color.itemColorId === itemColorId)) {
-            return item;
-          }
-          const nextColors = (item.colors ?? []).map((color) =>
-            color.itemColorId === itemColorId ? { ...color, itemColorActive: nextActive } : color
-          );
-          const updated: ItemListRow = { ...item, colors: nextColors };
-          if (selectedItem?.itemId === item.itemId) {
-            nextSelected = updated;
-          }
-          if (colorModalItem?.itemId === item.itemId) {
-            nextModalItem = updated;
-          }
-          return updated;
-        })
-      );
-      if (nextSelected) {
-        setSelectedItem(nextSelected);
-      }
-      if (nextModalItem) {
-        setColorModalItem(nextModalItem);
-      }
-    } catch (err: unknown) {
-      console.error(err);
-      notify("error", "Update failed", getErrorMessage(err, "Unable to update color status."));
-    }
-  };
-
-  const handleItemSave = async (row: ItemListRow) => {
-    if (!row.itemNumber?.trim()) {
-      notify("warn", "Style required", "Enter a style number.");
-      return false;
-    }
-    if (!row.seasonId) {
-      notify("warn", "Season required", "Select a season.");
-      return false;
-    }
-    if (!row.description?.trim()) {
-      notify("warn", "Description required", "Enter a description.");
-      return false;
-    }
-
-    try {
-      const isNew = row.itemId <= 0;
-      const trimmedItemNumber = row.itemNumber.trim();
-      const trimmedDescription = row.description.trim();
-      const seasonName = resolveSeasonName(row.seasonId);
-      await CatalogService.addOrUpdateItem({
-        itemId: row.itemId > 0 ? row.itemId : undefined,
-        itemNumber: trimmedItemNumber,
-        description: trimmedDescription,
-        seasonId: Number(row.seasonId),
-        costPrice: row.costPrice,
-        wholesalePrice: row.wholesalePrice,
-        inProduction: row.inProduction ?? false,
-        weight: row.weight,
-      });
-
-      let savedItem: ItemListRow | null = null;
-      if (isNew) {
-        const normalizedItem = normalizeName(trimmedItemNumber);
-        const normalizedSeason = normalizeName(seasonName);
-        const matches = await CatalogService.getItems({
-          itemNumber: trimmedItemNumber,
-          seasonName,
-        });
-        const match = matches.find(
-          (item) =>
-            normalizeName(item.itemNumber) === normalizedItem &&
-            normalizeName(item.seasonName ?? seasonName) === normalizedSeason
-        );
-        if (match) {
-          savedItem = {
-            ...match,
-            seasonName: match.seasonName ?? seasonName,
-            colors: [],
-          };
-        }
-      }
-
-      let nextSelected: ItemListRow | null = null;
-      setItemList((prev) =>
-        prev.map((item) => {
-          if (item.itemId !== row.itemId) return item;
-          const wasInProduction = item.inProduction ?? false;
-          const updated: ItemListRow = {
-            ...item,
-            ...(savedItem ?? {
-              itemId: item.itemId,
-              itemNumber: trimmedItemNumber,
-              description: trimmedDescription,
-              seasonId: Number(row.seasonId),
-              seasonName,
-              costPrice: row.costPrice,
-              wholesalePrice: row.wholesalePrice,
-              weight: row.weight,
-              inProduction: row.inProduction ?? false,
-            }),
-            colors: item.colors ?? [],
-          };
-          if (!wasInProduction && updated.inProduction) {
-            updated.colors = (updated.colors ?? []).map((color) => ({
-              ...color,
-              itemColorActive: true,
-            }));
-          }
-          nextSelected = updated;
-          return updated;
-        })
-      );
-      if (nextSelected) {
-        setSelectedItem(nextSelected);
-        if (colorModalItem?.itemId === row.itemId) {
-          setColorModalItem(nextSelected);
-        }
-        if (savedItem && row.itemId !== savedItem.itemId) {
-          setExpandedRows((prev) => {
-            if (!prev[String(row.itemId)]) return prev;
-            const next = { ...prev };
-            delete next[String(row.itemId)];
-            next[String(savedItem.itemId)] = true;
-            return next;
-          });
-        }
-      }
-      notify("success", "Style saved", `${row.itemNumber} saved successfully.`);
-      return true;
-    } catch (err: unknown) {
-      console.error(err);
-      notify("error", "Style save failed", getErrorMessage(err, "Unable to save style."));
-      return false;
-    }
-  };
-
   const handleRowEditComplete = async (event: DataTableRowEditCompleteEvent) => {
     const row = event.newData as ItemListRow;
     const saved = await handleItemSave(row);
@@ -500,22 +358,12 @@ export default function ItemsColors() {
     toggleRowExpansion(event.data as ItemListRow);
   };
 
-  const getUniqueColors = (colorsForItem: ItemColorView[]) => {
-    const map = new Map<number, ItemColorView>();
-    colorsForItem.forEach((color) => {
-      if (!map.has(color.colorId)) {
-        map.set(color.colorId, color);
-      }
-    });
-    return Array.from(map.values());
-  };
-
   const getActiveColors = (colorsForItem: ItemColorView[]) =>
-    getUniqueColors(colorsForItem).filter((color) => color.itemColorActive !== false);
+    dedupeItemColorsByColorId(colorsForItem).filter((color) => color.itemColorActive !== false);
 
   const handleDownloadItemList = () => {
     const colorLists = filteredItems.map((row) =>
-      getUniqueColors(row.colors ?? []).map((color) => color.colorName ?? "")
+      dedupeItemColorsByColorId(row.colors ?? []).map((color) => color.colorName ?? "")
     );
     const maxColorColumns = Math.max(1, ...colorLists.map((colors) => colors.length));
     const colorHeaders = Array.from({ length: maxColorColumns }, (_, index) => `Color ${index + 1}`);
@@ -547,7 +395,7 @@ export default function ItemsColors() {
   };
 
   const handlePrintItemList = () => {
-    printItemList({ rows: filteredItems, formatPrice, getUniqueColors });
+    printItemList({ rows: filteredItems, formatPrice, getUniqueColors: dedupeItemColorsByColorId });
   };
 
   const handleRefreshItemList = useCallback(async () => {
@@ -555,6 +403,11 @@ export default function ItemsColors() {
     setActiveFilter("");
     await loadItemList();
   }, [clearSearchFilters, loadItemList, setActiveFilter]);
+
+  const handleClearFilters = useCallback(() => {
+    clearSearchFilters();
+    setActiveFilter("");
+  }, [clearSearchFilters, setActiveFilter]);
 
   const handleReviewConfirm = () => {
     handleReviewConfirmBase({
@@ -657,93 +510,153 @@ export default function ItemsColors() {
     }
   };
 
+  const headerActions = [
+    {
+      key: "addItem",
+      label: "Add Item",
+      icon: "pi pi-plus",
+      onClick: handleAddItemRow,
+      disabled: loadingLookups,
+    },
+    {
+      key: "refreshList",
+      label: itemListLoading ? "Refreshing..." : "Refresh List",
+      icon: "pi pi-refresh",
+      onClick: () => {
+        void handleRefreshItemList();
+      },
+      disabled: itemListLoading,
+    },
+    {
+      key: "expandAll",
+      label: "Expand All",
+      icon: "pi pi-plus",
+      onClick: handleExpandAll,
+      disabled: filteredItems.length === 0,
+    },
+    {
+      key: "collapseAll",
+      label: "Collapse All",
+      icon: "pi pi-minus",
+      onClick: handleCollapseAll,
+      disabled: Object.keys(expandedRows).length === 0,
+    },
+    {
+      key: "uploadNewItems",
+      label: "Upload New Items",
+      icon: "pi pi-upload",
+      onClick: () => uploadActionRef.current?.openItemUpload(),
+      separatorBefore: true,
+    },
+    {
+      key: "uploadItemColors",
+      label: "Upload Item Colors",
+      icon: "pi pi-upload",
+      onClick: () => uploadActionRef.current?.openColorUpload(),
+    },
+    {
+      key: "downloadItems",
+      label: "Download Item List",
+      icon: "pi pi-download",
+      onClick: handleDownloadItemList,
+      separatorBefore: true,
+    },
+    {
+      key: "printItems",
+      label: "Print Item List",
+      icon: "pi pi-print",
+      onClick: handlePrintItemList,
+    },
+    {
+      key: "adminDeleteSelected",
+      label: "Admin Delete Selected",
+      icon: "pi pi-trash",
+      onClick: () => openAdminDeleteModal("selected"),
+      disabled: !selectedItem || selectedItem.itemId <= 0,
+      separatorBefore: true,
+    },
+    {
+      key: "adminDeleteFiltered",
+      label: "Admin Delete All Filtered",
+      icon: "pi pi-exclamation-triangle",
+      onClick: () => openAdminDeleteModal("filtered"),
+      disabled: filteredItems.every((row) => row.itemId <= 0),
+    },
+  ];
+
   return (
     <CatalogPageLayout
       title="Item List"
       subtitle={`Seasons: ${seasonSummary}`}
       className="catalog-page--wide mt-3"
-      actions={[
-        {
-          label: "Download Item List",
-          onClick: handleDownloadItemList,
-          variant: "primary",
-          icon: "pi pi-download",
-          className: "btn-info btn-outlined",
-        },
-        {
-          label: "Print Item List",
-          onClick: handlePrintItemList,
-          variant: "primary",
-          icon: "pi pi-print",
-          className: "btn-warn btn-outlined",
-        },
-        {
-          label: "Admin Delete Selected",
-          onClick: () => openAdminDeleteModal("selected"),
-          variant: "primary",
-          icon: "pi pi-trash",
-          className: "btn-danger btn-outlined",
-          disabled: !selectedItem || selectedItem.itemId <= 0,
-        },
-        {
-          label: "Admin Delete All Filtered",
-          onClick: () => openAdminDeleteModal("filtered"),
-          variant: "primary",
-          icon: "pi pi-exclamation-triangle",
-          className: "btn-danger",
-          disabled: filteredItems.every((row) => row.itemId <= 0),
-        },
-      ]}
       actionsSlot={
-        <ItemUploadActions
-          seasons={seasons}
-          loadingLookups={loadingLookups}
-          fileName={fileName}
-          uploadRows={uploadRows}
-          parseErrors={parseErrors}
-          requiresSeasonSelection={requiresSeasonSelection}
-          uploadSummary={uploadSummary}
-          uploading={uploading}
-          defaultSeasonId={defaultSeasonId}
-          setDefaultSeasonId={setDefaultSeasonId}
-          handleDownloadTemplate={handleDownloadTemplate}
-          handleUploadFile={handleUploadFile}
-          handlePrepareUpload={() => handlePrepareUpload()}
-          colorDefaultSeasonId={colorDefaultSeasonId}
-          setColorDefaultSeasonId={setColorDefaultSeasonId}
-          handleDownloadItemColors={handleDownloadItemColors}
-          colorFileName={colorFileName}
-          colorUploadRows={colorUploadRows}
-          colorParseErrors={colorParseErrors}
-          colorUploadSummary={colorUploadSummary}
-          colorUploading={colorUploading}
-          handleColorUploadFile={handleColorUploadFile}
-          handlePrepareColorUpload={handlePrepareColorUpload}
-          onAddCollection={handleAddCollectionFromUploadModal}
-        />
+        <>
+          <PageActionsMenu items={headerActions} />
+          <ItemUploadActions
+            seasons={seasons}
+            loadingLookups={loadingLookups}
+            fileName={fileName}
+            uploadRows={uploadRows}
+            parseErrors={parseErrors}
+            requiresSeasonSelection={requiresSeasonSelection}
+            uploadSummary={uploadSummary}
+            uploading={uploading}
+            defaultSeasonId={defaultSeasonId}
+            setDefaultSeasonId={setDefaultSeasonId}
+            handleDownloadTemplate={handleDownloadTemplate}
+            handleUploadFile={handleUploadFile}
+            handlePrepareUpload={() => handlePrepareUpload()}
+            colorDefaultSeasonId={colorDefaultSeasonId}
+            setColorDefaultSeasonId={setColorDefaultSeasonId}
+            handleDownloadItemColors={handleDownloadItemColors}
+            colorFileName={colorFileName}
+            colorUploadRows={colorUploadRows}
+            colorParseErrors={colorParseErrors}
+            colorUploadSummary={colorUploadSummary}
+            colorUploading={colorUploading}
+            handleColorUploadFile={handleColorUploadFile}
+            handlePrepareColorUpload={handlePrepareColorUpload}
+            onAddCollection={handleAddCollectionFromUploadModal}
+            hideInlineTriggers
+            onRegisterActions={(actions) => {
+              uploadActionRef.current = actions;
+            }}
+          />
+        </>
       }
     >
       <Toast ref={toastRef} position="top-right" />
 
       {lookupError && <Alert variant="danger">{lookupError}</Alert>}
 
-      <div className="inventory-edit-header-actions">
-        <div className="content-card inventory-edit-search-card">
-          <InventorySearchFiltersForm
-            filters={searchForm}
-            seasons={seasons}
-            searching={itemListLoading || loadingLookups}
-            onChange={setSearchForm}
-            onSubmit={applySearchFilters}
-            onClear={clearSearchFilters}
-          />
-        </div>
+      <div className="catalog-page-toolbar inventory-edit-header-actions">
+        <InventorySearchFiltersForm
+          filters={searchForm}
+          seasons={seasons}
+          searching={itemListLoading || loadingLookups}
+          onChange={setSearchForm}
+          onSubmit={applySearchFilters}
+          onClear={handleClearFilters}
+          advancedFiltersExtra={
+            <div className="page-filter-field">
+              <Form.Label className="page-filters-label">Active</Form.Label>
+              <Form.Select
+                value={activeFilter}
+                onChange={(event) => setActiveFilter(event.target.value)}
+                aria-label="Active status"
+              >
+                <option value="">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </Form.Select>
+            </div>
+          }
+        />
       </div>
 
       <div className="items-colors-layout items-colors-layout--single">
         <ItemsTable
           seasons={seasons}
-          loadingLookups={loadingLookups}
           itemListLoading={itemListLoading}
           filteredItems={filteredItems}
           selectedItem={selectedItem}
@@ -756,12 +669,6 @@ export default function ItemsColors() {
           setExpandedRows={setExpandedRows}
           normalizeExpandedRows={normalizeExpandedRows}
           onRowClick={handleRowClick}
-          handleAddItemRow={handleAddItemRow}
-          loadItemList={handleRefreshItemList}
-          handleExpandAll={handleExpandAll}
-          handleCollapseAll={handleCollapseAll}
-          activeFilter={activeFilter}
-          setActiveFilter={setActiveFilter}
           resolveSeasonName={resolveSeasonName}
           formatPrice={formatPrice}
           openColorModal={openColorModal}
@@ -790,7 +697,7 @@ export default function ItemsColors() {
             : "Edit colors",
           isLocked: !activeColorItem || activeColorItem.itemId <= 0,
           pendingColors,
-          currentColors: activeColorItem ? getUniqueColors(activeColorItem.colors ?? []) : [],
+          currentColors: activeColorItem ? dedupeItemColorsByColorId(activeColorItem.colors ?? []) : [],
           saving: savingColors,
           getReadableTextColor,
         }}
@@ -806,138 +713,30 @@ export default function ItemsColors() {
         }}
       />
 
-      <Modal show={showAdminDeleteModal} onHide={closeAdminDeleteModal} centered>
-        <Modal.Header closeButton={!adminDeleteSubmitting}>
-          <Modal.Title>
-            {adminDeleteMode === "filtered" ? "Admin hard delete filtered styles" : "Admin hard delete style"}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Alert variant="danger" className="mb-3">
-            This permanently deletes styles and related item colors, SKUs, inventory, inventory history, and images.
-            This cannot be undone.
-          </Alert>
-          <div className="mb-2">
-            <strong>Target count:</strong> {adminDeleteTargets.length}
-          </div>
-          {adminDeleteTargets.length > 0 && (
-            <ul className="mb-3">
-              {adminDeleteTargets.slice(0, 6).map((row) => (
-                <li key={`admin-delete-${row.itemId}`}>
-                  {row.seasonName || "?"} - {row.itemNumber || `Item ${row.itemId}`} (ID {row.itemId})
-                </li>
-              ))}
-            </ul>
-          )}
-          {adminDeleteTargets.length > 6 && (
-            <div className="text-muted mb-3">{adminDeleteTargets.length - 6} more style(s) not shown.</div>
-          )}
-          <Form.Group controlId="adminDeletePassword">
-            <Form.Label>Admin password</Form.Label>
-            <Form.Control
-              type="password"
-              value={adminDeletePassword}
-              onChange={(e) => setAdminDeletePassword(e.target.value)}
-              placeholder="Enter admin delete password"
-              autoFocus
-              disabled={adminDeleteSubmitting}
-              onKeyDown={(event) => {
-                if (!shouldSubmitOnEnter(event)) return;
-                event.preventDefault();
-                void handleConfirmAdminDelete();
-              }}
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            type="button"
-            className="btn-neutral btn-outlined"
-            onClick={closeAdminDeleteModal}
-            disabled={adminDeleteSubmitting}
-          >
-            <i className="pi pi-times" aria-hidden="true" />
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="btn-danger"
-            onClick={() => void handleConfirmAdminDelete()}
-            disabled={adminDeleteSubmitting || adminDeleteTargets.length === 0}
-          >
-            <i className="pi pi-trash" aria-hidden="true" />
-            {adminDeleteSubmitting ? "Deleting..." : "Permanently Delete"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <ItemsColorsAdminDeleteModal
+        show={showAdminDeleteModal}
+        submitting={adminDeleteSubmitting}
+        mode={adminDeleteMode}
+        targets={adminDeleteTargets}
+        password={adminDeletePassword}
+        onPasswordChange={setAdminDeletePassword}
+        onClose={closeAdminDeleteModal}
+        onConfirm={() => void handleConfirmAdminDelete()}
+      />
 
-      <Modal
+      <ItemsColorsDuplicateModal
         show={showDuplicateModal}
-        onHide={() => setShowDuplicateModal(false)}
-        centered
-        onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
-          if (!shouldSubmitOnEnter(event)) return;
-          event.preventDefault();
+        rows={duplicateRows}
+        onCancel={() => setShowDuplicateModal(false)}
+        onKeepExisting={() => {
+          setShowDuplicateModal(false);
+          handlePrepareUpload({ ignoreDuplicatePrompt: true, updateExisting: false });
+        }}
+        onUpdateDetails={() => {
           setShowDuplicateModal(false);
           handlePrepareUpload({ ignoreDuplicatePrompt: true, updateExisting: true });
         }}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Existing styles found</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p className="mb-2">
-            Some styles in this upload already exist. Do you want to update their details with the uploaded data?
-          </p>
-          <p className="text-muted mb-2">
-            InProduction status will still sync from the upload file when that column is present.
-          </p>
-          <ul className="mb-0">
-            {duplicateRows.slice(0, 6).map((row) => (
-              <li key={`${row.seasonName}-${row.itemNumber}-${row.rowNumber}`}>
-                {row.seasonName} — {row.itemNumber}
-              </li>
-            ))}
-          </ul>
-          {duplicateRows.length > 6 && (
-            <div className="text-muted mt-2">
-              {duplicateRows.length - 6} more style(s) not shown.
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            type="button"
-            className="btn-neutral btn-outlined"
-            onClick={() => setShowDuplicateModal(false)}
-          >
-            <i className="pi pi-times" aria-hidden="true" />
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="btn-neutral btn-outlined"
-            onClick={() => {
-              setShowDuplicateModal(false);
-              handlePrepareUpload({ ignoreDuplicatePrompt: true, updateExisting: false });
-            }}
-          >
-            <i className="pi pi-refresh" aria-hidden="true" />
-            Keep existing details
-          </Button>
-          <Button
-            type="button"
-            className="btn-success"
-            onClick={() => {
-              setShowDuplicateModal(false);
-              handlePrepareUpload({ ignoreDuplicatePrompt: true, updateExisting: true });
-            }}
-          >
-            <i className="pi pi-save" aria-hidden="true" />
-            Update details
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      />
 
       <ItemsColorsColorReviewModal
         show={showColorReview}
@@ -978,3 +777,4 @@ export default function ItemsColors() {
     </CatalogPageLayout>
   );
 }
+
