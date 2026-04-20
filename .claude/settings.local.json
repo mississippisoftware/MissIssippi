@@ -23,7 +23,10 @@
       "Bash(node -e ':*)",
       "Bash(cmd /c \"cd /d c:\\\\Users\\\\zissy\\\\source\\\\repos\\\\MissIssippi\\\\MissIssippiApp && npx tsc --noEmit 2>&1\")",
       "Bash(grep -v \":0$\")",
-      "Bash(grep -v \"//.*form-\\\\|#.*form-\")"
+      "Bash(grep -v \"//.*form-\\\\|#.*form-\")",
+      "Bash(npm run *)",
+      "Bash(sed -n '216,235p' node_modules/primereact/autocomplete/autocomplete.d.ts)",
+      "Bash(sed -n '884,910p' node_modules/primereact/datatable/datatable.d.ts)"
     ]
   }
 }
