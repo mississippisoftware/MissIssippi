@@ -1,5 +1,7 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
+import { Button } from 'primereact/button';
+import { Dialog } from 'primereact/dialog';
+import { InputSwitch } from 'primereact/inputswitch';
 import {
   DataTable,
   type DataTablePageEvent,
@@ -9,8 +11,11 @@ import {
 import { Column } from "primereact/column";
 import { Toast } from "primereact/toast";
 import CatalogPageLayout from "../components/CatalogPageLayout";
+import PageActionsMenu from "../components/PageActionsMenu";
+import PageFiltersBar from "../components/PageFiltersBar";
 import UploadModal from "../components/UploadModal";
 import { useNotifier } from "../hooks/useNotifier";
+import InventoryLabels from "../inventory/InventoryLabels";
 import { InventoryService, type SeasonRecord } from "../service/InventoryService";
 import {
   SkuService,
@@ -38,12 +43,14 @@ export default function SkuList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [seasonFilterId, setSeasonFilterId] = useState("");
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<SkuListItem[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [editingRows, setEditingRows] = useState<Record<string, boolean>>({});
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showLabelsModal, setShowLabelsModal] = useState(false);
   const [uploadFileName, setUploadFileName] = useState("");
   const [uploadRows, setUploadRows] = useState<Array<{ rowNumber: number; skuId: number; sku: string }>>([]);
   const [uploadParseErrors, setUploadParseErrors] = useState<string[]>([]);
@@ -132,6 +139,20 @@ export default function SkuList() {
       setSortField(event.sortField);
     }
     setSortOrder(event.sortOrder === -1 ? -1 : 1);
+    setFirst(0);
+  };
+
+  const applySearch = () => {
+    setSearchQuery(searchInput);
+    setFirst(0);
+  };
+
+  const clearFilters = () => {
+    setSearchInput("");
+    setSearchQuery("");
+    setSeasonFilterId("");
+    setInStockOnly(false);
+    setShowAdvancedFilters(false);
     setFirst(0);
   };
 
@@ -347,7 +368,7 @@ export default function SkuList() {
   };
 
   const renderSkuEditor = (options: { value?: unknown; editorCallback?: (value: unknown) => void }) => (
-    <Form.Control
+    <input
       value={typeof options.value === "string" ? options.value : ""}
       onChange={(e) => options.editorCallback?.(e.target.value)}
       autoFocus
@@ -355,74 +376,92 @@ export default function SkuList() {
   );
 
   const renderInProduction = (row: SkuListItem) => (
-    <Form.Check type="checkbox" className="item-production-check" checked={row.inProduction} readOnly disabled />
+    <input type="checkbox" className="item-production-check" checked={row.inProduction} readOnly disabled onChange={() => {}} />
   );
+
+  const headerActions = [
+    {
+      key: "download",
+      label: "Download SKU List",
+      onClick: handleDownloadSkuList,
+      icon: "pi pi-download",
+      disabled: loading,
+    },
+    {
+      key: "upload-corrections",
+      label: "Upload SKU Corrections",
+      onClick: () => {
+        resetUploadModalState();
+        setShowUploadModal(true);
+      },
+      icon: "pi pi-upload",
+    },
+    {
+      key: "inventory-labels",
+      label: "Inventory Labels",
+      onClick: () => setShowLabelsModal(true),
+      icon: "pi pi-tags",
+    },
+  ];
 
   return (
     <CatalogPageLayout
       title="SKU List"
       subtitle={`Total SKUs: ${totalRecords}`}
-      actions={[
-        {
-          label: "Download SKU List",
-          onClick: handleDownloadSkuList,
-          icon: "pi pi-download",
-          className: "btn-info btn-outlined",
-          disabled: loading,
-        },
-        {
-          label: "Upload SKU Corrections",
-          onClick: () => {
-            resetUploadModalState();
-            setShowUploadModal(true);
-          },
-          icon: "pi pi-upload",
-          className: "btn-neutral btn-outlined",
-        },
-      ]}
+      actionsSlot={<PageActionsMenu items={headerActions} />}
     >
       <Toast ref={toastRef} position="top-right" />
 
-      {lookupError && <Alert variant="danger">{lookupError}</Alert>}
+      {lookupError && <div className="pt-alert pt-alert-danger" role="alert">{lookupError}</div>}
 
-      <Card className="portal-content-card">
-        <Card.Body>
-          <Row className="items-filter-row gy-2 align-items-end">
-            <Col md={5}>
-              <Form.Label>Search</Form.Label>
-              <Form.Control
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search SKU, item number, or color"
-              />
-            </Col>
-            <Col md={3}>
-              <Form.Label>Season</Form.Label>
-              <Form.Select
-                value={seasonFilterId}
-                onChange={(e) => handleSeasonChange(e.target.value)}
-                disabled={loadingLookups}
-              >
-                <option value="">All seasons</option>
-                {seasonOptions.map((season) => (
-                  <option key={season.seasonId} value={season.seasonId}>
-                    {season.seasonName}
-                  </option>
-                ))}
-              </Form.Select>
-            </Col>
-            <Col md="auto" className="ms-md-auto">
-              <Form.Check
-                type="switch"
-                id="sku-in-stock"
-                label="In Stock Only"
-                checked={inStockOnly}
-                onChange={(e) => handleInStockChange(e.target.checked)}
-              />
-            </Col>
-          </Row>
+      <div className="catalog-page-toolbar">
+        <PageFiltersBar
+          searchLabel=""
+          searchValue={searchInput}
+          searchPlaceholder="Quick search SKU, style, or color"
+          onSearchChange={setSearchInput}
+          onApply={applySearch}
+          applyLabel="Search"
+          applying={loading}
+          showAdvanced={showAdvancedFilters}
+          onToggleAdvanced={() => setShowAdvancedFilters((prev) => !prev)}
+          advancedFilters={
+            <div className="page-filters-advanced-grid">
+              <div className="page-filter-field">
+                <label className="page-filters-label">Season</label>
+                <select
+                  value={seasonFilterId}
+                  onChange={(e) => handleSeasonChange(e.target.value)}
+                  disabled={loadingLookups}
+                >
+                  <option value="">All seasons</option>
+                  {seasonOptions.map((season) => (
+                    <option key={season.seasonId} value={season.seasonId}>
+                      {season.seasonName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="page-filter-field page-filter-field--toggle">
+                <div className="pt-flex-row">
+                  <InputSwitch
+                    inputId="sku-in-stock"
+                    checked={inStockOnly}
+                    onChange={(e) => handleInStockChange(e.value)}
+                  />
+                  <label htmlFor="sku-in-stock">In Stock Only</label>
+                </div>
+              </div>
+            </div>
+          }
+          onClearFilters={clearFilters}
+          clearLabel="Clear Filters"
+        />
+      </div>
 
-          <div className="items-table-wrapper mt-3">
+      <div className="portal-content-card">
+        <div>
+          <div className="items-table-wrapper">
             <DataTable
               value={items}
               dataKey="skuId"
@@ -453,12 +492,25 @@ export default function SkuList() {
               <Column field="colorName" header="Color" sortable className="col-color" />
               <Column field="sizeName" sortField="sizeSequence" header="Size" sortable className="col-size" />
               <Column field="qty" header="Qty" sortable className="text-end" />
-              <Column field="inProduction" header="In Production" body={renderInProduction} className="col-active" />
-              <Column rowEditor header="Save" headerStyle={{ width: "6rem" }} bodyStyle={{ textAlign: "center" }} />
+              <Column field="inProduction" header="Active" body={renderInProduction} className="col-active" />
+              <Column rowEditor header="Save" headerClassName="col-actions" bodyClassName="col-center" />
             </DataTable>
           </div>
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
+
+      <Dialog
+        visible={showLabelsModal}
+        onHide={() => setShowLabelsModal(false)}
+        header="Inventory Labels"
+        modal
+        closable
+        draggable={false}
+        resizable={false}
+        className="inventory-labels-modal"
+      >
+        <InventoryLabels embedded />
+      </Dialog>
 
       <UploadModal
         show={showUploadModal}
@@ -469,29 +521,29 @@ export default function SkuList() {
         enterDisabled={uploadRows.length === 0 || uploadParseErrors.length > 0 || uploadingSkus}
         headerContent={
           <>
-            <h6 className="mb-1">Upload SKU corrections</h6>
-            <p className="text-muted mb-0">
+            <h6 className="pt-text-body-strong">Upload SKU corrections</h6>
+            <p className="pt-text-desc">
               Update existing SKU values by `SkuId`. Use Download SKU List to get the current IDs.
             </p>
           </>
         }
         downloadAction={
-          <Button type="button" className="btn-info btn-outlined" onClick={handleDownloadSkuTemplate}>
+          <Button type="button" className="btn-info btn-outlined" onClick={handleDownloadSkuTemplate} unstyled>
             <i className="pi pi-download" aria-hidden="true" />
             Download Template
           </Button>
         }
       >
-        <Row className="gy-3 mt-2 align-items-center">
-          <Col md={8}>
-            <Form.Group controlId="skuCorrectionUploadFile">
-              <Form.Label>Upload file</Form.Label>
-              <Form.Control type="file" accept=".xlsx,.xls" onChange={handleUploadFile} disabled={uploadingSkus} />
-              <Form.Text className="text-muted">Columns required: SkuId, SKU.</Form.Text>
-            </Form.Group>
-            {uploadFileName && <div className="text-muted mt-2">Selected file: {uploadFileName}</div>}
-          </Col>
-          <Col md={4} className="text-md-end">
+        <div className="pt-form-row-action mt-2">
+          <div>
+            <div>
+              <label>Upload file</label>
+              <input type="file" accept=".xlsx,.xls" onChange={handleUploadFile} disabled={uploadingSkus} />
+              <small className="text-muted">Columns required: SkuId, SKU.</small>
+            </div>
+            {uploadFileName && <div className="pt-form-hint">Selected file: {uploadFileName}</div>}
+          </div>
+          <div className="pt-form-row-action__end">
             <Button
               type="button"
               className="btn-success"
@@ -500,7 +552,7 @@ export default function SkuList() {
             >
               {uploadingSkus ? (
                 <>
-                  <Spinner animation="border" size="sm" className="me-2" />
+                  <i className="pi pi-spin pi-spinner" aria-hidden="true" />
                   <i className="pi pi-upload" aria-hidden="true" />
                   Uploading...
                 </>
@@ -511,43 +563,43 @@ export default function SkuList() {
                 </>
               )}
             </Button>
-          </Col>
-        </Row>
+          </div>
+        </div>
 
-        {uploadRows.length > 0 && <div className="text-muted mt-3">Rows ready to upload: {uploadRows.length}</div>}
+        {uploadRows.length > 0 && <div className="pt-form-hint">Rows ready to upload: {uploadRows.length}</div>}
 
         {uploadParseErrors.length > 0 && (
-          <Alert variant="danger" className="mt-3">
-            <strong>Fix these issues before uploading:</strong>
-            <ul className="mb-0">
+          <div className="pt-alert pt-alert-danger" role="alert">
+            <div className="pt-text-body-strong pt-alert__header">Fix these issues before uploading:</div>
+            <ul className="pt-alert__list">
               {uploadParseErrors.slice(0, 8).map((error) => (
                 <li key={error}>{error}</li>
               ))}
             </ul>
             {uploadParseErrors.length > 8 && (
-              <div className="mt-2 text-muted">{uploadParseErrors.length - 8} more issue(s) not shown.</div>
+              <div className="pt-alert__footer">{uploadParseErrors.length - 8} more issue(s) not shown.</div>
             )}
-          </Alert>
+          </div>
         )}
 
         {uploadSummary && uploadSummary.success && (
-          <Alert variant="success" className="mt-3">
+          <div className="pt-alert pt-alert-success" role="alert">
             Updated {uploadSummary.updated} SKU(s).
-          </Alert>
+          </div>
         )}
 
         {uploadSummary && !uploadSummary.success && uploadSummary.errors.length > 0 && (
-          <Alert variant="danger" className="mt-3">
-            <strong>Upload completed with issues:</strong>
-            <ul className="mb-0">
+          <div className="pt-alert pt-alert-danger" role="alert">
+            <div className="pt-text-body-strong pt-alert__header">Upload completed with issues:</div>
+            <ul className="pt-alert__list">
               {uploadSummary.errors.slice(0, 8).map((error, index) => (
                 <li key={`${error.rowNumber}-${error.skuId ?? "na"}-${index}`}>{formatBulkError(error)}</li>
               ))}
             </ul>
             {uploadSummary.errors.length > 8 && (
-              <div className="mt-2 text-muted">{uploadSummary.errors.length - 8} more issue(s) not shown.</div>
+              <div className="pt-alert__footer">{uploadSummary.errors.length - 8} more issue(s) not shown.</div>
             )}
-          </Alert>
+          </div>
         )}
       </UploadModal>
     </CatalogPageLayout>

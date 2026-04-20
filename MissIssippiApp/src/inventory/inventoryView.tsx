@@ -1,18 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { Form, Modal } from "react-bootstrap";
+import { Dialog } from "primereact/dialog";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { Toast } from "primereact/toast";
 import { useLocation } from "react-router-dom";
 import { useShallow } from "zustand/shallow";
-import ActiveFilterChips, { type ActiveFilterChip } from "../components/ActiveFilterChips";
 import ActionButton from "../components/ActionButton";
-import CatalogPageLayout from "../components/CatalogPageLayout";
-import InventorySearchFiltersForm from "../components/InventorySearchFilters";
-import PageActionsMenu from "../components/PageActionsMenu";
-import ViewToggle from "../components/ViewToggle";
 import { type InventoryCardMeta } from "../components/inventoryEdit/InventoryEditCard";
 import { useNotifier } from "../hooks/useNotifier";
 import CatalogService, { type ItemView } from "../service/CatalogService";
+import PageShell from "../layout/PageShell";
 import InventoryLabels from "./InventoryLabels";
 import { InventoryCardsSection, InventoryListSection, type InventoryStyleGroupView } from "./InventoryViewSections";
 import { useInventoryEditStore } from "../stores/inventory";
@@ -21,7 +17,7 @@ import type { InventorySearchFilters as InventorySearchFiltersType } from "../ut
 import { buildInventoryCardGroups, type InventoryCardGroup } from "../utils/buildInventoryCardGroups";
 import { getErrorMessage } from "../utils/errors";
 import { exportInventoryToExcel } from "../utils/ExportInventoryToExcel";
-import { printInventoryCards, printInventoryList } from "../utils/printInventory";
+import { printInventoryCards } from "../utils/printInventory";
 import { formatPrice } from "../utils/formatters";
 
 const EMPTY_FILTERS: InventorySearchFiltersType = {
@@ -33,8 +29,8 @@ const EMPTY_FILTERS: InventorySearchFiltersType = {
 
 const INVENTORY_EXPORT_COLUMNS: FilterableColumn[] = [
   { field: "seasonName", header: "Season", filterMatchMode: "startsWith", className: "col-season" },
-  { field: "itemNumber", header: "Style #", filterMatchMode: "startsWith", className: "col-style" },
-  { field: "description", header: "Description", filterMatchMode: "contains", className: "col-description" },
+  { field: "itemNumber", header: "Style", filterMatchMode: "startsWith", className: "col-style" },
+  { field: "description", header: "Desc", filterMatchMode: "contains", className: "col-description" },
   { field: "colorName", header: "Color", filterMatchMode: "contains", className: "col-color" },
 ];
 
@@ -154,13 +150,13 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
   const [viewMode, setViewMode] = useState<InventoryViewMode>(initialViewMode);
   const [cardColumns] = useState<1 | 2>(1);
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [itemMetaByItemNumber, setItemMetaByItemNumber] = useState<Record<string, InventoryCardMeta>>({});
   const [activeEditableItemNumber, setActiveEditableItemNumber] = useState<string | null>(null);
   const [focusItemNumber, setFocusItemNumber] = useState<string | null>(null);
   const [pendingTransition, setPendingTransition] = useState<PendingTransition | null>(null);
   const [applyingPending, setApplyingPending] = useState(false);
   const [showLabelsModal, setShowLabelsModal] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   useEffect(() => {
     initializeSizes();
@@ -244,13 +240,23 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
   }, [executeSearch, lastFilters]);
 
   const filteredResults = useMemo(() => {
-    const groups = buildInventoryCardGroups(results);
+    const q = appliedQuery.toLowerCase().trim();
+    const textFiltered = q
+      ? results.filter(
+          (item) =>
+            item.itemNumber?.toLowerCase().includes(q) ||
+            item.colorName?.toLowerCase().includes(q) ||
+            item.description?.toLowerCase().includes(q) ||
+            item.seasonName?.toLowerCase().includes(q)
+        )
+      : results;
+
+    const groups = buildInventoryCardGroups(textFiltered);
     if (!inStockOnly) {
       return groups.flatMap((group) => group.rows);
     }
-
     return groups.filter((group) => hasStock(group.rows)).flatMap((group) => group.rows);
-  }, [inStockOnly, results]);
+  }, [appliedQuery, inStockOnly, results]);
 
   const cardGroups = useMemo(() => buildInventoryCardGroups(filteredResults), [filteredResults]);
 
@@ -268,7 +274,6 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
     return cardGroups
       .map((group) => {
         const itemMeta = itemMetaByItemNumber[group.itemNumber];
-
         return {
           itemNumber: group.itemNumber,
           description: group.description ?? "",
@@ -286,14 +291,12 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
     if (viewMode !== "cards" || !focusItemNumber) {
       return;
     }
-
     const timer = window.setTimeout(() => {
       const element = cardRefs.current[focusItemNumber];
       element?.scrollIntoView({ behavior: "smooth", block: "start" });
       element?.focus();
       setFocusItemNumber(null);
     }, 120);
-
     return () => window.clearTimeout(timer);
   }, [cardGroups, focusItemNumber, viewMode]);
 
@@ -310,24 +313,20 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
         }
         return;
       }
-
       if (transition.type === "edit-item") {
         setViewMode("cards");
         setActiveEditableItemNumber(transition.itemNumber);
         setFocusItemNumber(transition.itemNumber);
         return;
       }
-
       if (transition.type === "leave-edit") {
         setActiveEditableItemNumber(null);
         return;
       }
-
       if (transition.type === "search") {
         await executeSearch(transition.filters);
         return;
       }
-
       setForm(EMPTY_FILTERS);
       await executeSearch(EMPTY_FILTERS);
     },
@@ -354,7 +353,7 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
 
   const handleClear = () => {
     setInStockOnly(false);
-    setShowAdvancedFilters(false);
+    setAppliedQuery("");
     requestTransition({ type: "clear" });
   };
 
@@ -373,20 +372,17 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
     if (activeEditableItemNumber) {
       return;
     }
-
     const targetNode = event.target as Node | null;
     const targetElement =
       targetNode instanceof Element
         ? targetNode
         : targetNode?.parentElement ?? null;
-
     const clickedInteractiveControl = targetElement?.closest(
       "button, a, input, select, textarea, label, [role='button'], [data-disable-card-activate='true']"
     );
     if (clickedInteractiveControl) {
       return;
     }
-
     handleRequestEditItem(itemNumber);
   };
 
@@ -416,7 +412,6 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
     if (!pendingTransition) {
       return;
     }
-
     setApplyingPending(true);
     try {
       if (activeEditableItemNumber && dirtyItemsSet.has(activeEditableItemNumber)) {
@@ -437,7 +432,6 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
     if (!pendingTransition) {
       return;
     }
-
     setApplyingPending(true);
     try {
       if (activeEditableItemNumber && dirtyItemsSet.has(activeEditableItemNumber)) {
@@ -450,24 +444,6 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
     } finally {
       setApplyingPending(false);
     }
-  };
-
-  const handleDownloadAllCards = () => {
-    if (cardGroups.length === 0) {
-      notify("info", "No results", "Search and load styles before downloading.");
-      return;
-    }
-
-    printInventoryCards(
-      {
-        subtitle: "Inventory",
-        sizeColumns,
-        groups: cardGroups,
-      },
-      {
-        onError: () => notify("error", "Error", "Unable to render PDF preview."),
-      }
-    );
   };
 
   const handleDownloadCard = (group: InventoryCardGroup) => {
@@ -494,302 +470,235 @@ export default function InventoryView({ initialViewMode = "list" }: InventoryVie
     });
   };
 
-  const handlePrintList = () => {
-    printInventoryList({
-      rows: filteredResults,
-      sizeColumns,
-      uiColumns: INVENTORY_EXPORT_COLUMNS,
-      title: "Inventory List",
-      subtitle: "Grouped by style",
-    });
-  };
-
-  const handlePrintCards = () => {
-    printInventoryCards(
-      {
-        subtitle: "Inventory Cards",
-        sizeColumns,
-        groups: cardGroups,
-      },
-      {
-        onError: () => notify("error", "Error", "Unable to render PDF preview."),
-      }
-    );
-  };
-
   const hasResults = styleGroups.length > 0;
   const promptContext = getPromptContext(pendingTransition, activeEditableItemNumber);
-  const activeChips = useMemo<ActiveFilterChip[]>(() => {
-    const chips: ActiveFilterChip[] = [];
-    if (form.itemNumber?.trim()) {
-      chips.push({
-        key: "style",
-        label: "Style #",
-        value: form.itemNumber.trim(),
-        onRemove: () => {
-          const next = { ...form, itemNumber: "" };
-          setForm(next);
-          handleSearch(next);
-        },
-      });
-    }
-    if (form.seasonName?.trim()) {
-      chips.push({
-        key: "season",
-        label: "Season",
-        value: form.seasonName.trim(),
-        onRemove: () => {
-          const next = { ...form, seasonName: "" };
-          setForm(next);
-          handleSearch(next);
-        },
-      });
-    }
-    if (form.description?.trim()) {
-      chips.push({
-        key: "description",
-        label: "Description",
-        value: form.description.trim(),
-        onRemove: () => {
-          const next = { ...form, description: "" };
-          setForm(next);
-          handleSearch(next);
-        },
-      });
-    }
-    if (form.colorName?.trim()) {
-      chips.push({
-        key: "color",
-        label: "Color",
-        value: form.colorName.trim(),
-        onRemove: () => {
-          const next = { ...form, colorName: "" };
-          setForm(next);
-          handleSearch(next);
-        },
-      });
-    }
-    if (inStockOnly) {
-      chips.push({
-        key: "stock",
-        label: "Stock",
-        value: "In Stock Only",
-        onRemove: () => setInStockOnly(false),
-      });
-    }
-    return chips;
-  }, [form, handleSearch, inStockOnly]);
-
-  const headerActions = [
-    {
-      key: "labels",
-      label: "Inventory Labels",
-      icon: "pi pi-tags",
-      onClick: () => setShowLabelsModal(true),
-    },
-    {
-      key: "download",
-      label: "Download",
-      icon: "pi pi-download",
-      onClick: handleExportList,
-      disabled: !hasResults,
-    },
-    {
-      key: "print",
-      label: viewMode === "list" ? "Print List" : "Print Cards",
-      icon: "pi pi-print",
-      onClick: viewMode === "list" ? handlePrintList : handlePrintCards,
-      disabled: !hasResults,
-    },
-    {
-      key: "backToList",
-      label: "Back to List",
-      icon: "pi pi-arrow-left",
-      onClick: () => handleRequestViewChange("list"),
-      disabled: !hasResults,
-      visible: viewMode === "cards",
-    },
-    {
-      key: "downloadAll",
-      label: "Download All Cards",
-      icon: "pi pi-download",
-      onClick: handleDownloadAllCards,
-      disabled: !hasResults,
-      visible: viewMode === "cards",
-    },
-  ];
 
   return (
-    <CatalogPageLayout
+    <PageShell
       title="Inventory"
-      subtitle="Browse by style and edit one style card at a time."
-      className="catalog-page--wide inventory-unified-page"
-      actionsSlot={<PageActionsMenu items={headerActions} />}
+      subtitle={`${filteredResults.length} item${filteredResults.length !== 1 ? "s" : ""}${form.seasonName ? ` · ${form.seasonName}` : ""}`}
+      actions={
+        <>
+          <button
+            type="button"
+            className="btn-neutral btn-outlined"
+            onClick={() => setShowLabelsModal(true)}
+          >
+            Labels
+          </button>
+          <button
+            type="button"
+            className="btn-neutral btn-outlined"
+            onClick={handleExportList}
+            disabled={!hasResults}
+          >
+            XLS
+          </button>
+          <button
+            type="button"
+            className="btn-neutral btn-outlined"
+            onClick={() => {}}
+            disabled={!hasResults}
+          >
+            PDF
+          </button>
+          <button
+            type="button"
+            className="btn-neutral btn-outlined"
+            onClick={() => {}}
+            disabled={!hasResults}
+          >
+            Print
+          </button>
+        </>
+      }
     >
       <Toast ref={toastRef} position="top-right" />
 
-      <div className="catalog-page-toolbar inventory-unified-controls">
-        <InventorySearchFiltersForm
-          filters={form}
-          seasons={seasons}
-          searching={searching}
-          showAdvanced={showAdvancedFilters}
-          onChange={setForm}
-          onSubmit={handleSearch}
-          onClear={handleClear}
-          onToggleAdvanced={() => setShowAdvancedFilters((prev) => !prev)}
-          advancedFiltersExtra={
-            <>
-              <div className="page-filter-field page-filter-field--toggle">
-                <Form.Check
-                  type="switch"
-                  id="inventory-in-stock-only"
-                  label="In Stock Only"
-                  checked={inStockOnly}
-                  onChange={(event) => setInStockOnly(event.target.checked)}
-                />
-              </div>
-              <div className="page-filter-field page-filter-field--toggle">
-                <ViewToggle
-                  ariaLabel="Inventory view mode"
-                  leftLabel="List"
-                  rightLabel="Cards"
-                  leftActive={viewMode === "list"}
-                  rightActive={viewMode === "cards"}
-                  checked={viewMode === "cards"}
-                  switchAriaLabel="Toggle card view"
-                  onLeftClick={() => handleRequestViewChange("list")}
-                  onRightClick={() => handleRequestViewChange("cards")}
-                  onToggle={(checked) => handleRequestViewChange(checked ? "cards" : "list")}
-                />
-              </div>
-            </>
-          }
-        />
+      {/* ── Canvas ────────────────────────────────────────────────────────── */}
+      <div className="pt-inv-content pt-page-body--inventory">
 
-        <ActiveFilterChips chips={activeChips} onClearAll={handleClear} clearLabel="Clear Filters" />
-        <div className="inventory-inline-actions">
-          {viewMode === "cards" ? (
-            <ActionButton
-              label="Back to List"
-              icon="pi pi-arrow-left"
-              className="btn-neutral btn-outlined"
-              onClick={() => handleRequestViewChange("list")}
-            />
-          ) : (
-            <ActionButton
-              label="View Cards"
-              icon="pi pi-id-card"
-              className="btn-neutral btn-outlined"
-              onClick={() => handleRequestViewChange("cards")}
-              disabled={!hasResults}
-            />
-          )}
+        {/* ── Filter bar (includes count + view toggle on right) ─────────── */}
+        <div className="pt-filter-bar">
+          <div className="pt-filter-bar__row">
+            <div className="pt-search-wrap">
+              <i className="pi pi-search pt-search-icon" aria-hidden="true" />
+              <input
+                className="pt-search-input"
+                type="text"
+                placeholder="Search style, color, season..."
+                value={form.itemNumber}
+                onChange={(e) => setForm({ ...form, itemNumber: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setAppliedQuery((e.currentTarget as HTMLInputElement).value);
+                  }
+                }}
+              />
+            </div>
+            <select
+              className="pt-filter-select"
+              value={form.seasonName}
+              onChange={(e) => {
+                const next = { ...form, seasonName: e.target.value };
+                setForm(next);
+                handleSearch(next);
+              }}
+            >
+              <option value="">All seasons</option>
+              {seasons.map((s) => (
+                <option key={s.seasonId} value={s.seasonName}>
+                  {s.seasonName}
+                </option>
+              ))}
+            </select>
+            <select
+              className="pt-filter-select"
+              value={inStockOnly ? "in-stock" : ""}
+              onChange={(e) => setInStockOnly(e.target.value === "in-stock")}
+            >
+              <option value="">All status</option>
+              <option value="in-stock">In Stock Only</option>
+            </select>
+            <button type="button" className="btn-neutral btn-text" onClick={handleClear}>
+              Clear
+            </button>
+            <div className="inv-filter-right">
+              <span className="pt-text-meta">
+                Showing <strong className="pt-text-body-strong">{filteredResults.length} items</strong>
+              </span>
+              <div className="inventory-view-switch">
+                <button
+                  type="button"
+                  className={`inventory-view-switch-track${viewMode === "list" ? " inventory-view-switch-track--active" : ""}`}
+                  onClick={() => handleRequestViewChange("list")}
+                >
+                  List
+                </button>
+                <button
+                  type="button"
+                  className={`inventory-view-switch-track${viewMode === "cards" ? " inventory-view-switch-track--active" : ""}`}
+                  onClick={() => handleRequestViewChange("cards")}
+                >
+                  Cards
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* ── Content body ──────────────────────────────────────────────── */}
+        {viewMode === "cards" && activeEditableItemNumber ? (
+          <div className="inventory-editing-sticky">
+            <span className="inventory-editing-sticky-label">Editing style</span>
+            <strong>{activeEditableItemNumber}</strong>
+          </div>
+        ) : null}
+
+        {loading ? (
+          <div className="inventory-edit-status">
+            <ProgressSpinner />
+          </div>
+        ) : null}
+
+        {!loading && searching ? (
+          <div className="inventory-edit-status">
+            <ProgressSpinner />
+          </div>
+        ) : null}
+
+        {!loading && !searching && !hasResults ? (
+          <div className="inventory-edit-status pt-text-desc">
+            Search to load styles.
+          </div>
+        ) : null}
+
+        {!loading && !searching && hasResults && viewMode === "list" ? (
+          <InventoryListSection
+            styleGroups={styleGroups}
+            sizeColumns={sizeColumns}
+            onRequestEditItem={handleRequestEditItem}
+            formatPrice={formatPrice}
+          />
+        ) : null}
+
+        {!loading && !searching && hasResults && viewMode === "cards" ? (
+          <InventoryCardsSection
+            cardGroups={cardGroups}
+            cardColumns={cardColumns}
+            cardRefs={cardRefs}
+            onCardClickToEdit={handleCardClickToEdit}
+            itemMetaByItemNumber={itemMetaByItemNumber}
+            activeEditableItemNumber={activeEditableItemNumber}
+            sizeColumns={sizeColumns}
+            onQtyChange={updateCell}
+            onDownloadCard={handleDownloadCard}
+            onDiscard={handleDiscard}
+            onSave={(itemNumber) => {
+              void handleSave(itemNumber);
+            }}
+            isDirty={(itemNumber) => dirtyItemsSet.has(itemNumber)}
+            onDoneEditing={handleDoneEditing}
+            notify={notify}
+          />
+        ) : null}
       </div>
 
-      {viewMode === "cards" && activeEditableItemNumber ? (
-        <div className="inventory-editing-sticky">
-          <span className="inventory-editing-sticky-label">Editing style</span>
-          <strong>{activeEditableItemNumber}</strong>
-        </div>
-      ) : null}
-
-      {loading ? (
-        <div className="inventory-edit-status d-flex justify-content-center py-5">
-          <ProgressSpinner />
-        </div>
-      ) : null}
-
-      {!loading && searching ? (
-        <div className="inventory-edit-status d-flex justify-content-center py-4">
-          <ProgressSpinner />
-        </div>
-      ) : null}
-
-      {!loading && !searching && !hasResults ? (
-        <div className="inventory-edit-status text-center text-muted">
-          Search to load styles.
-        </div>
-      ) : null}
-
-      {!loading && !searching && hasResults && viewMode === "list" ? (
-        <InventoryListSection
-          styleGroups={styleGroups}
-          sizeColumns={sizeColumns}
-          onRequestEditItem={handleRequestEditItem}
-          formatPrice={formatPrice}
-        />
-      ) : null}
-
-      {!loading && !searching && hasResults && viewMode === "cards" ? (
-        <InventoryCardsSection
-          cardGroups={cardGroups}
-          cardColumns={cardColumns}
-          cardRefs={cardRefs}
-          onCardClickToEdit={handleCardClickToEdit}
-          itemMetaByItemNumber={itemMetaByItemNumber}
-          activeEditableItemNumber={activeEditableItemNumber}
-          sizeColumns={sizeColumns}
-          onQtyChange={updateCell}
-          onDownloadCard={handleDownloadCard}
-          onDiscard={handleDiscard}
-          onSave={(itemNumber) => {
-            void handleSave(itemNumber);
-          }}
-          isDirty={(itemNumber) => dirtyItemsSet.has(itemNumber)}
-          onDoneEditing={handleDoneEditing}
-          notify={notify}
-        />
-      ) : null}
-
-      <Modal
-        show={showLabelsModal}
+      {/* ── Labels modal ──────────────────────────────────────────────────── */}
+      <Dialog
+        visible={showLabelsModal}
         onHide={() => setShowLabelsModal(false)}
-        size="xl"
-        dialogClassName="inventory-labels-modal"
+        header="Inventory Labels"
+        modal
+        closable
+        draggable={false}
+        resizable={false}
+        className="inventory-labels-modal"
       >
-        <Modal.Header closeButton>
-          <Modal.Title>Inventory Labels</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <InventoryLabels embedded />
-        </Modal.Body>
-      </Modal>
+        <InventoryLabels embedded />
+      </Dialog>
 
-      <Modal show={pendingTransition !== null} onHide={() => setPendingTransition(null)} centered>
-        <Modal.Header closeButton={!applyingPending}>
-          <Modal.Title>Unsaved changes</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>{promptContext.message}</Modal.Body>
-        <Modal.Footer>
-          <ActionButton
-            label={promptContext.cancelLabel}
-            icon="pi pi-times"
-            className="btn-neutral btn-outlined"
-            onClick={() => setPendingTransition(null)}
-            disabled={applyingPending}
-          />
-          <ActionButton
-            label={promptContext.discardLabel}
-            icon="pi pi-trash"
-            className="btn-danger btn-outlined"
-            onClick={() => {
-              void handleConfirmDiscardAndContinue();
-            }}
-            disabled={applyingPending}
-          />
-          <ActionButton
-            label={applyingPending ? "Saving..." : promptContext.saveLabel}
-            icon="pi pi-save"
-            className="btn-success"
-            onClick={() => {
-              void handleConfirmSaveAndContinue();
-            }}
-            disabled={applyingPending}
-          />
-        </Modal.Footer>
-      </Modal>
-    </CatalogPageLayout>
+      {/* ── Unsaved changes modal ─────────────────────────────────────────── */}
+      <Dialog
+        visible={pendingTransition !== null}
+        onHide={() => setPendingTransition(null)}
+        header="Unsaved changes"
+        modal
+        closable={!applyingPending}
+        draggable={false}
+        resizable={false}
+        footer={
+          <>
+            <ActionButton
+              label={promptContext.cancelLabel}
+              icon="pi pi-times"
+              className="btn-neutral btn-outlined"
+              onClick={() => setPendingTransition(null)}
+              disabled={applyingPending}
+            />
+            <ActionButton
+              label={promptContext.discardLabel}
+              icon="pi pi-trash"
+              className="btn-danger btn-outlined"
+              onClick={() => {
+                void handleConfirmDiscardAndContinue();
+              }}
+              disabled={applyingPending}
+            />
+            <ActionButton
+              label={applyingPending ? "Saving..." : promptContext.saveLabel}
+              icon="pi pi-save"
+              className="btn-success"
+              onClick={() => {
+                void handleConfirmSaveAndContinue();
+              }}
+              disabled={applyingPending}
+            />
+          </>
+        }
+      >
+        {promptContext.message}
+      </Dialog>
+    </PageShell>
   );
 }

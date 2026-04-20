@@ -88,8 +88,16 @@ export const buildInventoryHistoryHtml = ({
       .batch-meta { color: #6b7280; font-size: 12px; }
       .batch-summary { display: flex; gap: 12px; font-size: 12px; color: #374151; }
       table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; }
-      th, td { border: 1px solid #e5e7eb; padding: 6px 8px; font-size: 12px; text-align: center; }
+      th, td { border: 1px solid #e5e7eb; padding: 6px 8px; font-size: 12px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       th { background: #f8fafc; font-weight: 600; }
+      th:nth-child(1) { width: 20%; }
+      th:nth-child(2) { width: 12%; }
+      th:nth-child(3) { width: 12%; }
+      th:nth-child(4) { width: 15%; }
+      th:nth-child(5) { width: 8%; }
+      th:nth-child(6) { width: 11%; }
+      th:nth-child(7) { width: 11%; }
+      th:nth-child(8) { width: 11%; }
       td:nth-child(1),
       td:nth-child(2),
       td:nth-child(3),

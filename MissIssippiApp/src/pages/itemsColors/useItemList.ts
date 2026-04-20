@@ -1,4 +1,4 @@
-import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useMemo, useState } from "react";
 import { Toast } from "primereact/toast";
 import CatalogService, { type ColorOption, type ItemColorView } from "../../service/CatalogService";
 import type { ItemListRow } from "../../items/itemsColorsTypes";
@@ -296,13 +296,10 @@ export function useItemList({ toastRef }: UseItemListParams) {
     }
   }, [colorModalItem, notify, selectedItem]);
 
-  const didInit = useRef(false);
-
-  useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-    loadItemList();
-  }, [loadItemList]);
+  // Run once on mount. loadItemList reads selectedItem/colorModalItem at call time
+  // but those are null on mount, so no selection sync is needed at init.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void loadItemList(); }, []);
 
   return {
     seasons,

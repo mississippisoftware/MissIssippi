@@ -1,8 +1,11 @@
 import { type ChangeEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
+import { Button } from 'primereact/button';
+import { Dialog } from 'primereact/dialog';
+import { InputSwitch } from 'primereact/inputswitch';
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import CatalogPageLayout from "../components/CatalogPageLayout";
+import PageActionsMenu from "../components/PageActionsMenu";
 import CatalogService, { type ItemView } from "../service/CatalogService";
 import { InventoryService } from "../service/InventoryService";
 import { normalizeName } from "../items/itemsColorsUtils";
@@ -309,45 +312,46 @@ export default function PriceList() {
     printPriceList({ rows: priceRows, formatPrice });
   };
 
+  const headerActions = [
+    {
+      key: "download-price-list",
+      label: "Download Price List",
+      onClick: handleDownloadPriceList,
+      disabled: loading || items.length === 0,
+      icon: "pi pi-download",
+    },
+    {
+      key: "print-price-list",
+      label: "Print Price List",
+      onClick: handlePrintPriceList,
+      disabled: loading || priceRows.length === 0,
+      icon: "pi pi-print",
+    },
+  ];
+
   return (
     <CatalogPageLayout
       title="Price List"
       subtitle="Download the current list, update wholesale and retail prices, then upload to apply changes."
-      actions={[
-        {
-          label: "Download Price List",
-          onClick: handleDownloadPriceList,
-          variant: "primary",
-          disabled: loading || items.length === 0,
-          icon: "pi pi-download",
-          className: "btn-info btn-outlined",
-        },
-        {
-          label: "Print Price List",
-          onClick: handlePrintPriceList,
-          disabled: loading || priceRows.length === 0,
-          icon: "pi pi-print",
-          className: "btn-neutral btn-outlined",
-        },
-      ]}
+      actionsSlot={<PageActionsMenu items={headerActions} />}
     >
-      {lookupError && <Alert variant="danger">{lookupError}</Alert>}
+      {lookupError && <div className="pt-alert pt-alert-danger" role="alert">{lookupError}</div>}
 
-      <Card className="portal-content-card inventory-upload-card">
-        <Card.Body>
-          <Row className="gy-3 align-items-center">
-            <Col md={8}>
-              <Form.Group controlId="priceListUploadFile">
-                <Form.Label>Upload updated price list</Form.Label>
-                <Form.Control type="file" accept=".xlsx,.xls" onChange={handleUploadFile} disabled={loading} />
-                <Form.Text className="text-muted">
+      <div className="portal-content-card inventory-upload-card">
+        <div>
+          <div className="pt-form-row-action">
+            <div>
+              <div>
+                <label>Upload updated price list</label>
+                <input type="file" accept=".xlsx,.xls" onChange={handleUploadFile} disabled={loading} />
+                <small className="text-muted">
                   Columns expected: Season, Style Number, Wholesale, Retail.
-                </Form.Text>
-              </Form.Group>
+                </small>
+              </div>
               {uploadMissingSeasonColumn && (
-                <Form.Group className="mt-3" controlId="priceListSeasonForFile">
-                  <Form.Label>Season for this file</Form.Label>
-                  <Form.Select
+                <div>
+                  <label>Season for this file</label>
+                  <select
                     value={defaultUploadSeasonId}
                     onChange={(e) => setDefaultUploadSeasonId(e.target.value)}
                     disabled={loading || seasons.length === 0}
@@ -358,15 +362,15 @@ export default function PriceList() {
                         {season.seasonName}
                       </option>
                     ))}
-                  </Form.Select>
-                  <Form.Text className="text-muted">
+                  </select>
+                  <small className="text-muted">
                     This file has no Season column. One season is required.
-                  </Form.Text>
-                </Form.Group>
+                  </small>
+                </div>
               )}
-              {fileName && <div className="text-muted mt-2">Selected file: {fileName}</div>}
-            </Col>
-            <Col md={4} className="text-md-end">
+              {fileName && <div className="pt-form-hint">Selected file: {fileName}</div>}
+            </div>
+            <div className="pt-form-row-action__end">
               <Button
                 type="button"
                 className="btn-success"
@@ -380,7 +384,7 @@ export default function PriceList() {
               >
                 {uploading ? (
                   <>
-                    <Spinner animation="border" size="sm" className="me-2" />
+                    <i className="pi pi-spin pi-spinner" aria-hidden="true" />
                     <i className="pi pi-upload" aria-hidden="true" />
                     Uploading...
                   </>
@@ -391,59 +395,57 @@ export default function PriceList() {
                   </>
                 )}
               </Button>
-            </Col>
-          </Row>
+            </div>
+          </div>
 
           {uploadRows.length > 0 && (
-            <div className="text-muted mt-3">Rows ready to upload: {uploadRows.length}</div>
+            <div className="pt-form-hint">Rows ready to upload: {uploadRows.length}</div>
           )}
 
           {parseErrors.length > 0 && (
-            <Alert variant="danger" className="mt-3">
-              <strong>Fix these issues before uploading:</strong>
-              <ul className="mb-0">
+            <div className="pt-alert pt-alert-danger" role="alert">
+              <div className="pt-text-body-strong pt-alert__header">Fix these issues before uploading:</div>
+              <ul className="pt-alert__list">
                 {parseErrors.slice(0, 8).map((error) => (
                   <li key={error}>{error}</li>
                 ))}
               </ul>
               {parseErrors.length > 8 && (
-                <div className="mt-2 text-muted">{parseErrors.length - 8} more issue(s) not shown.</div>
+                <div className="pt-alert__footer">{parseErrors.length - 8} more issue(s) not shown.</div>
               )}
-            </Alert>
+            </div>
           )}
 
           {uploadSummary && !hasUploadErrors && (
-            <Alert variant="success" className="mt-3">
+            <div className="pt-alert pt-alert-success" role="alert">
               Updated {uploadSummary.updated} item(s). {missingItems.length} item(s) not found.
-            </Alert>
+            </div>
           )}
 
           {uploadSummary && hasUploadErrors && (
-            <Alert variant="danger" className="mt-3">
-              <strong>Upload completed with issues:</strong>
-              <ul className="mb-0">
+            <div className="pt-alert pt-alert-danger" role="alert">
+              <div className="pt-text-body-strong pt-alert__header">Upload completed with issues:</div>
+              <ul className="pt-alert__list">
                 {uploadErrors.slice(0, 8).map((error) => (
                   <li key={error}>{error}</li>
                 ))}
               </ul>
               {uploadErrors.length > 8 && (
-                <div className="mt-2 text-muted">{uploadErrors.length - 8} more issue(s) not shown.</div>
+                <div className="pt-alert__footer">{uploadErrors.length - 8} more issue(s) not shown.</div>
               )}
-            </Alert>
+            </div>
           )}
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="portal-content-card inventory-upload-card mt-4">
-        <Card.Body>
-          <Row className="align-items-center gy-2 mb-3">
-            <Col>
-              <h5 className="mb-1 card-heading-title">Current Price List</h5>
-              <p className="text-muted mb-0">
-                View item wholesale and retail prices currently in the system.
-              </p>
-            </Col>
-          </Row>
+      <div className="portal-content-card inventory-upload-card mt-4">
+        <div>
+          <div className="pt-form-group">
+            <h5 className="card-heading-title">Current Price List</h5>
+            <p className="pt-text-desc">
+              View item wholesale and retail prices currently in the system.
+            </p>
+          </div>
 
           <div className="items-table-wrapper">
             <DataTable
@@ -476,48 +478,43 @@ export default function PriceList() {
               />
             </DataTable>
           </div>
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
 
-      <Modal
-        show={showMissingModal}
+      <Dialog
+        visible={showMissingModal}
         onHide={() => setShowMissingModal(false)}
-        centered
+        header="Items not found"
+        footer={
+          <Button type="button" className="btn-neutral btn-outlined" onClick={() => setShowMissingModal(false)} unstyled>
+            <i className="pi pi-times" aria-hidden="true" />
+            Close
+          </Button>
+        }
+        modal
+        closable
+        draggable={false}
+        resizable={false}
         onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
           if (!shouldSubmitOnEnter(event)) return;
           event.preventDefault();
           setShowMissingModal(false);
         }}
       >
-        <Modal.Header closeButton>
-          <Modal.Title>Items not found</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p className="mb-2">
-            These styles were not updated because they were not found in the item list.
-          </p>
-          <ul className="mb-0">
-            {missingItems.slice(0, 10).map((row) => (
-              <li key={`${row.seasonName}-${row.itemNumber}-${row.rowNumber}`}>
-                {row.seasonName} — {row.itemNumber}
-              </li>
-            ))}
-          </ul>
-          {missingItems.length > 10 && (
-            <div className="mt-2 text-muted">{missingItems.length - 10} more item(s) not shown.</div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            type="button"
-            className="btn-neutral btn-outlined"
-            onClick={() => setShowMissingModal(false)}
-          >
-            <i className="pi pi-times" aria-hidden="true" />
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        <p className="mb-2">
+          These styles were not updated because they were not found in the item list.
+        </p>
+        <ul className="pt-list-compact">
+          {missingItems.slice(0, 10).map((row) => (
+            <li key={`${row.seasonName}-${row.itemNumber}-${row.rowNumber}`}>
+              {row.seasonName} — {row.itemNumber}
+            </li>
+          ))}
+        </ul>
+        {missingItems.length > 10 && (
+          <div className="pt-form-hint">{missingItems.length - 10} more item(s) not shown.</div>
+        )}
+      </Dialog>
     </CatalogPageLayout>
   );
 }

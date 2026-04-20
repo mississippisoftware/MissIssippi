@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Toast } from "primereact/toast";
 import { SkuService } from "../service/SkuService";
 import { InventoryHistoryService } from "../service/InventoryHistoryService";
-import CatalogPageLayout from "../components/CatalogPageLayout";
+import PageShell from "../layout/PageShell";
 import ConfirmSwitchModeModal from "../components/ConfirmSwitchModeModal";
 import ScannerPanel from "../components/scan/ScannerPanel";
 import ScannedItemsPanel from "../components/scan/ScannedItemsPanel";
@@ -287,7 +287,7 @@ export default function InventoryScan() {
         setLoadingRecentBatchDetail(false);
       }
     },
-    [getErrorMessage, notify, recentBatchDetails]
+    [notify, recentBatchDetails]
   );
 
   const handlePrintRecentBatch = () => {
@@ -341,74 +341,65 @@ export default function InventoryScan() {
   };
 
   return (
-    <CatalogPageLayout
+    <PageShell
       title="Scan Inventory"
-      subtitle="Scan SKUs to adjust inventory counts."
-      className="catalog-page--wide"
+      subtitle="Scan SKUs to add or remove inventory counts"
     >
       <Toast ref={toastRef} position="top-right" />
 
       <div className="scan-page">
-        <div className="scan-section">
-          <ScannerPanel
-            mode={mode}
-            trigger={trigger}
-            skuInput={skuInput}
-            readyToMatch={readyToMatch}
-            lookupLoading={lookupLoading}
-            saving={saving}
-            instructionMessage={instructionMessage}
-            skuSuggestions={skuSuggestions}
-            onSearchSuggestions={handleSkuSuggest}
-            onSelectMode={requestModeChange}
-            onToggleTrigger={(checked) => {
-              if (!mode) return;
-              setTrigger(checked ? "manual" : "auto");
-              setSkuSuggestions([]);
-              resetStatus();
-            }}
-            onInputChange={handleInputChange}
-            onEnter={() => handleScan(skuInput)}
-            onMatch={() => handleScan(skuInput)}
-            status={status}
-            preview={preview}
-            showPreview={showPreview}
-          />
-        </div>
+        <ScannerPanel
+          mode={mode}
+          trigger={trigger}
+          skuInput={skuInput}
+          readyToMatch={readyToMatch}
+          lookupLoading={lookupLoading}
+          saving={saving}
+          instructionMessage={instructionMessage}
+          skuSuggestions={skuSuggestions}
+          onSearchSuggestions={handleSkuSuggest}
+          onSelectMode={requestModeChange}
+          onToggleTrigger={(checked) => {
+            if (!mode) return;
+            setTrigger(checked ? "manual" : "auto");
+            setSkuSuggestions([]);
+            resetStatus();
+          }}
+          onInputChange={handleInputChange}
+          onEnter={() => handleScan(skuInput)}
+          onMatch={() => handleScan(skuInput)}
+          status={status}
+          preview={preview}
+          showPreview={showPreview}
+        />
 
-        <div className="scan-section-divider" />
+        <ScannedItemsPanel
+          mode={mode}
+          scanView={scanView}
+          totalDelta={totalDelta}
+          scannedItems={scannedItems}
+          saving={saving}
+          sizeColumns={sizeColumns}
+          sizeLoading={sizeLoading}
+          sizeError={sizeError}
+          scanTableRows={scanTableRows}
+          batchMemo={batchMemo}
+          onBatchMemoChange={setBatchMemo}
+          onToggleView={(next) => setScanView(next)}
+          onQtyChange={handleQtyChange}
+          onTableQtyChange={handleScanTableQtyChange}
+          onRemoveItem={handleRemoveItem}
+          onPrint={handlePrint}
+          onDiscard={clearCurrentScanBatch}
+          onSave={handleSave}
+        />
 
-        <div className="scan-section">
-          <ScannedItemsPanel
-            mode={mode}
-            scanView={scanView}
-            totalDelta={totalDelta}
-            scannedItems={scannedItems}
-            saving={saving}
-            sizeColumns={sizeColumns}
-            sizeLoading={sizeLoading}
-            sizeError={sizeError}
-            scanTableRows={scanTableRows}
-            batchMemo={batchMemo}
-            onBatchMemoChange={setBatchMemo}
-            onToggleView={(next) => setScanView(next)}
-            onQtyChange={handleQtyChange}
-            onTableQtyChange={handleScanTableQtyChange}
-            onRemoveItem={handleRemoveItem}
-            onPrint={handlePrint}
-            onDiscard={clearCurrentScanBatch}
-            onSave={handleSave}
-          />
-        </div>
-
-        <div className="scan-section">
-          <RecentScanBatchesPanel
-            recentScanBatches={recentScanBatches}
-            loadingRecentScanBatches={loadingRecentScanBatches}
-            onRefreshRecentScanBatches={loadRecentScanBatches}
-            onOpenRecentScanBatch={handleOpenRecentScanBatch}
-          />
-        </div>
+        <RecentScanBatchesPanel
+          recentScanBatches={recentScanBatches}
+          loadingRecentScanBatches={loadingRecentScanBatches}
+          onRefreshRecentScanBatches={loadRecentScanBatches}
+          onOpenRecentScanBatch={handleOpenRecentScanBatch}
+        />
       </div>
 
       <ScanBatchPreviewModal
@@ -434,7 +425,7 @@ export default function InventoryScan() {
         onKeepAndSwitch={confirmKeep}
         onClearAndSwitch={confirmClear}
       />
-    </CatalogPageLayout>
+    </PageShell>
   );
 }
 

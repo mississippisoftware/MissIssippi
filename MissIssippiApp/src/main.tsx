@@ -1,11 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
-import 'bootswatch/dist/lumen/bootstrap.min.css';
-import "primereact/resources/themes/lara-light-indigo/theme.css"; // PrimeReact theme
-import "primereact/resources/primereact.min.css";               // core PrimeReact css
-import "primeicons/primeicons.css";                             // icons
-import "./theme.css";                                           // custom overrides
-import "./styles/action-buttons.css";                           // action button system
+import "primeicons/primeicons.css";
+import "./styles/portal-theme.css";                             // portal design tokens + component classes
 
 import router from "./routes"; // your react-router config
 import React from "react";

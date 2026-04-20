@@ -1,6 +1,6 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Form, Row, Spinner, Table } from "react-bootstrap";
-import CatalogPageLayout from "../components/CatalogPageLayout";
+import { Button } from 'primereact/button';
+import PageShell from "../layout/PageShell";
 import type { FilterableColumn } from "./InventoryTable";
 import { useInventorySizes } from "../hooks/useInventorySizes";
 import { useInventoryUpload } from "../hooks/useInventoryUpload";
@@ -15,15 +15,7 @@ import {
 import { downloadInventoryUploadTemplate } from "../utils/inventoryUploadTemplate";
 import { exportInventoryToExcel } from "../utils/ExportInventoryToExcel";
 import { appendSheet, createWorkbook, saveWorkbook, sheetFromJson } from "../utils/xlsxUtils";
-
-const formatBatchTimestamp = (value: string) =>
-  new Date(value).toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+import { formatBatchTimestamp } from "../utils/dateFormat";
 
 const getStatusVariant = (status: string) => {
   const normalized = status.toLowerCase();
@@ -48,7 +40,7 @@ export default function InventoryUpload() {
   const [allowPartial, setAllowPartial] = useState(false);
   const [allowDuplicateDataset, setAllowDuplicateDataset] = useState(false);
   const [missingSizeBehavior, setMissingSizeBehavior] =
-    useState<MissingSizeBehavior>("zero");
+    useState<MissingSizeBehavior>("ignore");
   const [userNote, setUserNote] = useState("");
   const [uploadBatches, setUploadBatches] = useState<InventoryUploadBatchSummary[]>([]);
   const [loadingUploadBatches, setLoadingUploadBatches] = useState(true);
@@ -335,165 +327,137 @@ export default function InventoryUpload() {
     preflightResult?.issues.filter((issue) => issue.severity === "warning") ?? [];
 
   return (
-    <CatalogPageLayout
+    <PageShell
       title="Upload Inventory"
       subtitle="Validate uploaded inventory before applying updates, then track and undo upload batches if needed."
+      actions={
+        <>
+          <button
+            type="button"
+            className="btn-neutral btn-outlined"
+            onClick={handleDownloadTemplate}
+            disabled={loadingSizes || downloadingInventory}
+          >
+            <i className="pi pi-file-excel" aria-hidden="true" />
+            {loadingSizes ? "Loading..." : "Download Template"}
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => { void handleDownloadInventory(); }}
+            disabled={loadingSizes || downloadingInventory}
+          >
+            <i className="pi pi-download" aria-hidden="true" />
+            {downloadingInventory ? "Downloading..." : "Download Inventory"}
+          </button>
+        </>
+      }
+      tabs={
+        <div className="pt-page-header__steps">
+          <div className="pt-step-tab">
+            <span className="pt-step-num pt-step-num--done">✓</span>
+            <span className="pt-text-step-tab pt-text-step-tab--done">Prepare file</span>
+          </div>
+          <div className="pt-step-tab pt-step-tab--active">
+            <span className="pt-step-num pt-step-num--active">2</span>
+            <span className="pt-text-step-tab pt-text-step-tab--active">Configure &amp; upload</span>
+          </div>
+          <div className="pt-step-tab">
+            <span className="pt-step-num">3</span>
+            <span className="pt-text-step-tab">Review &amp; apply</span>
+          </div>
+        </div>
+      }
     >
-      <Card className="portal-content-card inventory-upload-card mb-4">
-        <Card.Body>
-          <Row className="align-items-center gy-3">
-            <Col md={8}>
-              <h5 className="mb-1 card-heading-title">Inventory Template</h5>
-              <p className="text-muted mb-0">
-                Existing system records (season, item, color, sizes) are validated before upload.
-              </p>
-            </Col>
-            <Col md={4} className="text-md-end">
-              <div className="d-flex flex-wrap gap-2 justify-content-md-end">
-                <Button
-                  type="button"
-                  className="btn-neutral btn-outlined inventory-upload-top-btn"
-                  onClick={handleDownloadTemplate}
-                  disabled={loadingSizes || downloadingInventory}
-                >
-                  <i className="pi pi-file-excel" aria-hidden="true" />
-                  {loadingSizes ? "Loading sizes..." : "Download Template"}
-                </Button>
-                <Button
-                  type="button"
-                  className="btn-info btn-outlined inventory-upload-top-btn"
-                  onClick={handleDownloadInventory}
-                  disabled={loadingSizes || downloadingInventory}
-                >
-                  {downloadingInventory ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <i className="pi pi-download" aria-hidden="true" />
-                      Download Inventory
-                    </>
-                  )}
-                </Button>
-              </div>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
+      {/* ── Two-column body ──────────────────────────────────────────────── */}
+      <div className="pt-page-body">
 
-      <Card className="portal-content-card inventory-upload-card mb-4">
-        <Card.Body>
-          <Row className="gy-2 align-items-center mb-3">
-            <Col>
-              <h5 className="mb-1 card-heading-title">Update Mode</h5>
-              <p className="text-muted mb-2">
-                Choose how validated quantities will be applied to inventory.
-              </p>
-              <div className="inventory-upload-mode-group">
-                <Button
+        {/* Left column */}
+        <div className="pt-flex-col-gap">
+
+          {/* Card 1: Configure & Upload */}
+          <div className="portal-content-card">
+
+            {/* Card header */}
+            <div className="pt-upload-section-top">
+              <div className="pt-text-card-title">Configure &amp; Upload</div>
+              <div className="pt-text-card-sub">Choose how validated quantities will be applied to inventory.</div>
+            </div>
+
+            <div className="pt-upload-section-body">
+
+              {/* Mode tiles */}
+              <div className="pt-text-label">Update mode</div>
+              <div className="pt-mode-grid">
+                <button
                   type="button"
-                  className={`btn-mode btn-neutral ${uploadMode === "replace" ? "" : "btn-outlined"}`}
+                  className={`pt-mode-btn${uploadMode === "replace" ? " pt-mode-btn--selected" : ""}`}
                   onClick={() => setUploadMode("replace")}
                 >
-                  <i className="pi pi-pencil" aria-hidden="true" />
-                  Change
-                </Button>
-                <Button
+                  <span className="pt-mode-btn__icon"><i className="pi pi-pencil" /></span>
+                  <span className="pt-text-body-strong">Change</span>
+                  <span className="pt-mode-btn__desc">Replace with uploaded values</span>
+                </button>
+                <button
                   type="button"
-                  className={`btn-mode btn-success ${uploadMode === "add" ? "" : "btn-outlined"}`}
+                  className={`pt-mode-btn${uploadMode === "add" ? " pt-mode-btn--selected" : ""}`}
                   onClick={() => setUploadMode("add")}
                 >
-                  <i className="pi pi-plus" aria-hidden="true" />
-                  Add
-                </Button>
-                <Button
+                  <span className="pt-mode-btn__icon"><i className="pi pi-plus" /></span>
+                  <span className="pt-text-body-strong">Add</span>
+                  <span className="pt-mode-btn__desc">Add to current stock</span>
+                </button>
+                <button
                   type="button"
-                  className={`btn-mode btn-danger ${uploadMode === "subtract" ? "" : "btn-outlined"}`}
+                  className={`pt-mode-btn pt-mode-btn--danger${uploadMode === "subtract" ? " pt-mode-btn--selected" : ""}`}
                   onClick={() => setUploadMode("subtract")}
                 >
-                  <i className="pi pi-trash" aria-hidden="true" />
-                  Subtract
-                </Button>
+                  <span className="pt-mode-btn__icon"><i className="pi pi-minus" /></span>
+                  <span className="pt-text-body-strong">Subtract</span>
+                  <span className="pt-mode-btn__desc">Deduct from current stock</span>
+                </button>
               </div>
-            </Col>
-          </Row>
 
-          {effectivePageError && (
-            <Alert variant="danger" className="mt-3">
-              {effectivePageError}
-            </Alert>
-          )}
-
-          <Row className="gy-3">
-            <Col md={8}>
-              <Form.Group controlId="inventoryUploadFile">
-                <Form.Label>Upload file</Form.Label>
-                <Form.Control
+              {/* Upload zone */}
+              <div className="pt-text-label">Upload file</div>
+              <label className="pt-upload-zone">
+                <i className="pi pi-cloud-upload pt-upload-zone-icon" aria-hidden="true" />
+                <div className="pt-text-body-strong">
+                  {fileName ? fileName : "Click to choose a file"}
+                </div>
+                <div className="pt-text-meta pt-mt-1">
+                  {fileName ? "Click to change file" : "Accepts .xlsx or .xls"}
+                </div>
+                <input
                   type="file"
                   accept=".xlsx,.xls"
                   onChange={handleFileChange}
                   disabled={loadingSizes}
+                  className="pt-visually-hidden"
                 />
-                <Form.Text className="text-muted">
-                  Columns accepted: Season (optional), Style, Color/Colour, recognized sizes.
-                </Form.Text>
-              </Form.Group>
+              </label>
 
-              {fileName && <div className="text-muted mt-2">Selected file: {fileName}</div>}
+              {/* File summary */}
               {rows.length > 0 && (
-                <>
-                  <div className="text-muted mt-2">Rows ready to upload: {rows.length}</div>
+                <div className="pt-mb-3">
+                  <span className="pt-text-body">{rows.length} rows ready to upload</span>
                   {mergedDuplicateRows > 0 && (
-                    <div className="text-muted">
-                      Merged {mergedDuplicateRows} duplicate style/color row(s) before preflight.
-                    </div>
+                    <span className="pt-text-meta pt-ml-2">
+                      ({mergedDuplicateRows} duplicate rows merged)
+                    </span>
                   )}
-                  <div className="text-muted">
-                    Idempotency key: <code>{idempotencyKey}</code>
+                  <div className="pt-text-meta pt-mt-1">
+                    Idempotency key: <span className="pt-text-code">{idempotencyKey}</span>
                   </div>
-                </>
+                </div>
               )}
-            </Col>
-            <Col md={4}>
-              <Form.Group controlId="inventoryMissingSizeBehavior">
-                <Form.Label>Missing size behavior</Form.Label>
-                <Form.Select
-                  value={missingSizeBehavior}
-                  onChange={(event) =>
-                    setMissingSizeBehavior(event.target.value as MissingSizeBehavior)
-                  }
-                >
-                  <option value="zero">Set missing sizes to zero</option>
-                  <option value="ignore">Leave missing sizes unchanged</option>
-                </Form.Select>
-              </Form.Group>
-              <Form.Group controlId="inventoryAllowPartial" className="mt-2">
-                <Form.Check
-                  type="checkbox"
-                  label="Allow partial upload (apply valid rows only)"
-                  checked={allowPartial}
-                  onChange={(event) => setAllowPartial(event.target.checked)}
-                />
-              </Form.Group>
-              <Form.Group controlId="inventoryAllowDuplicate" className="mt-2">
-                <Form.Check
-                  type="checkbox"
-                  label="Allow duplicate dataset upload"
-                  checked={allowDuplicateDataset}
-                  onChange={(event) => setAllowDuplicateDataset(event.target.checked)}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
 
-          <Row className="gy-3 mt-1">
-            <Col md={8}>
+              {/* Season selector (conditional) */}
               {requiresSeasonSelection && (
-                <Form.Group controlId="inventoryUploadSeason" className="mt-2">
-                  <Form.Label>Season for this file</Form.Label>
-                  <Form.Select
+                <div className="pt-mb-3">
+                  <div className="pt-text-label">Season for this file</div>
+                  <select
+                    className="pt-form-select"
                     value={selectedSeasonName}
                     onChange={(event) => {
                       setSelectedSeasonName(event.target.value);
@@ -509,51 +473,211 @@ export default function InventoryUpload() {
                         {season.seasonName}
                       </option>
                     ))}
-                  </Form.Select>
-                  <Form.Text className="text-muted">
-                    This file has no Season column. One season is required.
-                  </Form.Text>
-                </Form.Group>
+                  </select>
+                  <div className="pt-text-meta pt-mt-1">
+                    This file has no Season column — one season is required.
+                  </div>
+                </div>
               )}
-              <Form.Group controlId="inventoryUploadNote" className="mt-2">
-                <Form.Label>Upload note (optional)</Form.Label>
-                <Form.Control
+
+              {/* Note input */}
+              <div className="pt-mb-3">
+                <div className="pt-text-label">Upload note (optional)</div>
+                <input
+                  className="pt-form-input"
                   type="text"
                   value={userNote}
                   onChange={(event) => setUserNote(event.target.value)}
                   placeholder="Example: annual count import"
                 />
-              </Form.Group>
-            </Col>
-            <Col md={4} className="text-md-end align-self-end">
-              <div className="d-flex flex-wrap gap-2 justify-content-md-end">
+              </div>
+
+              {/* Options row */}
+              <div className="pt-form-row-split">
+                <div>
+                  <div className="pt-text-label">Missing size behavior</div>
+                  <select
+                    className="pt-form-select"
+                    value={missingSizeBehavior}
+                    onChange={(event) =>
+                      setMissingSizeBehavior(event.target.value as MissingSizeBehavior)
+                    }
+                  >
+                    <option value="zero">Set missing sizes to zero</option>
+                    <option value="ignore">Leave missing sizes unchanged</option>
+                  </select>
+                </div>
+                <div className="pt-flex-col-gap-sm">
+                  <label className="pt-flex-label-row">
+                    <input
+                      type="checkbox"
+                      checked={allowPartial}
+                      onChange={(event) => setAllowPartial(event.target.checked)}
+                    />
+                    <span className="pt-text-body">Allow partial upload (apply valid rows only)</span>
+                  </label>
+                  <label className="pt-flex-label-row">
+                    <input
+                      type="checkbox"
+                      checked={allowDuplicateDataset}
+                      onChange={(event) => setAllowDuplicateDataset(event.target.checked)}
+                    />
+                    <span className="pt-text-body">Allow duplicate dataset upload</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Result messages */}
+              {effectivePageError && (
+                <div className="pt-alert pt-alert-danger" role="alert">
+                  <span className="pt-text-body">{effectivePageError}</span>
+                </div>
+              )}
+
+              {detectedSizeColumns.length > 0 && (
+                <div className="pt-alert pt-alert-info" role="alert">
+                  <span className="pt-text-body-strong">Detected size columns: </span>
+                  <span className="pt-text-body">{detectedSizeColumns.join(", ")}</span>
+                </div>
+              )}
+
+              {ignoredHeaderColumns.length > 0 && (
+                <div className="pt-alert pt-alert-warning" role="alert">
+                  <span className="pt-text-body-strong">Ignored columns: </span>
+                  <span className="pt-text-body">{ignoredHeaderColumns.join(", ")}</span>
+                </div>
+              )}
+
+              {parseErrors.length > 0 && (
+                <div className="pt-alert pt-alert-danger" role="alert">
+                  <div className="pt-text-body-strong pt-alert__header">
+                    Fix these parse issues before validating/uploading:
+                  </div>
+                  <ul className="pt-alert__list">
+                    {parseErrors.slice(0, 10).map((error) => (
+                      <li key={error}><span className="pt-text-body">{renderParseErrorText(error)}</span></li>
+                    ))}
+                  </ul>
+                  {parseErrors.length > 10 && (
+                    <div className="pt-text-meta pt-alert__footer">
+                      {parseErrors.length - 10} more issue(s) not shown.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {preflightResult && (
+                <div className={`pt-alert ${preflightResult.canUpload ? "pt-alert-success" : "pt-alert-danger"}`} role="alert">
+                  <div className="pt-text-body-strong">
+                    Preflight summary: {preflightResult.validRows} valid / {preflightResult.invalidRows} invalid rows.
+                  </div>
+                  <div className="pt-text-meta">
+                    Errors: {preflightResult.errorCount} | Warnings: {preflightResult.warningCount}
+                    {preflightResult.datasetHash ? ` | Hash: ${preflightResult.datasetHash}` : ""}
+                  </div>
+                  {preflightResult.duplicateDatasetDetected && (
+                    <div className="pt-alert__footer">
+                      <span className="badge badge-warning">Duplicate dataset detected</span>
+                    </div>
+                  )}
+                  {preflightErrors.length > 0 && (
+                    <ul className="pt-alert__list">
+                      {preflightErrors.slice(0, 8).map((issue, index) => (
+                        <li key={`${issue.rowNumber}-${issue.code}-${index}`}>
+                          <span className="pt-text-body">
+                            {getErrorRowLabel(issue.rowNumber)}: {issue.message}
+                            {issue.suggestions.length > 0 && (
+                              <span className="pt-text-meta"> (suggestions: {issue.suggestions.join(", ")})</span>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {preflightWarnings.length > 0 && (
+                    <ul className="pt-alert__list">
+                      {preflightWarnings.slice(0, 5).map((issue, index) => (
+                        <li key={`${issue.rowNumber}-${issue.code}-w-${index}`}>
+                          <span className="pt-text-body">{getErrorRowLabel(issue.rowNumber)}: {issue.message}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {uploadResult && !hasUploadErrors && (
+                <div className="pt-alert pt-alert-success" role="alert">
+                  <span className="pt-text-body">
+                    {uploadResult.message || "Upload completed."} Processed {uploadResult.processedRows} row(s).
+                    Created {uploadResult.createdSkus} SKU(s), {uploadResult.createdItemColors} style-color links,
+                    and {uploadResult.createdInventory} inventory record(s). Updated {uploadResult.updatedInventory} record(s).
+                  </span>
+                </div>
+              )}
+
+              {uploadResult && hasUploadErrors && (
+                <div className="pt-alert pt-alert-danger" role="alert">
+                  <div className="pt-text-body-strong pt-alert__header">Upload completed with issues:</div>
+                  <ul className="pt-alert__list">
+                    {uploadErrors.slice(0, 10).map((error) => (
+                      <li key={`${error.rowNumber}-${error.message}`}>
+                        <span className="pt-text-body">{getErrorRowLabel(error.rowNumber)}: {error.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {uploadWarnings.length > 0 && (
+                    <>
+                      <hr />
+                      <div className="pt-text-body-strong pt-alert__header">Warnings:</div>
+                      <ul className="pt-alert__list">
+                        {uploadWarnings.slice(0, 8).map((warning) => (
+                          <li key={`${warning.rowNumber}-${warning.message}`}>
+                            <span className="pt-text-body">{getErrorRowLabel(warning.rowNumber)}: {warning.message}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Card footer */}
+            <div className="pt-card-footer">
+              <button
+                type="button"
+                className="btn-neutral btn-text"
+                onClick={handleExportIssues}
+                disabled={
+                  (preflightResult?.issues.length ?? 0) === 0 &&
+                  uploadErrors.length === 0 &&
+                  uploadWarnings.length === 0
+                }
+              >
+                <i className="pi pi-download" aria-hidden="true" />
+                Export Issues
+              </button>
+              <div className="pt-flex-row-gap-sm">
                 <Button
                   type="button"
-                  className="btn-info btn-outlined"
-                  onClick={handleValidate}
+                  className="btn-neutral btn-outlined"
+                  onClick={() => { void handleValidate(); }}
                   disabled={
                     rows.length === 0 ||
                     parseErrors.length > 0 ||
                     preflighting ||
                     (requiresSeasonSelection && !selectedSeasonName.trim())
                   }
+                  unstyled
                 >
-                  {preflighting ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Validating...
-                    </>
-                  ) : (
-                    <>
-                      <i className="pi pi-check-circle" aria-hidden="true" />
-                      Validate File
-                    </>
-                  )}
+                  {!preflighting && <i className="pi pi-check-circle" aria-hidden="true" />}
+                  {preflighting ? "Validating..." : "Validate File"}
                 </Button>
                 <Button
                   type="button"
-                  className="btn-success"
-                  onClick={handleUpload}
+                  className="btn-primary"
+                  onClick={() => { void handleUpload(); }}
                   disabled={
                     rows.length === 0 ||
                     parseErrors.length > 0 ||
@@ -561,215 +685,153 @@ export default function InventoryUpload() {
                     preflighting ||
                     (requiresSeasonSelection && !selectedSeasonName.trim())
                   }
+                  unstyled
                 >
-                  {uploading ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <i className="pi pi-upload" aria-hidden="true" />
-                      Upload Inventory
-                    </>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  className="btn-neutral btn-outlined"
-                  onClick={handleExportIssues}
-                  disabled={
-                    (preflightResult?.issues.length ?? 0) === 0 &&
-                    uploadErrors.length === 0 &&
-                    uploadWarnings.length === 0
-                  }
-                >
-                  <i className="pi pi-download" aria-hidden="true" />
-                  Export Issues
+                  {!uploading && <i className="pi pi-upload" aria-hidden="true" />}
+                  {uploading ? "Uploading..." : "Upload Inventory"}
                 </Button>
               </div>
-            </Col>
-          </Row>
+            </div>
+          </div>
 
-          {detectedSizeColumns.length > 0 && (
-            <Alert variant="light" className="mt-3 mb-0">
-              <strong>Detected size columns:</strong> {detectedSizeColumns.join(", ")}
-            </Alert>
-          )}
-
-          {ignoredHeaderColumns.length > 0 && (
-            <Alert variant="warning" className="mt-3">
-              <strong>Ignored columns:</strong> {ignoredHeaderColumns.join(", ")}
-            </Alert>
-          )}
-
-          {parseErrors.length > 0 && (
-            <Alert variant="danger" className="mt-3">
-              <strong>Fix these parse issues before validating/uploading:</strong>
-              <ul className="mb-0">
-                {parseErrors.slice(0, 10).map((error) => (
-                  <li key={error}>{renderParseErrorText(error)}</li>
-                ))}
-              </ul>
-              {parseErrors.length > 10 && (
-                <div className="mt-2 text-muted">{parseErrors.length - 10} more issue(s) not shown.</div>
-              )}
-            </Alert>
-          )}
-
-          {preflightResult && (
-            <Alert variant={preflightResult.canUpload ? "success" : "danger"} className="mt-3">
-              <div>
-                <strong>Preflight summary:</strong> {preflightResult.validRows} valid /{" "}
-                {preflightResult.invalidRows} invalid rows.
-              </div>
-              <div className="text-muted">
-                Errors: {preflightResult.errorCount} | Warnings: {preflightResult.warningCount}
-                {preflightResult.datasetHash ? ` | Hash: ${preflightResult.datasetHash}` : ""}
-              </div>
-              {preflightResult.duplicateDatasetDetected && (
-                <div className="mt-1">
-                  <Badge bg="warning" text="dark">
-                    Duplicate dataset detected
-                  </Badge>
-                </div>
-              )}
-              {preflightErrors.length > 0 && (
-                <ul className="mb-0 mt-2">
-                  {preflightErrors.slice(0, 8).map((issue, index) => (
-                    <li key={`${issue.rowNumber}-${issue.code}-${index}`}>
-                      {getErrorRowLabel(issue.rowNumber)}: {issue.message}
-                      {issue.suggestions.length > 0 && (
-                        <span className="text-muted"> (suggestions: {issue.suggestions.join(", ")})</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {preflightWarnings.length > 0 && (
-                <ul className="mb-0 mt-2">
-                  {preflightWarnings.slice(0, 5).map((issue, index) => (
-                    <li key={`${issue.rowNumber}-${issue.code}-w-${index}`}>
-                      {getErrorRowLabel(issue.rowNumber)}: {issue.message}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Alert>
-          )}
-
-          {uploadResult && !hasUploadErrors && (
-            <Alert variant="success" className="mt-3">
-              {uploadResult.message || "Upload completed."} Processed {uploadResult.processedRows} row(s). Created{" "}
-              {uploadResult.createdSkus} SKU(s), {uploadResult.createdItemColors} style-color links, and{" "}
-              {uploadResult.createdInventory} inventory record(s). Updated {uploadResult.updatedInventory} record(s).
-            </Alert>
-          )}
-
-          {uploadResult && hasUploadErrors && (
-            <Alert variant="danger" className="mt-3">
-              <strong>Upload completed with issues:</strong>
-              <ul className="mb-0">
-                {uploadErrors.slice(0, 10).map((error) => (
-                  <li key={`${error.rowNumber}-${error.message}`}>
-                    {getErrorRowLabel(error.rowNumber)}: {error.message}
-                  </li>
-                ))}
-              </ul>
-              {uploadWarnings.length > 0 && (
-                <>
-                  <hr />
-                  <strong>Warnings:</strong>
-                  <ul className="mb-0">
-                    {uploadWarnings.slice(0, 8).map((warning) => (
-                      <li key={`${warning.rowNumber}-${warning.message}`}>
-                        {getErrorRowLabel(warning.rowNumber)}: {warning.message}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </Alert>
-          )}
-        </Card.Body>
-      </Card>
-
-      <Card className="portal-content-card inventory-upload-card">
-        <Card.Body>
-          <Row className="align-items-center gy-2 mb-3">
-            <Col>
-              <h5 className="mb-1 card-heading-title">Recent Upload Batches</h5>
-              <p className="text-muted mb-0">Use undo to reverse a prior applied upload batch.</p>
-            </Col>
-            <Col className="text-md-end">
-              <Button
-                type="button"
-                className="btn-neutral btn-outlined"
-                onClick={loadUploadBatches}
-                disabled={loadingUploadBatches}
-              >
-                <i className="pi pi-refresh" aria-hidden="true" />
-                {loadingUploadBatches ? "Refreshing..." : "Refresh"}
-              </Button>
-            </Col>
-          </Row>
-          <div className="table-responsive">
-            <Table hover size="sm" className="mb-0">
-              <thead>
-                <tr>
-                  <th>Created</th>
-                  <th>Status</th>
-                  <th>Mode</th>
-                  <th>Rows</th>
-                  <th>Processed</th>
-                  <th>Hash</th>
-                  <th>Message</th>
-                  <th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {uploadBatches.length === 0 && !loadingUploadBatches && (
+          {/* Card 2: Recent Upload Batches */}
+          <div className="portal-content-card">
+            <div className="pt-upload-section-header-pad">
+              <div className="pt-text-card-title">Recent Upload Batches</div>
+              <div className="pt-text-card-sub">Use undo to reverse a prior applied upload batch.</div>
+            </div>
+            <div className="table-responsive">
+              <table className="table table-hover table-sm mb-0">
+                <thead>
                   <tr>
-                    <td colSpan={8} className="text-muted">
-                      No upload batches available.
-                    </td>
+                    <th><span className="pt-text-col-header">Created</span></th>
+                    <th><span className="pt-text-col-header">Status</span></th>
+                    <th><span className="pt-text-col-header">Mode</span></th>
+                    <th><span className="pt-text-col-header">Rows</span></th>
+                    <th><span className="pt-text-col-header">Processed</span></th>
+                    <th><span className="pt-text-col-header">Hash</span></th>
+                    <th><span className="pt-text-col-header">Message</span></th>
+                    <th className="text-end"><span className="pt-text-col-header">Actions</span></th>
                   </tr>
-                )}
-                {uploadBatches.map((batch) => {
-                  const canUndo =
-                    batch.status.toLowerCase() === "applied" && !batch.isUndone;
-                  return (
-                    <tr key={batch.uploadBatchId}>
-                      <td>{formatBatchTimestamp(batch.createdAt)}</td>
-                      <td>
-                        <Badge bg={getStatusVariant(batch.status)}>{batch.status}</Badge>
-                      </td>
-                      <td>{batch.mode}</td>
-                      <td>{batch.rowCount}</td>
-                      <td>{batch.processedRows}</td>
-                      <td>
-                        <code>{batch.datasetHash?.slice(0, 12) || "-"}</code>
-                      </td>
-                      <td>{batch.message || "-"}</td>
-                      <td className="text-end">
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="btn-danger btn-outlined"
-                          disabled={!canUndo || undoingBatchId === batch.uploadBatchId}
-                          onClick={() => handleUndoBatch(batch.uploadBatchId)}
-                        >
-                          {undoingBatchId === batch.uploadBatchId ? "Undoing..." : "Undo"}
-                        </Button>
+                </thead>
+                <tbody>
+                  {uploadBatches.length === 0 && !loadingUploadBatches && (
+                    <tr>
+                      <td colSpan={8}>
+                        <span className="pt-text-meta">No upload batches available.</span>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </Table>
+                  )}
+                  {uploadBatches.map((batch) => {
+                    const canUndo =
+                      batch.status.toLowerCase() === "applied" && !batch.isUndone;
+                    return (
+                      <tr key={batch.uploadBatchId}>
+                        <td><span className="pt-text-body">{formatBatchTimestamp(batch.createdAt)}</span></td>
+                        <td>
+                          <span className={`badge bg-${getStatusVariant(batch.status)}`}>
+                            {batch.status}
+                          </span>
+                        </td>
+                        <td><span className="pt-text-body">{batch.mode}</span></td>
+                        <td><span className="pt-text-body">{batch.rowCount}</span></td>
+                        <td><span className="pt-text-body">{batch.processedRows}</span></td>
+                        <td><span className="pt-text-code">{batch.datasetHash?.slice(0, 12) || "-"}</span></td>
+                        <td><span className="pt-text-body">{batch.message || "-"}</span></td>
+                        <td className="text-end">
+                          <Button
+                            type="button"
+                            className="btn-danger btn-outlined btn-sm"
+                            disabled={!canUndo || undoingBatchId === batch.uploadBatchId}
+                            onClick={() => { void handleUndoBatch(batch.uploadBatchId); }}
+                            unstyled
+                          >
+                            <i className="pi pi-undo" aria-hidden="true" />
+                            {undoingBatchId === batch.uploadBatchId ? "Undoing..." : "Undo"}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </Card.Body>
-      </Card>
-    </CatalogPageLayout>
+        </div>
+
+        {/* Right column: hint cards */}
+        <div>
+
+          {/* Hint card: File format */}
+          <div className="pt-hint-card">
+            <div className="pt-hint-card__header">
+              <i className="pi pi-file" aria-hidden="true" />
+              File format
+            </div>
+            <div className="pt-hint-row">
+              <div className="pt-hint-icon"><i className="pi pi-check" /></div>
+              <div>
+                <div className="pt-text-body-strong">Required columns</div>
+                <div className="pt-mt-2">
+                  <span className="pt-col-badge pt-col-badge--required">Style</span>
+                  <span className="pt-col-badge pt-col-badge--required">Color</span>
+                  <span className="pt-col-badge pt-col-badge--required">size columns</span>
+                </div>
+              </div>
+            </div>
+            <div className="pt-hint-row">
+              <div className="pt-hint-icon"><i className="pi pi-info-circle" /></div>
+              <div>
+                <div className="pt-text-body-strong">Optional columns</div>
+                <div className="pt-mt-2">
+                  <span className="pt-col-badge">Season</span>
+                </div>
+                <div className="pt-text-meta pt-mt-1">
+                  If Season is omitted, you will be prompted to select one.
+                </div>
+              </div>
+            </div>
+            <div className="pt-hint-row">
+              <div className="pt-hint-icon"><i className="pi pi-list" /></div>
+              <div>
+                <div className="pt-text-body-strong">Column aliases accepted</div>
+                <div className="pt-text-meta pt-mt-1">
+                  Color or Colour. Style or Item Number. Size columns are matched automatically.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Hint card: Download template */}
+          <div className="pt-hint-card">
+            <div className="pt-hint-card__header">
+              <i className="pi pi-file-excel" aria-hidden="true" />
+              Download template
+            </div>
+            <div className="pt-hint-row">
+              <div className="pt-hint-icon"><i className="pi pi-file-excel" /></div>
+              <div className="pt-flex-grow">
+                <div className="pt-text-body pt-mb-2">
+                  The template includes all size columns configured for this system.
+                </div>
+                <div>
+                  <Button
+                    type="button"
+                    className="btn-neutral btn-outlined btn-sm"
+                    onClick={handleDownloadTemplate}
+                    disabled={loadingSizes}
+                    unstyled
+                  >
+                    <i className="pi pi-download" aria-hidden="true" />
+                    {loadingSizes ? "Loading sizes..." : "Download Template"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </PageShell>
   );
 }

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Card, Form } from "react-bootstrap";
+import { InputSwitch } from "primereact/inputswitch";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
 import { Toast } from "primereact/toast";
 import CatalogPageLayout from "../components/CatalogPageLayout";
 import ActionButton from "../components/ActionButton";
+import PageActionsMenu from "../components/PageActionsMenu";
+import PageFiltersBar from "../components/PageFiltersBar";
 import PageActionsRow from "../components/PageActionsRow";
 import { useNotifier } from "../hooks/useNotifier";
 import CatalogService, { type ItemColorView } from "../service/CatalogService";
@@ -17,7 +18,11 @@ import { downloadInventoryLabelsDoc } from "../utils/inventoryLabelsDoc";
 type LabelRow = SkuLabelRow & { labelQty: number };
 const LABEL_PAGE_SIZE_OPTIONS = [25, 50, 100];
 
-export default function InventoryLabels() {
+type InventoryLabelsProps = {
+  embedded?: boolean;
+};
+
+export default function InventoryLabels({ embedded = false }: InventoryLabelsProps) {
   const toastRef = useRef<Toast>(null);
   const notify = useNotifier(toastRef);
 
@@ -26,6 +31,7 @@ export default function InventoryLabels() {
   const [selection, setSelection] = useState<ItemColorView[]>([]);
   const [searchText, setSearchText] = useState("");
   const [seasonFilter, setSeasonFilter] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const [labelRows, setLabelRows] = useState<LabelRow[]>([]);
   const [labelSelection, setLabelSelection] = useState<LabelRow[]>([]);
@@ -57,27 +63,30 @@ export default function InventoryLabels() {
 
   const filteredItemColors = useMemo(() => {
     const query = searchText.trim().toLowerCase();
-    return itemColors.filter((row) => {
-      if (seasonFilter && row.seasonName !== seasonFilter) {
-        return false;
-      }
-      if (!query) {
-        return true;
-      }
-      return (
-        row.itemNumber.toLowerCase().includes(query) ||
-        row.colorName.toLowerCase().includes(query)
-      );
-    });
+    return itemColors
+      .filter((row) => {
+        if (seasonFilter && row.seasonName !== seasonFilter) {
+          return false;
+        }
+        if (!query) {
+          return true;
+        }
+        return (
+          row.itemNumber.toLowerCase().includes(query) ||
+          row.colorName.toLowerCase().includes(query)
+        );
+      })
+      .sort((a, b) => a.itemNumber.localeCompare(b.itemNumber));
   }, [itemColors, searchText, seasonFilter]);
 
   const renderColorActive = (row: ItemColorView) => (
-    <Form.Check
+    <input
       type="checkbox"
       className="item-production-check"
       checked={row.itemColorActive !== false}
       readOnly
       disabled
+      onChange={() => {}}
     />
   );
 
@@ -133,6 +142,12 @@ export default function InventoryLabels() {
     [labelRows]
   );
 
+  const clearFilters = () => {
+    setSearchText("");
+    setSeasonFilter("");
+    setShowAdvancedFilters(false);
+  };
+
   const handleDownload = () => {
     const success = downloadInventoryLabelsDoc(labelRows);
     if (!success) {
@@ -152,16 +167,48 @@ export default function InventoryLabels() {
     [labelRows]
   );
 
-  return (
-    <CatalogPageLayout
-      title="Inventory Labels"
-      subtitle="Create Avery 8160 labels from selected styles/colors."
-      className="catalog-page--wide"
-    >
+  const headerActions: never[] = [];
+
+  const content = (
+    <>
       <Toast ref={toastRef} position="top-right" />
 
-      <Card className="content-card inventory-labels-card">
-        <Card.Body>
+      <div className="catalog-page-toolbar">
+        <PageFiltersBar
+          className="inventory-labels-filters"
+          searchLabel=""
+          searchValue={searchText}
+          searchPlaceholder="Quick search style or color"
+          onSearchChange={setSearchText}
+          showAdvanced={showAdvancedFilters}
+          onToggleAdvanced={() => setShowAdvancedFilters((prev) => !prev)}
+          advancedFilters={
+            <div className="page-filters-advanced-grid">
+              <div className="page-filter-field">
+                <label className="page-filters-label">Season</label>
+                <select
+                  value={seasonFilter}
+                  onChange={(e) => setSeasonFilter(e.target.value)}
+                  aria-label="Season"
+                  className="pt-form-select"
+                >
+                  <option value="">All seasons</option>
+                  {seasonOptions.map((season) => (
+                    <option key={season} value={season}>
+                      {season}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          }
+          onClearFilters={clearFilters}
+          clearLabel="Clear Filters"
+        />
+      </div>
+
+      <div className="content-card inventory-labels-card">
+        <div>
           <div className="inventory-labels-header">
             <div className="inventory-labels-title">Select Styles & Colors</div>
             <PageActionsRow className="inventory-labels-actions">
@@ -189,44 +236,9 @@ export default function InventoryLabels() {
             </PageActionsRow>
           </div>
 
-          <div className="inventory-labels-filters">
-            <div className="inventory-labels-search-wrap">
-              <InputText
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search style or color"
-                className="inventory-labels-search"
-              />
-              {searchText ? (
-                <button
-                  type="button"
-                  className="inventory-labels-search-clear"
-                  aria-label="Clear search"
-                  onClick={() => {
-                    setSearchText("");
-                    setLabelRows([]);
-                    setLabelSelection([]);
-                  }}
-                >
-                  <i className="pi pi-times" aria-hidden="true" />
-                </button>
-              ) : null}
-            </div>
-            <Form.Select
-              value={seasonFilter}
-              onChange={(e) => setSeasonFilter(e.target.value)}
-              className="inventory-labels-season"
-            >
-              <option value="">All seasons</option>
-              {seasonOptions.map((season) => (
-                <option key={season} value={season}>
-                  {season}
-                </option>
-              ))}
-            </Form.Select>
-          </div>
-
           <div className="inventory-labels-table">
+            {/* selectAll + onSelectAllChange wire the header checkbox to all filtered rows
+                (not just the current page), giving true cross-page select-all behaviour. */}
             <DataTable
               value={filteredItemColors}
               dataKey="itemColorId"
@@ -235,6 +247,8 @@ export default function InventoryLabels() {
               onSelectionChange={(event) =>
                 setSelection((event.value as ItemColorView[]) ?? [])
               }
+              selectAll={filteredItemColors.length > 0 && selection.length === filteredItemColors.length}
+              onSelectAllChange={(e) => setSelection(e.checked ? [...filteredItemColors] : [])}
               selectionMode="checkbox"
               className="p-datatable-gridlines"
               paginator
@@ -243,19 +257,19 @@ export default function InventoryLabels() {
               paginatorTemplate="PrevPageLink PageLinks NextPageLink CurrentPageReport RowsPerPageDropdown"
               currentPageReportTemplate="{first}-{last} of {totalRecords}"
             >
-              <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
+              <Column selectionMode="multiple" headerClassName="col-checkbox" />
               <Column field="seasonName" header="Season" />
               <Column field="itemNumber" header="Style" />
               <Column field="colorName" header="Color" />
               <Column field="itemColorActive" header="Active" body={renderColorActive} className="col-active" />
             </DataTable>
           </div>
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
 
       {labelRows.length > 0 && (
-        <Card className="content-card inventory-labels-card">
-          <Card.Body>
+        <div className="content-card inventory-labels-card">
+          <div>
             <div className="inventory-labels-header">
               <div>
                 <div className="inventory-labels-title">Label Quantities</div>
@@ -290,13 +304,14 @@ export default function InventoryLabels() {
             </div>
 
             <div className="inventory-labels-options">
-              <Form.Check
-                type="switch"
-                id="labels-use-stock"
-                label="Use stock quantities"
-                checked={useStockQty}
-                onChange={(e) => handleToggleUseStock(e.target.checked)}
-              />
+              <div className="pt-flex-row">
+                <InputSwitch
+                  inputId="labels-use-stock"
+                  checked={useStockQty}
+                  onChange={(e) => handleToggleUseStock(e.value)}
+                />
+                <label htmlFor="labels-use-stock">Use stock quantities</label>
+              </div>
             </div>
 
             <div className="inventory-labels-table">
@@ -314,7 +329,7 @@ export default function InventoryLabels() {
                 paginatorTemplate="PrevPageLink PageLinks NextPageLink CurrentPageReport RowsPerPageDropdown"
                 currentPageReportTemplate="{first}-{last} of {totalRecords}"
               >
-                <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
+                <Column selectionMode="multiple" headerClassName="col-checkbox" />
                 <Column field="itemNumber" header="Style" />
                 <Column field="colorName" header="Color" />
                 <Column field="sizeName" header="Size" />
@@ -326,7 +341,7 @@ export default function InventoryLabels() {
                     <InputNumber
                       value={row.labelQty}
                       onValueChange={(e) => handleLabelQtyChange(row.sku, e.value ?? 0)}
-                      disabled={loadingLabels || useStockQty}
+                      disabled={loadingLabels || !useStockQty}
                       min={0}
                       useGrouping={false}
                       inputClassName="inventory-labels-qty-input"
@@ -335,9 +350,24 @@ export default function InventoryLabels() {
                 />
               </DataTable>
             </div>
-          </Card.Body>
-        </Card>
+          </div>
+        </div>
       )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="inventory-labels-embedded">{content}</div>;
+  }
+
+  return (
+    <CatalogPageLayout
+      title="Inventory Labels"
+      subtitle="Create Avery 8160 labels from selected styles/colors."
+      className="catalog-page--wide"
+      actionsSlot={<PageActionsMenu items={headerActions} />}
+    >
+      {content}
     </CatalogPageLayout>
   );
 }

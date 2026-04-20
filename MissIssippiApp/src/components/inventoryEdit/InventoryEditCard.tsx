@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Card, Form, Tab, Tabs } from "react-bootstrap";
 import type { InventoryCardGroup } from "../../utils/buildInventoryCardGroups";
 import type { iSize } from "../../utils/DataInterfaces";
 import type { NotifyFn } from "../../hooks/useNotifier";
 import { formatPrice } from "../../utils/formatters";
 import ActionButton from "../ActionButton";
-import PageActionsRow from "../PageActionsRow";
 import InventoryCardTable from "../inventory/InventoryCardTable";
-import { InventoryEditCardDetailsTab, InventoryEditCardSkuListTab } from "./InventoryEditCardTabs";
+import {
+  InventoryEditCardDetailsTab,
+  InventoryEditCardSkuListTab,
+  InventoryEditCardImagesTab,
+} from "./InventoryEditCardTabs";
 import { useInventoryCardDetails, type InventoryCardMeta } from "./useInventoryCardDetails";
 import { useInventoryCardSku } from "./useInventoryCardSku";
 
@@ -39,16 +41,15 @@ const InventoryEditCard = ({
   onDiscard,
   onSave,
   isDirty = false,
-  placeholderImage,
+  placeholderImage: _placeholderImage,
   isEditable = false,
   isActive = false,
   itemMeta,
   onDoneEditing,
   notify,
 }: InventoryEditCardProps) => {
-  const [activeTab, setActiveTab] = useState("inventory");
+  const [activeTab, setActiveTab] = useState<string>("inventory");
 
-  // Reset activeTab when the group changes.
   useEffect(() => {
     setActiveTab("inventory");
   }, [group.itemNumber, group.rows]);
@@ -68,124 +69,181 @@ const InventoryEditCard = ({
     notify,
   });
 
-  const activeStatusLabel = itemMeta?.inProduction === false ? "Inactive" : "Active";
+  // Derived display values — pure UI derivation from props, not business logic.
+  const stockTotal = group.rows.reduce(
+    (total, row) =>
+      total + Object.values(row.sizes).reduce((s, cell) => s + (cell?.qty ?? 0), 0),
+    0,
+  );
+  const seasonName = itemMeta?.seasonName ?? group.rows[0]?.seasonName ?? "";
+  const isActiveBadge = itemMeta?.inProduction !== false;
 
   return (
-    <Card className={`inventory-edit-card${isActive ? " is-active-edit" : ""}`}>
-      <Card.Body className="inventory-edit-card-body inventory-edit-card-body--split">
-        <div className="inventory-card-main-column">
-          <div className="inventory-card-header-main">
-            <div className="inventory-card-header-topline">
-              <div className="d-flex align-items-center gap-2 flex-wrap">
-                <span className="fw-bold inventory-card-style-number">{group.itemNumber}</span>
-                {isDirty ? <span className="badge bg-warning text-dark">Unsaved changes</span> : null}
-                {isEditable ? <span className="badge bg-primary">Editing</span> : null}
-              </div>
-              {isEditable ? (
-                <ActionButton
-                  label="Done Editing"
-                  icon="pi pi-check"
-                  className="btn-neutral btn-outlined"
-                  onClick={() => onDoneEditing?.(group.itemNumber)}
-                />
-              ) : null}
-            </div>
-
-            <div className="inventory-card-description">{group.description || "No description"}</div>
-
-            <div className="inventory-card-meta-row">
-              <span>
-                <strong>Wholesale:</strong> {formatPrice(itemMeta?.wholesalePrice)}
+    <div
+      className={`inventory-edit-card portal-card--flat${isActive ? " is-active-edit" : ""}`}
+    >
+      {/* ── Card header: compact, no image ───────────────────────────────── */}
+      <div className="inventory-edit-card-header">
+        <div className="inventory-edit-card-header__left">
+          <div className="inventory-edit-card-header__top">
+            <span className="inventory-style-group-style">{group.itemNumber}</span>
+            <span className={`badge ${isActiveBadge ? "badge-success" : "badge-muted"}`}>
+              {isActiveBadge ? "Active" : "Inactive"}
+            </span>
+            {isDirty ? <span className="badge badge-warning">Unsaved</span> : null}
+            {isEditable ? <span className="badge badge-info">Editing</span> : null}
+          </div>
+          <div className="inventory-card-meta-row">
+            {group.description ? (
+              <span className="inventory-card-meta-item">
+                <span className="meta-label">Type </span>
+                <span className="meta-value">{group.description}</span>
               </span>
-              <span>
-                <strong>Retail:</strong> {formatPrice(itemMeta?.retailPrice)}
+            ) : null}
+            <span className="inventory-card-meta-item">
+              <span className="meta-label">Stock </span>
+              <span className="meta-value">{stockTotal}</span>
+            </span>
+            <span className="inventory-card-meta-item">
+              <span className="meta-label">Wholesale </span>
+              <span className="meta-value">{formatPrice(itemMeta?.wholesalePrice)}</span>
+            </span>
+            <span className="inventory-card-meta-item">
+              <span className="meta-label">Retail </span>
+              <span className="meta-value">{formatPrice(itemMeta?.retailPrice)}</span>
+            </span>
+            {seasonName ? (
+              <span className="inventory-card-meta-item">
+                <span className="meta-label">Season </span>
+                <span className="meta-value">{seasonName}</span>
               </span>
-            </div>
-            <div className="inventory-card-active-line">{activeStatusLabel}</div>
+            ) : null}
+          </div>
+        </div>
+        <div className="inventory-edit-card-header__right">
+          <button
+            type="button"
+            className="inventory-card-edit-btn"
+            onClick={() => setActiveTab("details")}
+            aria-label="View style details"
+            title="View style details"
+          >
+            <i className="pi pi-pencil" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Card body: two-column layout ─────────────────────────────────── */}
+      <div className="inventory-edit-card-body">
+
+        {/* Left column: tab strip + tab content */}
+        <div className="inventory-edit-card-body__table">
+
+          {/* Tab strip */}
+          <div className="inventory-card-tabs">
+            <button
+              type="button"
+              className={`inventory-card-tab${activeTab === "inventory" ? " inventory-card-tab--active" : ""}`}
+              onClick={() => setActiveTab("inventory")}
+            >
+              Inventory
+            </button>
+            <button
+              type="button"
+              className={`inventory-card-tab${activeTab === "sku-list" ? " inventory-card-tab--active" : ""}`}
+              onClick={() => setActiveTab("sku-list")}
+            >
+              SKU List
+            </button>
+            <button
+              type="button"
+              className={`inventory-card-tab${activeTab === "details" ? " inventory-card-tab--active" : ""}`}
+              onClick={() => setActiveTab("details")}
+            >
+              Details
+            </button>
+            <button
+              type="button"
+              className={`inventory-card-tab${activeTab === "images" ? " inventory-card-tab--active" : ""}`}
+              onClick={() => setActiveTab("images")}
+            >
+              Images
+            </button>
           </div>
 
-          <Tabs
-            id={`inventory-card-tabs-${group.itemNumber}`}
-            activeKey={activeTab}
-            onSelect={(nextKey) => setActiveTab(nextKey ?? "inventory")}
-            className="inventory-card-tabs"
-            mountOnEnter
-          >
-            <Tab eventKey="inventory" title="Inventory">
-              <div className="inventory-card-tab-panel">
-                <div className="inventory-style-group-matrix">
-                  <InventoryCardTable
-                    rows={group.rows}
-                    sizeColumns={sizeColumns}
-                    editable={isEditable}
-                    readonlyCellBoxed
-                    compact
-                    borderless
-                    hoverable={false}
-                    colorColumnHeader=""
-                    onQtyChange={onQtyChange}
-                  />
-                </div>
+          {/* Tab panels */}
+          {activeTab === "inventory" ? (
+            <div className="inventory-card-tab-panel">
+              <div className="inventory-style-group-matrix">
+                <InventoryCardTable
+                  rows={group.rows}
+                  sizeColumns={sizeColumns}
+                  editable={isEditable}
+                  readonlyCellBoxed
+                  compact
+                  borderless
+                  hoverable={false}
+                  colorColumnHeader=""
+                  onQtyChange={onQtyChange}
+                />
               </div>
-            </Tab>
+            </div>
+          ) : null}
 
-            <Tab eventKey="sku-list" title="SKU List">
-              <InventoryEditCardSkuListTab
-                skuError={sku.skuError}
-                skuLoading={sku.skuLoading}
-                skuRows={sku.skuRows}
-                skuEditingRows={sku.skuEditingRows}
-                isEditable={isEditable}
-                onEditingRowsChange={sku.setSkuEditingRows}
-                onRowEditComplete={sku.onRowEditComplete}
-                renderSkuEditor={renderSkuEditor}
-              />
-            </Tab>
+          {activeTab === "sku-list" ? (
+            <InventoryEditCardSkuListTab
+              skuError={sku.skuError}
+              skuLoading={sku.skuLoading}
+              skuRows={sku.skuRows}
+              skuEditingRows={sku.skuEditingRows}
+              isEditable={isEditable}
+              onEditingRowsChange={sku.setSkuEditingRows}
+              onRowEditComplete={sku.onRowEditComplete}
+              renderSkuEditor={renderSkuEditor}
+            />
+          ) : null}
 
-            <Tab eventKey="details" title="Details">
-              <InventoryEditCardDetailsTab
-                detailsError={details.detailsError}
-                detailsLoading={details.detailsLoading}
-                visibleColors={details.visibleColors}
-                isEditable={isEditable}
-                onToggleColorActive={details.onToggleColorActive}
-              />
-            </Tab>
+          {activeTab === "details" ? (
+            <InventoryEditCardDetailsTab
+              detailsError={details.detailsError}
+              detailsLoading={details.detailsLoading}
+              visibleColors={details.visibleColors}
+              isEditable={isEditable}
+              onToggleColorActive={details.onToggleColorActive}
+            />
+          ) : null}
 
-            <Tab eventKey="images" title="Images">
-              <div className="inventory-card-tab-panel">
-                <div className="inventory-card-details-title mb-2">Secondary Images</div>
-                <div className="inventory-card-secondary-strip" aria-label="Secondary images">
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <div key={`${group.itemNumber}-secondary-${index + 1}`} className="inventory-card-secondary-item">
-                      <div className="inventory-card-image-placeholder">No Image</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Tab>
-          </Tabs>
+          {activeTab === "images" ? <InventoryEditCardImagesTab /> : null}
         </div>
 
-        <aside className="inventory-card-image-column">
-          <div className="inventory-card-image-square">
-            {placeholderImage ? (
-              <img src={placeholderImage} alt={`${group.itemNumber} main`} className="inventory-card-image-square-asset" />
-            ) : (
-              <div className="inventory-card-image-placeholder">No Main Image Available</div>
-            )}
+        {/* Right column: image zone */}
+        <div className="inventory-edit-card-body__image">
+          <div className="inventory-card-image-label">Main image</div>
+          <div className="inventory-card-image-zone">
+            <div className="inventory-card-image-frame">
+              <i className="pi pi-image" aria-hidden="true" />
+            </div>
+            <span className="inventory-card-image-caption">No image uploaded</span>
           </div>
-        </aside>
-      </Card.Body>
+        </div>
 
-      <Card.Footer className="inventory-edit-card-footer">
-        <PageActionsRow>
-          <ActionButton
-            label="Download"
-            icon="pi pi-download"
-            className="btn-info btn-outlined"
-            onClick={() => onDownload(group)}
-          />
+      </div>
+
+      {/* ── Card footer ──────────────────────────────────────────────────── */}
+      <div className="inventory-edit-card-footer">
+        <span className="inventory-card-footer-info">
+          Total on hand:{" "}
+          <span className="inventory-card-meta-value">{stockTotal} units</span>
+          <span className="inventory-card-footer-dot">·</span>
+          {group.rows.length} color{group.rows.length !== 1 ? "s" : ""}
+          {seasonName ? (
+            <>
+              <span className="inventory-card-footer-dot">·</span>
+              {seasonName}
+            </>
+          ) : null}
+        </span>
+        <div className="inventory-card-footer-actions">
           {isEditable ? (
             <>
               <ActionButton
@@ -202,20 +260,36 @@ const InventoryEditCard = ({
                 onClick={() => onSave(group.itemNumber)}
                 disabled={!isDirty}
               />
+              <ActionButton
+                label="Done Editing"
+                icon="pi pi-check"
+                className="btn-neutral btn-outlined"
+                onClick={() => onDoneEditing?.(group.itemNumber)}
+              />
             </>
           ) : null}
-        </PageActionsRow>
-      </Card.Footer>
-    </Card>
+          <button
+            type="button"
+            className="pt-btn pt-btn--secondary"
+            onClick={() => onDownload(group)}
+          >
+            <i className="pi pi-download" aria-hidden="true" />
+            Download
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
 function renderSkuEditor(options: { value?: unknown; editorCallback?: (value: unknown) => void }) {
   return (
-    <Form.Control
+    <input
+      type="text"
       value={typeof options.value === "string" ? options.value : ""}
       onChange={(event) => options.editorCallback?.(event.target.value)}
       autoFocus
+      className="pt-form-input"
     />
   );
 }

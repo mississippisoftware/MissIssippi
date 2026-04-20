@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
-import { Alert, Form, Spinner } from "react-bootstrap";
 import { Column } from "primereact/column";
 import { DataTable, type DataTableRowEditCompleteEvent } from "primereact/datatable";
+import { ProgressSpinner } from "primereact/progressspinner";
 import type { SkuListItem } from "../../service/SkuService";
 import type { ItemColorView } from "../../service/CatalogService";
 
@@ -28,10 +28,12 @@ export function InventoryEditCardSkuListTab({
 }: SkuListTabProps) {
   return (
     <div className="inventory-card-tab-panel inventory-card-tab-scroll">
-      {skuError ? <Alert variant="danger">{skuError}</Alert> : null}
+      {skuError ? (
+        <div className="pt-alert pt-alert-danger" role="alert">{skuError}</div>
+      ) : null}
       {skuLoading ? (
-        <div className="d-flex align-items-center gap-2 py-2 text-muted">
-          <Spinner animation="border" size="sm" />
+        <div className="pt-flex-row pt-form-hint">
+          <ProgressSpinner className="pt-spinner-sm" strokeWidth="6" />
           Loading SKUs...
         </div>
       ) : (
@@ -61,12 +63,27 @@ export function InventoryEditCardSkuListTab({
             <Column
               rowEditor
               header="Save"
-              headerStyle={{ width: "6rem" }}
-              bodyStyle={{ textAlign: "center" }}
+              headerClassName="col-actions"
+              bodyClassName="col-center"
             />
           ) : null}
         </DataTable>
       )}
+    </div>
+  );
+}
+
+// TODO: wire up style images API — no endpoint exists yet, rendering empty state.
+export function InventoryEditCardImagesTab() {
+  return (
+    <div className="inventory-card-tab-panel inventory-images-tab">
+      <div className="inventory-images-header">
+        <span className="pt-text-label">All images · 0 files</span>
+      </div>
+      <div className="inventory-images-empty">
+        <i className="pi pi-image" aria-hidden="true" />
+        <p className="pt-text-meta">No images uploaded for this style</p>
+      </div>
     </div>
   );
 }
@@ -83,15 +100,15 @@ export function InventoryEditCardDetailsTab({
   detailsError,
   detailsLoading,
   visibleColors,
-  isEditable,
-  onToggleColorActive,
 }: DetailsTabProps) {
   return (
     <div className="inventory-card-tab-panel inventory-card-tab-scroll">
-      {detailsError ? <Alert variant="danger">{detailsError}</Alert> : null}
+      {detailsError ? (
+        <div className="pt-alert pt-alert-danger" role="alert">{detailsError}</div>
+      ) : null}
       {detailsLoading ? (
-        <div className="d-flex align-items-center gap-2 py-2 text-muted">
-          <Spinner animation="border" size="sm" />
+        <div className="pt-flex-row pt-form-hint">
+          <ProgressSpinner className="pt-spinner-sm" strokeWidth="6" />
           Loading details...
         </div>
       ) : (
@@ -99,7 +116,7 @@ export function InventoryEditCardDetailsTab({
           <section>
             <div className="inventory-card-details-title">Current Colors</div>
             {visibleColors.length === 0 ? (
-              <div className="text-muted">No colors linked.</div>
+              <div className="pt-text-desc">No colors linked.</div>
             ) : (
               <div className="inventory-card-color-chip-list">
                 {visibleColors.map((color) => (
@@ -115,16 +132,9 @@ export function InventoryEditCardDetailsTab({
                         <span className="inventory-card-color-chip-hex">{color.hexValue.toUpperCase()}</span>
                       ) : null}
                     </div>
-                    <Form.Check
-                      type="switch"
-                      id={`inventory-color-active-${color.itemColorId}`}
-                      label="Active"
-                      checked={color.itemColorActive !== false}
-                      disabled={!isEditable}
-                      onChange={(event) => {
-                        void onToggleColorActive(color.itemColorId, event.target.checked);
-                      }}
-                    />
+                    <span className={`badge ${color.itemColorActive !== false ? "badge-success" : "badge-muted"}`}>
+                      {color.itemColorActive !== false ? "Active" : "Inactive"}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -133,12 +143,11 @@ export function InventoryEditCardDetailsTab({
 
           <section>
             <div className="inventory-card-details-title">Notes</div>
-            <Form.Control
-              as="textarea"
+            <textarea
               rows={5}
               value="Notes are not available in the current style API."
               readOnly
-              className="inventory-card-notes"
+              className="inventory-card-notes pt-form-input"
             />
           </section>
         </div>

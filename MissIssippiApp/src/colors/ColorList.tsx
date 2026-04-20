@@ -1,5 +1,7 @@
-import { type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Form, Modal, Row } from "react-bootstrap";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from 'primereact/button';
+import { Dialog } from 'primereact/dialog';
+import { InputSwitch } from 'primereact/inputswitch';
 import {
   DataTable,
   type DataTableRowEditCompleteEvent,
@@ -9,7 +11,10 @@ import {
 } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Toast } from "primereact/toast";
+import ActiveFilterChips, { type ActiveFilterChip } from "../components/ActiveFilterChips";
 import CatalogPageLayout from "../components/CatalogPageLayout";
+import PageActionsMenu from "../components/PageActionsMenu";
+import PageFiltersBar from "../components/PageFiltersBar";
 import UploadModal from "../components/UploadModal";
 import {
   DEFAULT_COLOR_LIST_SORT_META,
@@ -20,6 +25,7 @@ import {
   normalizeForSimilarity,
   normalizeHex,
 } from "./colorData";
+import ColorListDialogs from "./ColorListDialogs";
 import CatalogService, { type ColorOption } from "../service/CatalogService";
 import { getPrimaryColorName, isSimilarName, normalizeName } from "../items/itemsColorsUtils";
 import {
@@ -33,7 +39,8 @@ import { findHeaderIndex, normalizeHeaders } from "../utils/xlsxParse";
 import { filterSeasonActiveRows } from "../utils/filterSeasonActiveRows";
 import { printColorList } from "../utils/printCatalogLists";
 import { shouldSubmitOnEnter } from "../utils/modalKeyHandlers";
-import { useToastNotifier } from "../hooks/useToastNotifier";
+import { useNotifier } from "../hooks/useNotifier";
+import { getErrorMessage } from "../utils/errors";
 import { useCatalogLookups } from "../hooks/useCatalogLookups";
 import { useXlsxUpload } from "../hooks/useXlsxUpload";
 import type { EditorOptions } from "../types/editor";
@@ -77,7 +84,8 @@ type SimilarColorCandidate = {
 };
 
 export default function ColorList() {
-  const { toastRef, notify, getErrorMessage } = useToastNotifier();
+  const toastRef = useRef<Toast | null>(null);
+  const notify = useNotifier(toastRef);
 
   const mapColors = useCallback((colorData: ColorOption[], seasonData: SeasonOption[]) => {
     const localSeasonMap = new Map<number, string>();
@@ -103,6 +111,9 @@ export default function ColorList() {
   const [editingRows, setEditingRows] = useState<Record<string, boolean>>({});
   const [tempColorId, setTempColorId] = useState(-1);
   const [listSearch, setListSearch] = useState("");
+  const [quickSeasonFilterId, setQuickSeasonFilterId] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [collectionFilter, setCollectionFilter] = useState("");
   const [colorListLoading, setColorListLoading] = useState(false);
   const [multiSortMeta, setMultiSortMeta] = useState<DataTableSortMeta[]>(DEFAULT_COLOR_LIST_SORT_META);
 
@@ -426,11 +437,25 @@ export default function ColorList() {
       (row) => !row.seasonId || activeSeasonIds.has(row.seasonId)
     );
     const query = normalizeName(listSearch);
-    if (!query) {
-      return baseRows;
-    }
-
+    const selectedSeasonId = Number(quickSeasonFilterId);
+    const normalizedCollectionFilter = normalizeName(collectionFilter);
     return baseRows.filter((row) => {
+      if (
+        quickSeasonFilterId &&
+        Number.isFinite(selectedSeasonId) &&
+        (row.seasonId ?? null) !== selectedSeasonId
+      ) {
+        return false;
+      }
+      if (
+        normalizedCollectionFilter &&
+        normalizeName(row.collection ?? "") !== normalizedCollectionFilter
+      ) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
       const colorName = normalizeName(row.colorName ?? "");
       const collectionName = normalizeName(row.collection ?? "");
       const seasonName = normalizeName(row.seasonName ?? "");
@@ -440,7 +465,7 @@ export default function ColorList() {
         seasonName.includes(query)
       );
     });
-  }, [activeSeasonIds, colors, listSearch]);
+  }, [activeSeasonIds, collectionFilter, colors, listSearch, quickSeasonFilterId]);
 
   const loadColorList = async () => {
     setColorListLoading(true);
@@ -770,7 +795,7 @@ export default function ColorList() {
   };
 
   const renderSeasonEditor = (options: EditorOptions<ColorListRow>) => (
-    <Form.Select
+    <select
       value={options.rowData.seasonId ?? ""}
       onChange={(e) => {
         const nextId = Number(e.target.value);
@@ -786,11 +811,11 @@ export default function ColorList() {
           {season.seasonName}
         </option>
       ))}
-    </Form.Select>
+    </select>
   );
 
   const renderTextEditor = (options: EditorOptions<ColorListRow>) => (
-    <Form.Control
+    <input
       value={typeof options.value === "string" || typeof options.value === "number" ? options.value : ""}
       onChange={(e) => options.editorCallback?.(e.target.value)}
     />
@@ -801,7 +826,7 @@ export default function ColorList() {
       typeof options.value === "string" || typeof options.value === "number" ? String(options.value) : "";
     return (
       <div className="color-name-editor">
-        <Form.Control
+        <input
           value={value}
           onChange={(e) => options.editorCallback?.(e.target.value)}
         />
@@ -816,7 +841,7 @@ export default function ColorList() {
   };
 
   const renderCollectionEditor = (options: EditorOptions<ColorListRow>) => (
-    <Form.Select
+    <select
       value={options.rowData.collection ?? ""}
       onChange={(e) => {
         const nextValue = e.target.value;
@@ -830,11 +855,11 @@ export default function ColorList() {
           {collection.collectionName}
         </option>
       ))}
-    </Form.Select>
+    </select>
   );
 
   const renderHexEditor = (options: EditorOptions<ColorListRow>) => (
-    <Form.Control
+    <input
       value={typeof options.value === "string" || typeof options.value === "number" ? options.value : ""}
       onChange={(e) => options.editorCallback?.(e.target.value)}
       placeholder="#FFFFFF"
@@ -882,8 +907,14 @@ export default function ColorList() {
     printColorList(filteredColors);
   };
 
-  const handleRefreshColorList = async () => {
+  const clearFilters = () => {
     setListSearch("");
+    setQuickSeasonFilterId("");
+    setCollectionFilter("");
+  };
+
+  const handleRefreshColorList = async () => {
+    clearFilters();
     await loadColorList();
   };
 
@@ -944,100 +975,151 @@ export default function ColorList() {
   }, [uploadErrors]);
   const hasDuplicateErrors = duplicateRowNumbers.size > 0;
 
+  const activeFilterChips = useMemo<ActiveFilterChip[]>(() => {
+    const chips: ActiveFilterChip[] = [];
+    if (listSearch.trim()) {
+      chips.push({
+        key: "search",
+        label: "Search",
+        value: listSearch.trim(),
+        onRemove: () => setListSearch(""),
+      });
+    }
+    if (quickSeasonFilterId) {
+      const seasonName = seasons.find((season) => String(season.seasonId) === quickSeasonFilterId)?.seasonName;
+      chips.push({
+        key: "season",
+        label: "Season",
+        value: seasonName || quickSeasonFilterId,
+        onRemove: () => setQuickSeasonFilterId(""),
+      });
+    }
+    if (collectionFilter.trim()) {
+      chips.push({
+        key: "collection",
+        label: "Collection",
+        value: collectionFilter.trim(),
+        onRemove: () => setCollectionFilter(""),
+      });
+    }
+    return chips;
+  }, [collectionFilter, listSearch, quickSeasonFilterId, seasons]);
+
+  const headerActions = [
+    {
+      key: "addColor",
+      label: "Add Color",
+      icon: "pi pi-plus",
+      onClick: handleAddColorRow,
+      disabled: loadingLookups,
+    },
+    {
+      key: "addCollection",
+      label: "Add Collection",
+      icon: "pi pi-plus",
+      onClick: () => setShowCollectionModal(true),
+      disabled: loadingLookups,
+    },
+    {
+      key: "refresh",
+      label: colorListLoading ? "Refreshing..." : "Refresh List",
+      icon: "pi pi-refresh",
+      onClick: () => {
+        void handleRefreshColorList();
+      },
+      disabled: colorListLoading,
+    },
+    {
+      key: "upload",
+      label: "Upload Colors",
+      icon: "pi pi-upload",
+      onClick: () => setShowUploadModal(true),
+      separatorBefore: true,
+    },
+    {
+      key: "download",
+      label: "Download Color List",
+      icon: "pi pi-download",
+      onClick: handleDownloadColorList,
+    },
+    {
+      key: "print",
+      label: "Print Color List",
+      icon: "pi pi-print",
+      onClick: handlePrintColorList,
+    },
+    {
+      key: "clearFilters",
+      label: "Clear Filters",
+      icon: "pi pi-filter-slash",
+      onClick: clearFilters,
+      separatorBefore: true,
+    },
+  ];
+
   return (
     <CatalogPageLayout
       title="Color List"
       subtitle={`Total colors: ${filteredColors.length}`}
-      actions={[
-        {
-          label: "Download Color List",
-          onClick: handleDownloadColorList,
-          variant: "primary",
-          icon: "pi pi-download",
-          className: "btn-info btn-outlined",
-        },
-        {
-          label: "Print Color List",
-          onClick: handlePrintColorList,
-          variant: "primary",
-          icon: "pi pi-print",
-          className: "btn-warn btn-outlined",
-        },
-        {
-          label: "Upload Colors",
-          onClick: () => setShowUploadModal(true),
-          variant: "primary",
-          icon: "pi pi-upload",
-          className: "btn-success",
-        },
-      ]}
+      actionsSlot={<PageActionsMenu items={headerActions} />}
     >
       <Toast ref={toastRef} position="top-right" />
 
-      {lookupError && <Alert variant="danger">{lookupError}</Alert>}
+      {lookupError && <div className="pt-alert pt-alert-danger" role="alert">{lookupError}</div>}
 
-      <Card className="portal-content-card">
-        <Card.Body>
-          <Row className="items-actions-row align-items-center gy-2">
-            <Col md="auto" className="d-flex flex-wrap gap-2 justify-content-md-start">
-              <Button
-                type="button"
-                className="btn-success btn-outlined"
-                onClick={() => setShowCollectionModal(true)}
-                disabled={loadingLookups}
-              >
-                <i className="pi pi-plus" aria-hidden="true" />
-                Add Collection
-              </Button>
-            </Col>
-            <Col className="d-flex flex-wrap gap-2 justify-content-md-end">
-              <Button
-                type="button"
-                className="btn-primary btn-outlined"
-                onClick={handleAddColorRow}
-                disabled={loadingLookups}
-              >
-                <i className="pi pi-plus" aria-hidden="true" />
-                Add Color
-              </Button>
-              <Button
-                type="button"
-                className="btn-neutral btn-outlined"
-                onClick={handleRefreshColorList}
-                disabled={colorListLoading}
-              >
-                <i className="pi pi-refresh" aria-hidden="true" />
-                {colorListLoading ? "Refreshing..." : "Refresh list"}
-              </Button>
-            </Col>
-          </Row>
-
-          <Row className="items-filter-row mt-3 gy-2 align-items-end">
-            <Col md={6}>
-              <Form.Label>Search (Color / Collection / Season)</Form.Label>
-              <div className="inventory-labels-search-wrap">
-                <Form.Control
-                  className="inventory-labels-search"
-                  value={listSearch}
-                  onChange={(e) => setListSearch(e.target.value)}
-                  placeholder="Search color, collection, or season"
+      <div className="catalog-page-toolbar">
+        <PageFiltersBar
+          searchLabel=""
+          searchPlaceholder="Quick search color, collection, or season"
+          searchValue={listSearch}
+          onSearchChange={setListSearch}
+          showAdvanced={showAdvancedFilters}
+          onToggleAdvanced={() => setShowAdvancedFilters((prev) => !prev)}
+          advancedFilters={
+            <div className="page-filters-advanced-grid">
+              <div className="page-filter-field">
+                <label className="page-filters-label">Season</label>
+                <select
+                  value={quickSeasonFilterId}
+                  onChange={(event) => setQuickSeasonFilterId(event.target.value)}
                   disabled={loadingLookups}
-                />
-                {listSearch.trim() && (
-                  <button
-                    type="button"
-                    className="inventory-labels-search-clear"
-                    aria-label="Clear search"
-                    onClick={() => setListSearch("")}
-                  >
-                    <i className="pi pi-times" aria-hidden="true" />
-                  </button>
-                )}
+                >
+                  <option value="">All active seasons</option>
+                  {seasons
+                    .filter((season) => season.active !== false)
+                    .map((season) => (
+                      <option key={season.seasonId} value={season.seasonId}>
+                        {season.seasonName}
+                      </option>
+                    ))}
+                </select>
               </div>
-            </Col>
-          </Row>
+              <div className="page-filter-field">
+                <label className="page-filters-label">Collection</label>
+                <select
+                  value={collectionFilter}
+                  onChange={(event) => setCollectionFilter(event.target.value)}
+                  disabled={loadingLookups}
+                >
+                  <option value="">All collections</option>
+                  {collectionOptions.map((collection) => (
+                    <option key={collection.collectionId} value={collection.collectionName}>
+                      {collection.collectionName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          }
+          onClearFilters={clearFilters}
+          clearLabel="Clear Filters"
+        />
+        <ActiveFilterChips chips={activeFilterChips} onClearAll={clearFilters} clearLabel="Clear Filters" />
+      </div>
 
-          <div className="items-table-wrapper mt-3">
+      <div className="portal-content-card">
+        <div>
+          <div className="items-table-wrapper">
             <DataTable
               value={filteredColors}
               dataKey="colorId"
@@ -1093,7 +1175,7 @@ export default function ColorList() {
                 className="col-description"
                 sortable
               />
-              <Column rowEditor header="Save" headerStyle={{ width: "6rem" }} bodyStyle={{ textAlign: "center" }} />
+              <Column rowEditor header="Save" headerClassName="col-actions" bodyClassName="col-center" />
               <Column
                 header="Delete"
                 body={(row: ColorListRow) => (
@@ -1103,33 +1185,51 @@ export default function ColorList() {
                     onClick={() => setColorToDelete(row)}
                     disabled={row.colorId < 0}
                     aria-label={`Delete ${row.colorName}`}
+                    unstyled
                   >
                     <i className="pi pi-trash" aria-hidden="true" />
                   </Button>
                 )}
-                headerStyle={{ width: "6rem" }}
-                bodyStyle={{ textAlign: "center" }}
+                headerClassName="col-actions"
+                bodyClassName="col-center"
               />
             </DataTable>
           </div>
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
 
-      <Modal
-        show={Boolean(colorForm)}
+      <Dialog
+        visible={Boolean(colorForm)}
         onHide={closeColorModal}
-        centered
-        className="items-colors-modal"
+        header="Edit color"
+        footer={
+          <>
+            <Button type="button" className="btn-neutral btn-outlined" onClick={closeColorModal} unstyled>
+              <i className="pi pi-times" aria-hidden="true" />
+              Close
+            </Button>
+            <Button
+              type="button"
+              className="btn-success"
+              onClick={handleModalSave}
+              disabled={colorSaving}
+              unstyled
+            >
+              <i className="pi pi-save" aria-hidden="true" />
+              {colorSaving ? "Saving..." : "Save changes"}
+            </Button>
+          </>
+        }
+        modal
+        closable
+        draggable={false}
+        resizable={false}
         onKeyDown={handleModalEnter(handleModalSave, colorSaving)}
       >
-        <Modal.Header closeButton>
-          <Modal.Title>Edit color</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Row className="gy-3">
-            <Col md={6}>
-              <Form.Label>Color name</Form.Label>
-              <Form.Control
+          <div className="pt-form-grid-2">
+            <div>
+              <label>Color name</label>
+              <input
                 value={colorForm?.colorName ?? ""}
                 onChange={(e) =>
                   setColorForm((prev) => (prev ? { ...prev, colorName: e.target.value } : prev))
@@ -1143,10 +1243,10 @@ export default function ColorList() {
                     className: "color-similar-hint mt-2",
                   })
                 : null}
-            </Col>
-            <Col md={6}>
-              <Form.Label>Season</Form.Label>
-              <Form.Select
+            </div>
+            <div>
+              <label>Season</label>
+              <select
                 value={colorForm?.seasonId ?? ""}
                 onChange={(e) => {
                   const nextId = Number(e.target.value) || null;
@@ -1162,11 +1262,11 @@ export default function ColorList() {
                     {season.seasonName}
                   </option>
                 ))}
-              </Form.Select>
-            </Col>
-            <Col md={6}>
-              <Form.Label>Collection</Form.Label>
-              <Form.Select
+              </select>
+            </div>
+            <div>
+              <label>Collection</label>
+              <select
                 value={colorForm?.collection ?? ""}
                 onChange={(e) =>
                   setColorForm((prev) =>
@@ -1180,35 +1280,35 @@ export default function ColorList() {
                     {collection.collectionName}
                   </option>
                 ))}
-              </Form.Select>
-            </Col>
-            <Col md={6}>
-              <Form.Label>Pantone</Form.Label>
-              <Form.Control
+              </select>
+            </div>
+            <div>
+              <label>Pantone</label>
+              <input
                 value={colorForm?.pantoneColor ?? ""}
                 onChange={(e) =>
                   setColorForm((prev) => (prev ? { ...prev, pantoneColor: e.target.value } : prev))
                 }
               />
-            </Col>
-            <Col md={6}>
-              <Form.Label>Hex</Form.Label>
-              <Form.Control
+            </div>
+            <div>
+              <label>Hex</label>
+              <input
                 value={colorForm?.hexValue ?? ""}
                 onChange={(e) =>
                   setColorForm((prev) => (prev ? { ...prev, hexValue: e.target.value } : prev))
                 }
                 placeholder="#FFFFFF"
               />
-            </Col>
-          </Row>
+            </div>
+          </div>
 
           <hr className="my-3" />
-          <h6 className="mb-2">Migrate color</h6>
-          <Row className="gy-2 align-items-end">
-            <Col md={8}>
-              <Form.Label>Target color</Form.Label>
-              <Form.Select
+          <h6 className="pt-text-body-strong">Migrate color</h6>
+          <div className="pt-form-row-action">
+            <div>
+              <label>Target color</label>
+              <select
                 value={migrateTargetId}
                 onChange={(e) => setMigrateTargetId(e.target.value)}
               >
@@ -1218,150 +1318,45 @@ export default function ColorList() {
                     {formatColorLabel(color)}
                   </option>
                 ))}
-              </Form.Select>
-            </Col>
-            <Col md={4} className="text-md-end">
+              </select>
+            </div>
+            <div className="pt-form-row-action__end">
               <Button
                 type="button"
                 className="btn-danger btn-outlined"
                 onClick={handleMigrateRequest}
                 disabled={migratingColor}
+                unstyled
               >
                 <i className="pi pi-external-link" aria-hidden="true" />
                 Migrate
               </Button>
-            </Col>
-          </Row>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button type="button" className="btn-neutral btn-outlined" onClick={closeColorModal}>
-            <i className="pi pi-times" aria-hidden="true" />
-            Close
-          </Button>
-          <Button
-            type="button"
-            className="btn-success"
-            onClick={handleModalSave}
-            disabled={colorSaving}
-          >
-            <i className="pi pi-save" aria-hidden="true" />
-            {colorSaving ? "Saving..." : "Save changes"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+            </div>
+          </div>
+      </Dialog>
 
-      <Modal
-        show={showMigrateConfirm}
-        onHide={() => setShowMigrateConfirm(false)}
-        centered
-        onKeyDown={handleModalEnter(handleConfirmMigrate, migratingColor)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm migration</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p className="mb-0">
-            Move <strong>{colorForm?.colorName}</strong> to{" "}
-            <strong>{selectedMigrateTarget?.colorName}</strong>? This will update all related records.
-          </p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            type="button"
-            className="btn-neutral btn-outlined"
-            onClick={() => setShowMigrateConfirm(false)}
-            disabled={migratingColor}
-          >
-            <i className="pi pi-times" aria-hidden="true" />
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="btn-danger"
-            onClick={handleConfirmMigrate}
-            disabled={migratingColor}
-          >
-            <i className="pi pi-check" aria-hidden="true" />
-            {migratingColor ? "Migrating..." : "Confirm migrate"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      <Modal
-        show={showCollectionModal}
-        onHide={() => setShowCollectionModal(false)}
-        centered
-        onKeyDown={handleModalEnter(handleCreateCollection, collectionSaving)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Add Collection</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Label>Collection name</Form.Label>
-          <Form.Control
-            value={collectionInput}
-            onChange={(e) => setCollectionInput(e.target.value)}
-            placeholder="Enter collection name"
-            disabled={collectionSaving}
-          />
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            type="button"
-            className="btn-neutral btn-outlined"
-            onClick={() => setShowCollectionModal(false)}
-            disabled={collectionSaving}
-          >
-            <i className="pi pi-times" aria-hidden="true" />
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="btn-success"
-            onClick={handleCreateCollection}
-            disabled={collectionSaving}
-          >
-            <i className="pi pi-save" aria-hidden="true" />
-            {collectionSaving ? "Saving..." : "Save collection"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      <Modal
-        show={Boolean(colorToDelete)}
-        onHide={() => setColorToDelete(null)}
-        centered
-        onKeyDown={handleModalEnter(handleDeleteColor, deletingColorId !== null)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Delete color</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p className="mb-0">
-            Delete <strong>{colorToDelete?.colorName}</strong>? This action cannot be undone.
-          </p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            type="button"
-            className="btn-neutral btn-outlined"
-            onClick={() => setColorToDelete(null)}
-            disabled={deletingColorId !== null}
-          >
-            <i className="pi pi-times" aria-hidden="true" />
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="btn-danger"
-            onClick={handleDeleteColor}
-            disabled={deletingColorId !== null}
-          >
-            <i className="pi pi-trash" aria-hidden="true" />
-            {deletingColorId !== null ? "Deleting..." : "Delete"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <ColorListDialogs
+        showMigrateConfirm={showMigrateConfirm}
+        migratingColor={migratingColor}
+        colorName={colorForm?.colorName}
+        targetColorName={selectedMigrateTarget?.colorName}
+        onMigrateKeyDown={handleModalEnter(handleConfirmMigrate, migratingColor)}
+        onCancelMigrate={() => setShowMigrateConfirm(false)}
+        onConfirmMigrate={handleConfirmMigrate}
+        showCollectionModal={showCollectionModal}
+        collectionInput={collectionInput}
+        collectionSaving={collectionSaving}
+        onCollectionKeyDown={handleModalEnter(handleCreateCollection, collectionSaving)}
+        onCollectionInputChange={setCollectionInput}
+        onCancelCollection={() => setShowCollectionModal(false)}
+        onSaveCollection={handleCreateCollection}
+        showDeleteModal={Boolean(colorToDelete)}
+        deletingColor={deletingColorId !== null}
+        deleteColorName={colorToDelete?.colorName}
+        onDeleteKeyDown={handleModalEnter(handleDeleteColor, deletingColorId !== null)}
+        onCancelDelete={() => setColorToDelete(null)}
+        onConfirmDelete={handleDeleteColor}
+      />
 
       <UploadModal
         show={showUploadModal}
@@ -1372,23 +1367,23 @@ export default function ColorList() {
         enterDisabled={uploadRows.length === 0 || parseErrors.length > 0 || uploading}
         headerContent={
           <>
-            <h6 className="mb-1">Upload color list</h6>
-            <p className="text-muted mb-0">
+            <h6 className="pt-text-body-strong">Upload color list</h6>
+            <p className="pt-text-desc">
               Add or update colors with season, collection, Pantone, and hex values.
             </p>
           </>
         }
         downloadAction={
-          <Button type="button" className="btn-info btn-outlined" onClick={handleDownloadTemplate}>
+          <Button type="button" className="btn-info btn-outlined" onClick={handleDownloadTemplate} unstyled>
             <i className="pi pi-download" aria-hidden="true" />
             Download Template
           </Button>
         }
       >
-        <Row className="gy-3 mt-2">
-          <Col md={6}>
-            <Form.Label>Default Season (optional)</Form.Label>
-            <Form.Select
+        <div className="pt-form-grid-2 mt-2">
+          <div>
+            <label>Default Season (optional)</label>
+            <select
               value={defaultSeasonId}
               onChange={(e) => setDefaultSeasonId(e.target.value)}
               disabled={loadingLookups}
@@ -1399,16 +1394,16 @@ export default function ColorList() {
                   {season.seasonName}
                 </option>
               ))}
-            </Form.Select>
-          </Col>
-          <Col md={6}>
-            <Form.Label>Upload file</Form.Label>
-            <Form.Control type="file" accept=".xlsx,.xls" onChange={handleUploadFile} />
-          </Col>
-        </Row>
+            </select>
+          </div>
+          <div>
+            <label>Upload file</label>
+            <input type="file" accept=".xlsx,.xls" onChange={handleUploadFile} />
+          </div>
+        </div>
 
-        <Row className="gy-2 mt-2 align-items-end">
-          <Col xs={12} lg={showUploadCollectionAdd ? 8 : 12}>
+        <div className={`pt-form-row-action mt-2${showUploadCollectionAdd ? "" : " single-col"}`}>
+          <div>
             {!showUploadCollectionAdd ? (
               <Button
                 type="button"
@@ -1420,14 +1415,15 @@ export default function ColorList() {
                   setDismissUploadCollectionError(false);
                 }}
                 disabled={uploading || uploadCollectionSaving}
+                unstyled
               >
                 <i className="pi pi-plus" aria-hidden="true" />
                 Add Collection
               </Button>
             ) : (
               <>
-                <Form.Label>Add collection (without leaving upload)</Form.Label>
-                <Form.Control
+                <label>Add collection (without leaving upload)</label>
+                <input
                   type="text"
                   value={uploadCollectionInput}
                   onChange={(e) => setUploadCollectionInput(e.target.value)}
@@ -1436,14 +1432,15 @@ export default function ColorList() {
                 />
               </>
             )}
-          </Col>
+          </div>
           {showUploadCollectionAdd && (
-            <Col xs={12} lg={4} className="d-flex flex-wrap gap-2 justify-content-start justify-content-lg-end">
+            <div className="pt-action-row pt-form-row-action__end">
               <Button
                 type="button"
                 className="btn-success"
                 onClick={handleCreateCollectionFromUploadModal}
                 disabled={uploading || uploadCollectionSaving || !uploadCollectionInput.trim()}
+                unstyled
               >
                 <i className="pi pi-save" aria-hidden="true" />
                 {uploadCollectionSaving ? "Saving..." : "Save"}
@@ -1457,73 +1454,75 @@ export default function ColorList() {
                   setUploadCollectionError(null);
                 }}
                 disabled={uploadCollectionSaving}
+                unstyled
               >
                 <i className="pi pi-times" aria-hidden="true" />
                 Cancel
               </Button>
-            </Col>
+            </div>
           )}
-        </Row>
+        </div>
         {uploadCollectionError && !dismissUploadCollectionError && (
-          <Alert variant="danger" className="mt-2">
+          <div className="pt-alert pt-alert-danger" role="alert">
             {uploadCollectionError}
-            <div className="text-end mt-2">
+            <div className="pt-block-action-end pt-alert__footer">
               <Button
                 type="button"
                 className="btn-neutral btn-outlined"
                 onClick={() => setDismissUploadCollectionError(true)}
+                unstyled
               >
                 <i className="pi pi-check" aria-hidden="true" />
                 OK
               </Button>
             </div>
-          </Alert>
+          </div>
         )}
         {uploadCollectionSuccess && (
-          <Alert variant="success" className="mt-2">
+          <div className="pt-alert pt-alert-success" role="alert">
             {uploadCollectionSuccess}
-          </Alert>
+          </div>
         )}
 
-        {fileName && <div className="text-muted mt-2">Selected file: {fileName}</div>}
+        {fileName && <div className="pt-form-hint">Selected file: {fileName}</div>}
 
         {parseErrors.length > 0 && !dismissUploadParseErrors && (
-          <Alert variant="danger" className="mt-3">
-            <strong>Fix these issues before uploading:</strong>
-            <ul className="mb-0">
+          <div className="pt-alert pt-alert-danger" role="alert">
+            <div className="pt-text-body-strong pt-alert__header">Fix these issues before uploading:</div>
+            <ul className="pt-alert__list">
               {parseErrors.slice(0, 8).map((error) => (
                 <li key={error}>{error}</li>
               ))}
             </ul>
             {parseErrors.length > 8 && (
-              <div className="mt-2 text-muted">{parseErrors.length - 8} more issue(s) not shown.</div>
+              <div className="pt-alert__footer">{parseErrors.length - 8} more issue(s) not shown.</div>
             )}
-            <div className="text-end mt-2">
-              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissUploadParseErrors(true)}>
+            <div className="pt-block-action-end pt-alert__footer">
+              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissUploadParseErrors(true)} unstyled>
                 <i className="pi pi-check" aria-hidden="true" />
                 OK
               </Button>
             </div>
-          </Alert>
+          </div>
         )}
 
         {uploadSummary && !hasUploadErrors && (
-          <Alert variant="success" className="mt-3">
+          <div className="pt-alert pt-alert-success" role="alert">
             Upload successful. Processed {uploadSummary.processed} color(s).
-          </Alert>
+          </div>
         )}
 
         {uploadSummary && hasUploadErrors && !dismissUploadErrors && (
-          <Alert variant="danger" className="mt-3">
-            <strong>Upload completed with issues:</strong>
-            <ul className="mb-0">
+          <div className="pt-alert pt-alert-danger" role="alert">
+            <div className="pt-text-body-strong pt-alert__header">Upload completed with issues:</div>
+            <ul className="pt-alert__list">
               {uploadErrors.slice(0, 8).map((error) => {
                 const rowNumber = getRowNumberFromError(error);
                 const isDuplicate = rowNumber !== null && isDuplicateUploadError(error);
                 return (
                   <li
                     key={error}
-                    className={isDuplicate ? "d-flex align-items-start justify-content-between gap-2" : undefined}
+                    className={isDuplicate ? "pt-flex-between" : undefined}
                   >
                     <span>{error}</span>
                     {isDuplicate && (
@@ -1531,6 +1530,7 @@ export default function ColorList() {
                         type="button"
                         className="btn-neutral btn-text"
                         onClick={() => handleSkipDuplicateRow(rowNumber)}
+                        unstyled
                       >
                         Skip
                       </Button>
@@ -1540,39 +1540,41 @@ export default function ColorList() {
               })}
             </ul>
             {uploadErrors.length > 8 && (
-              <div className="mt-2 text-muted">{uploadErrors.length - 8} more issue(s) not shown.</div>
+              <div className="pt-alert__footer">{uploadErrors.length - 8} more issue(s) not shown.</div>
             )}
             {hasDuplicateErrors && (
-              <div className="text-end mt-2">
+              <div className="pt-block-action-end">
                 <Button
                   type="button"
                   className="btn-neutral btn-outlined"
                   onClick={() => handleSkipAllDuplicates(duplicateRowNumbers)}
+                  unstyled
                 >
                   <i className="pi pi-filter-slash" aria-hidden="true" />
                   Skip all duplicates
                 </Button>
               </div>
             )}
-            <div className="text-end mt-2">
-              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissUploadErrors(true)}>
+            <div className="pt-block-action-end">
+              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissUploadErrors(true)} unstyled>
                 <i className="pi pi-check" aria-hidden="true" />
                 OK
               </Button>
             </div>
-          </Alert>
+          </div>
         )}
 
         {uploadRows.length > 0 && (
-          <div className="text-muted mt-2">Rows ready to upload: {uploadRows.length}</div>
+          <div className="pt-form-hint">Rows ready to upload: {uploadRows.length}</div>
         )}
 
-        <div className="text-end mt-3">
+        <div className="pt-block-action-end">
           <Button
             type="button"
             className="btn-success"
             onClick={handleUploadColors}
             disabled={uploadRows.length === 0 || parseErrors.length > 0 || uploading}
+            unstyled
           >
             <i className="pi pi-upload" aria-hidden="true" />
             {uploading ? "Uploading..." : "Upload colors"}

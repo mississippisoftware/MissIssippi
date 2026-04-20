@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Form } from "react-bootstrap";
 import PageFiltersBar from "./PageFiltersBar";
 import type { InventorySearchFilters } from "../utils/InventorySearchFilters";
 
@@ -21,6 +20,8 @@ interface InventorySearchFiltersProps {
   onClear: () => void;
   onToggleAdvanced: () => void;
   advancedFiltersExtra?: ReactNode;
+  /** Passed through to PageFiltersBar chipsSlot — renders inline in the filter row. */
+  chipsSlot?: ReactNode;
 }
 
 export default function InventorySearchFiltersForm({
@@ -33,6 +34,7 @@ export default function InventorySearchFiltersForm({
   onClear,
   onToggleAdvanced,
   advancedFiltersExtra,
+  chipsSlot,
 }: InventorySearchFiltersProps) {
   const updateField = (key: SearchFieldKey, value: string) => {
     onChange({ ...filters, [key]: value });
@@ -45,22 +47,23 @@ export default function InventorySearchFiltersForm({
       searchValue={filters.itemNumber ?? ""}
       onSearchChange={(value) => onChange({ ...filters, itemNumber: value })}
       onApply={() => onSubmit(filters)}
-      applyLabel="Search"
       applying={searching}
       onClearFilters={onClear}
       clearLabel="Clear Filters"
       showAdvanced={showAdvanced}
       onToggleAdvanced={onToggleAdvanced}
+      chipsSlot={chipsSlot}
       advancedFilters={
         <div className="page-filters-advanced-grid">
           {filterFields.map((field) => (
             <div key={field.key} className="page-filter-field">
-              <Form.Label className="page-filters-label">{field.label}</Form.Label>
+              <label className="page-filters-label">{field.label}</label>
               {field.key === "seasonName" ? (
-                <Form.Select
+                <select
                   value={filters[field.key] ?? ""}
                   onChange={(e) => updateField(field.key, e.target.value)}
                   aria-label={field.label}
+                  className="pt-form-select"
                 >
                   <option value="">{field.label}</option>
                   {seasons.map((season) => (
@@ -68,14 +71,15 @@ export default function InventorySearchFiltersForm({
                       {season.seasonName}
                     </option>
                   ))}
-                </Form.Select>
+                </select>
               ) : (
-                <Form.Control
+                <input
                   type="text"
                   value={filters[field.key] ?? ""}
                   onChange={(e) => updateField(field.key, e.target.value)}
                   placeholder={field.label}
                   aria-label={field.label}
+                  className="pt-form-input"
                 />
               )}
             </div>

@@ -4,6 +4,11 @@ import { InventoryService, type SeasonRecord } from "../service/InventoryService
 import { getErrorMessage } from "../utils/errors";
 
 type UseCatalogLookupsOptions<TColor> = {
+  /**
+   * Optional transform applied to colors after load.
+   * MUST be a stable reference (wrap with useCallback in the caller), otherwise
+   * `refresh` will be recreated on every render and trigger an infinite fetch loop.
+   */
   mapColors?: (colors: ColorOption[], seasons: SeasonRecord[]) => TColor[];
   loadOnMount?: boolean;
   errorMessage?: string;

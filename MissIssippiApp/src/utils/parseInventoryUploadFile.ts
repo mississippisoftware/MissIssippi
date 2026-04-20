@@ -37,7 +37,20 @@ export const parseInventoryUploadFile = (args: {
     };
   }
 
-  const headerRow = rawRows[0] as unknown[];
+  // Exported inventory files prepend title/timestamp rows before the actual header.
+  // Scan the first 10 rows to find the first row containing a style or color candidate.
+  const STYLE_CANDIDATES = new Set(REQUIRED_HEADERS.style.map(normalizeHeaderValue));
+  const COLOR_CANDIDATES = new Set(REQUIRED_HEADERS.color.map(normalizeHeaderValue));
+  let headerRowIndex = 0;
+  for (let i = 0; i < Math.min(10, rawRows.length); i++) {
+    const candidates = normalizeHeaders(rawRows[i] as unknown[]);
+    if (candidates.some((h) => STYLE_CANDIDATES.has(h) || COLOR_CANDIDATES.has(h))) {
+      headerRowIndex = i;
+      break;
+    }
+  }
+
+  const headerRow = rawRows[headerRowIndex] as unknown[];
   const normalizedHeaders = normalizeHeaders(headerRow);
 
   const seasonIndex = findHeaderIndex(normalizedHeaders, REQUIRED_HEADERS.season);
@@ -93,9 +106,9 @@ export const parseInventoryUploadFile = (args: {
   const parsedRows: InventoryUploadRow[] = [];
   const errors: string[] = [];
 
-  rawRows.slice(1).forEach((row, rowIndex) => {
+  rawRows.slice(headerRowIndex + 1).forEach((row, rowIndex) => {
     const values = row as Array<unknown>;
-    const rowNumber = rowIndex + 2;
+    const rowNumber = headerRowIndex + rowIndex + 2;
 
     const seasonName = seasonIndex >= 0 ? String(values[seasonIndex] ?? "").trim() : "";
     const itemNumber = String(values[styleIndex] ?? "").trim();

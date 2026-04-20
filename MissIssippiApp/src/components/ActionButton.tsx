@@ -1,4 +1,4 @@
-import { Button } from "react-bootstrap";
+import { Button } from "primereact/button";
 
 type ActionButtonProps = {
   label?: string;
@@ -37,6 +37,7 @@ export default function ActionButton({
       disabled={disabled}
       aria-label={resolvedAriaLabel}
       title={resolvedTitle}
+      unstyled
     >
       {icon ? <i className={icon} aria-hidden="true" /> : null}
       {iconOnly ? null : label}

@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(node -e \":*)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//c/Users/zissy/source/repos/MissIssippi/**)",
+      "Bash(done)",
+      "Bash(python -)",
+      "Bash(python c:/Users/zissy/source/repos/MissIssippi/rename_topbar.py)",
+      "WebFetch(domain:themes.3rdwavemedia.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s \"https://themes.3rdwavemedia.com/demo/portal/\")",
+      "Bash(curl -sL \"https://themes.3rdwavemedia.com/demo/portal/\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri 'https://themes.3rdwavemedia.com/demo/portal/' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(node -e \"const p = require\\('./node_modules/primereact/package.json'\\); console.log\\(p.version\\)\")",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(grep -rn \"UploadInventory\\\\|InventoryUpload\" /c/Users/zissy/source/repos/MissIssippi/MissIssippiApp/src/routes*)",
+      "Bash(node -e ':*)",
+      "Bash(cmd /c \"cd /d c:\\\\Users\\\\zissy\\\\source\\\\repos\\\\MissIssippi\\\\MissIssippiApp && npx tsc --noEmit 2>&1\")",
+      "Bash(grep -v \":0$\")",
+      "Bash(grep -v \"//.*form-\\\\|#.*form-\")"
+    ]
+  }
+}

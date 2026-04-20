@@ -28,7 +28,7 @@ export default function CatalogCrudTable<TRecord extends DataTableValue>({
   onRowEditCancel,
   children,
   className = "p-datatable-gridlines items-colors-table",
-  wrapperClassName = "items-table-wrapper mt-3",
+  wrapperClassName = "items-table-wrapper",
   sortField,
   sortOrder,
   sortMode = "single",

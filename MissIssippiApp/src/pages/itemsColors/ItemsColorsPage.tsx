@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, Form } from "react-bootstrap";
 import type { DataTableRowEditCompleteEvent, DataTableRowClickEvent } from "primereact/datatable";
 import { Toast } from "primereact/toast";
 import CatalogService, { type ItemColorView } from "../../service/CatalogService";
@@ -627,7 +626,7 @@ export default function ItemsColors() {
     >
       <Toast ref={toastRef} position="top-right" />
 
-      {lookupError && <Alert variant="danger">{lookupError}</Alert>}
+      {lookupError && <div className="alert alert-danger" role="alert">{lookupError}</div>}
 
       <div className="catalog-page-toolbar inventory-edit-header-actions">
         <InventorySearchFiltersForm
@@ -639,8 +638,9 @@ export default function ItemsColors() {
           onClear={handleClearFilters}
           advancedFiltersExtra={
             <div className="page-filter-field">
-              <Form.Label className="page-filters-label">Active</Form.Label>
-              <Form.Select
+              <label className="page-filters-label">Active</label>
+              <select
+                className="pt-form-select"
                 value={activeFilter}
                 onChange={(event) => setActiveFilter(event.target.value)}
                 aria-label="Active status"
@@ -648,7 +648,7 @@ export default function ItemsColors() {
                 <option value="">All</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
-              </Form.Select>
+              </select>
             </div>
           }
         />

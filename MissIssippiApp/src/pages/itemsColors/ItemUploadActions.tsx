@@ -1,5 +1,5 @@
-import { type ChangeEvent, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Col, Form, Row } from "react-bootstrap";
+import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "primereact/button";
 import UploadModal from "../../components/UploadModal";
 import type {
   ColorUploadSummary,
@@ -34,6 +34,11 @@ type ItemUploadActionsProps = {
   handleColorUploadFile: (event: ChangeEvent<HTMLInputElement>) => void;
   handlePrepareColorUpload: () => void;
   onAddCollection: (collectionName: string) => Promise<string | void>;
+  hideInlineTriggers?: boolean;
+  onRegisterActions?: (actions: {
+    openItemUpload: () => void;
+    openColorUpload: () => void;
+  }) => void;
 };
 
 export default function ItemUploadActions({
@@ -61,6 +66,8 @@ export default function ItemUploadActions({
   handleColorUploadFile,
   handlePrepareColorUpload,
   onAddCollection,
+  hideInlineTriggers = false,
+  onRegisterActions,
 }: ItemUploadActionsProps) {
   const [showItemUploadModal, setShowItemUploadModal] = useState(false);
   const [showColorUploadModal, setShowColorUploadModal] = useState(false);
@@ -75,9 +82,15 @@ export default function ItemUploadActions({
   const [dismissColorUploadErrors, setDismissColorUploadErrors] = useState(false);
   const [dismissInlineCollectionError, setDismissInlineCollectionError] = useState(false);
 
-  const uploadErrors = uploadSummary?.errors ?? [];
+  const openItemUpload = useCallback(() => setShowItemUploadModal(true), []);
+  const openColorUpload = useCallback(() => setShowColorUploadModal(true), []);
+
+  const uploadErrors = useMemo(() => uploadSummary?.errors ?? [], [uploadSummary?.errors]);
   const hasUploadErrors = uploadErrors.length > 0;
-  const colorUploadErrors = colorUploadSummary?.errors ?? [];
+  const colorUploadErrors = useMemo(
+    () => colorUploadSummary?.errors ?? [],
+    [colorUploadSummary?.errors]
+  );
   const hasColorUploadErrors = colorUploadErrors.length > 0;
   const itemUploadBlockedBySeasonSelection = requiresSeasonSelection && !defaultSeasonId.trim();
   const itemRowNumberToStyleMap = useMemo(() => {
@@ -123,6 +136,13 @@ export default function ItemUploadActions({
     setDismissInlineCollectionError(false);
   }, [collectionAddError]);
 
+  useEffect(() => {
+    onRegisterActions?.({
+      openItemUpload,
+      openColorUpload,
+    });
+  }, [onRegisterActions, openColorUpload, openItemUpload]);
+
   const handleSaveInlineCollection = async () => {
     setCollectionAddError(null);
     setCollectionAddSuccess(null);
@@ -146,16 +166,18 @@ export default function ItemUploadActions({
 
   return (
     <>
-      <div className="items-upload-actions">
-        <Button type="button" className="btn-success" onClick={() => setShowItemUploadModal(true)}>
-          <i className="pi pi-upload" aria-hidden="true" />
-          Upload new items
-        </Button>
-        <Button type="button" className="btn-success" onClick={() => setShowColorUploadModal(true)}>
-          <i className="pi pi-upload" aria-hidden="true" />
-          Upload item colors
-        </Button>
-      </div>
+      {!hideInlineTriggers ? (
+        <div className="items-upload-actions">
+          <Button type="button" className="btn-success" onClick={openItemUpload} unstyled>
+            <i className="pi pi-upload" aria-hidden="true" />
+            Upload new items
+          </Button>
+          <Button type="button" className="btn-success" onClick={openColorUpload} unstyled>
+            <i className="pi pi-upload" aria-hidden="true" />
+            Upload item colors
+          </Button>
+        </div>
+      ) : null}
 
       <UploadModal
         show={showItemUploadModal}
@@ -171,22 +193,23 @@ export default function ItemUploadActions({
         }
         headerContent={
           <>
-            <h3 className="mb-1">Upload new items</h3>
-            <p className="text-muted mb-0">Add new items and colors to the list.</p>
+            <h3 className="pt-text-body-strong">Upload new items</h3>
+            <p className="pt-text-desc">Add new items and colors to the list.</p>
           </>
         }
         downloadAction={
-          <Button type="button" className="btn-info btn-outlined" onClick={handleDownloadTemplate}>
+          <Button type="button" className="btn-info btn-outlined" onClick={handleDownloadTemplate} unstyled>
             <i className="pi pi-download" aria-hidden="true" />
             Download Template
           </Button>
         }
       >
-        <Row className="gy-3 mt-1">
+        <div className="pt-flex-column mt-1">
           {requiresSeasonSelection && (
-            <Col md={12}>
-              <Form.Label>Default Season for this file</Form.Label>
-              <Form.Select
+            <div>
+              <label className="pt-text-label">Default Season for this file</label>
+              <select
+                className="pt-form-select"
                 value={defaultSeasonId}
                 onChange={(e) => setDefaultSeasonId(e.target.value)}
                 disabled={loadingLookups || uploading}
@@ -197,29 +220,30 @@ export default function ItemUploadActions({
                     {season.seasonName}
                   </option>
                 ))}
-              </Form.Select>
-              <Form.Text className="text-muted">
+              </select>
+              <div className="text-muted">
                 This file has no Season column. One default season is required.
-              </Form.Text>
-            </Col>
+              </div>
+            </div>
           )}
-          <Col md={12}>
-            <Form.Label>Upload file</Form.Label>
-            <Form.Control
+          <div>
+            <label className="pt-text-label">Upload file</label>
+            <input
               type="file"
+              className="pt-form-input"
               accept=".xlsx,.xls"
               onChange={handleUploadFile}
               disabled={loadingLookups}
             />
-          </Col>
-        </Row>
+          </div>
+        </div>
 
-        {fileName && <div className="text-muted mt-2">Selected file: {fileName}</div>}
+        {fileName && <div className="pt-form-hint">Selected file: {fileName}</div>}
 
         {!dismissItemParseErrors && parseErrors.length > 0 && (
-          <Alert variant="danger" className="mt-3">
+          <div className="alert alert-danger mt-3" role="alert">
             <strong>Fix these issues before uploading:</strong>
-            <ul className="mb-0">
+            <ul className="pt-list-compact">
               {parseErrors.slice(0, 6).map((error) => (
                 <li key={error}>{renderItemUploadIssue(error)}</li>
               ))}
@@ -227,29 +251,29 @@ export default function ItemUploadActions({
             {parseErrors.length > 6 && (
               <div className="mt-2 text-muted">{parseErrors.length - 6} more issue(s) not shown.</div>
             )}
-            <div className="text-end mt-2">
-              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissItemParseErrors(true)}>
+            <div className="pt-block-action-end">
+              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissItemParseErrors(true)} unstyled>
                 <i className="pi pi-check" aria-hidden="true" />
                 OK
               </Button>
             </div>
-          </Alert>
+          </div>
         )}
 
         {uploadSummary && !hasUploadErrors && (
-          <Alert variant="success" className="mt-3">
+          <div className="alert alert-success mt-3" role="alert">
             Upload successful. Processed {uploadSummary.processedItems} style(s). Created{" "}
             {uploadSummary.createdItems} new style(s), {uploadSummary.createdColors} new color(s), and{" "}
             {uploadSummary.createdItemColors} new style-color link(s); updated{" "}
             {uploadSummary.updatedItemColors} existing style-color link(s); skipped{" "}
             {uploadSummary.skippedItemColors} unchanged style-color link(s).
-          </Alert>
+          </div>
         )}
 
         {uploadSummary && hasUploadErrors && !dismissItemUploadErrors && (
-          <Alert variant="danger" className="mt-3">
+          <div className="alert alert-danger mt-3" role="alert">
             <strong>Upload completed with issues:</strong>
-            <ul className="mb-0">
+            <ul className="pt-list-compact">
               {uploadErrors.slice(0, 6).map((error) => (
                 <li key={error}>{renderItemUploadIssue(error)}</li>
               ))}
@@ -259,20 +283,20 @@ export default function ItemUploadActions({
                 {uploadErrors.length - 6} more issue(s) not shown.
               </div>
             )}
-            <div className="text-end mt-2">
-              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissItemUploadErrors(true)}>
+            <div className="pt-block-action-end">
+              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissItemUploadErrors(true)} unstyled>
                 <i className="pi pi-check" aria-hidden="true" />
                 OK
               </Button>
             </div>
-          </Alert>
+          </div>
         )}
 
         {uploadRows.length > 0 && (
-          <div className="text-muted mt-2">Rows ready to upload: {uploadRows.length}</div>
+          <div className="pt-form-hint">Rows ready to upload: {uploadRows.length}</div>
         )}
 
-        <div className="text-end mt-3">
+        <div className="pt-block-action-end">
           <Button
             type="button"
             className="btn-success"
@@ -283,6 +307,7 @@ export default function ItemUploadActions({
               uploading ||
               itemUploadBlockedBySeasonSelection
             }
+            unstyled
           >
             <i className="pi pi-upload" aria-hidden="true" />
             {uploading ? "Uploading..." : "Upload new items"}
@@ -299,21 +324,22 @@ export default function ItemUploadActions({
         enterDisabled={colorUploadRows.length === 0 || colorParseErrors.length > 0 || colorUploading}
         headerContent={
           <>
-            <h6 className="mb-1">Upload item colors</h6>
-            <p className="text-muted mb-0">Add or update colors for existing styles only.</p>
+            <h6 className="pt-text-body-strong">Upload item colors</h6>
+            <p className="pt-text-desc">Add or update colors for existing styles only.</p>
           </>
         }
         downloadAction={
-          <Button type="button" className="btn-info btn-outlined" onClick={handleDownloadItemColors}>
+          <Button type="button" className="btn-info btn-outlined" onClick={handleDownloadItemColors} unstyled>
             <i className="pi pi-download" aria-hidden="true" />
             Download Item Colors
           </Button>
         }
       >
-        <Row className="gy-3 mt-1">
-          <Col md={12}>
-            <Form.Label>Default Season (optional)</Form.Label>
-            <Form.Select
+        <div className="pt-flex-column mt-1">
+          <div>
+            <label className="pt-text-label">Default Season (optional)</label>
+            <select
+              className="pt-form-select"
               value={colorDefaultSeasonId}
               onChange={(e) => setColorDefaultSeasonId(e.target.value)}
               disabled={loadingLookups}
@@ -324,18 +350,14 @@ export default function ItemUploadActions({
                   {season.seasonName}
                 </option>
               ))}
-            </Form.Select>
-          </Col>
-        </Row>
-        <Row className="gy-2 mt-2">
-          <Col md={12}>
-            <div className="text-muted">
-              Upload will replace each style's active colors with the colors listed in the file.
-            </div>
-          </Col>
-        </Row>
-        <Row className="gy-2 mt-2 align-items-end">
-          <Col md={showInlineCollectionAdd ? 8 : 12}>
+            </select>
+          </div>
+        </div>
+        <div className="pt-text-desc">
+          Upload will replace each style's active colors with the colors listed in the file.
+        </div>
+        <div className="pt-form-row-action mt-2">
+          <div>
             {!showInlineCollectionAdd ? (
               <Button
                 type="button"
@@ -347,15 +369,17 @@ export default function ItemUploadActions({
                   setDismissInlineCollectionError(false);
                 }}
                 disabled={colorUploading || addingCollection}
+                unstyled
               >
                 <i className="pi pi-plus" aria-hidden="true" />
                 Add Collection
               </Button>
             ) : (
               <>
-                <Form.Label>Add collection (without leaving upload)</Form.Label>
-                <Form.Control
+                <label className="pt-text-label">Add collection (without leaving upload)</label>
+                <input
                   type="text"
+                  className="pt-form-input"
                   value={newCollectionName}
                   onChange={(e) => setNewCollectionName(e.target.value)}
                   placeholder="Enter collection name"
@@ -363,14 +387,15 @@ export default function ItemUploadActions({
                 />
               </>
             )}
-          </Col>
+          </div>
           {showInlineCollectionAdd && (
-            <Col md={4} className="d-flex gap-2">
+            <div className="pt-action-row pt-form-row-action__end">
               <Button
                 type="button"
                 className="btn-success"
                 onClick={handleSaveInlineCollection}
                 disabled={addingCollection || colorUploading || !newCollectionName.trim()}
+                unstyled
               >
                 <i className="pi pi-save" aria-hidden="true" />
                 {addingCollection ? "Saving..." : "Save"}
@@ -384,47 +409,47 @@ export default function ItemUploadActions({
                   setCollectionAddError(null);
                 }}
                 disabled={addingCollection}
+                unstyled
               >
                 <i className="pi pi-times" aria-hidden="true" />
                 Cancel
               </Button>
-            </Col>
+            </div>
           )}
-        </Row>
+        </div>
         {collectionAddError && !dismissInlineCollectionError && (
-          <Alert variant="danger" className="mt-2">
+          <div className="alert alert-danger mt-2" role="alert">
             {collectionAddError}
-            <div className="text-end mt-2">
-              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissInlineCollectionError(true)}>
+            <div className="pt-block-action-end">
+              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissInlineCollectionError(true)} unstyled>
                 <i className="pi pi-check" aria-hidden="true" />
                 OK
               </Button>
             </div>
-          </Alert>
+          </div>
         )}
         {collectionAddSuccess && (
-          <Alert variant="success" className="mt-2">
+          <div className="alert alert-success mt-2" role="alert">
             {collectionAddSuccess}
-          </Alert>
+          </div>
         )}
-        <Row className="gy-3 mt-3">
-          <Col md={12}>
-            <Form.Label>Upload file</Form.Label>
-            <Form.Control
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleColorUploadFile}
-              disabled={loadingLookups}
-            />
-          </Col>
-        </Row>
+        <div className="pt-form-group mt-3">
+          <label className="pt-text-label">Upload file</label>
+          <input
+            type="file"
+            className="pt-form-input"
+            accept=".xlsx,.xls"
+            onChange={handleColorUploadFile}
+            disabled={loadingLookups}
+          />
+        </div>
 
-        {colorFileName && <div className="text-muted mt-2">Selected file: {colorFileName}</div>}
+        {colorFileName && <div className="pt-form-hint">Selected file: {colorFileName}</div>}
 
         {colorParseErrors.length > 0 && !dismissColorParseErrors && (
-          <Alert variant="danger" className="mt-3">
+          <div className="alert alert-danger mt-3" role="alert">
             <strong>Fix these issues before uploading:</strong>
-            <ul className="mb-0">
+            <ul className="pt-list-compact">
               {colorParseErrors.slice(0, 6).map((error) => (
                 <li key={error}>{error}</li>
               ))}
@@ -434,29 +459,29 @@ export default function ItemUploadActions({
                 {colorParseErrors.length - 6} more issue(s) not shown.
               </div>
             )}
-            <div className="text-end mt-2">
-              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissColorParseErrors(true)}>
+            <div className="pt-block-action-end">
+              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissColorParseErrors(true)} unstyled>
                 <i className="pi pi-check" aria-hidden="true" />
                 OK
               </Button>
             </div>
-          </Alert>
+          </div>
         )}
 
         {colorUploadSummary && !hasColorUploadErrors && (
-          <Alert variant="success" className="mt-3">
+          <div className="alert alert-success mt-3" role="alert">
             Upload successful. Processed {colorUploadSummary.processedItems} style(s). Added{" "}
             {colorUploadSummary.createdItemColors} new style-color link(s), updated{" "}
             {colorUploadSummary.updatedItemColors} existing style-color link(s), skipped{" "}
             {colorUploadSummary.skippedItemColors} unchanged style-color link(s), and created{" "}
             {colorUploadSummary.createdColors} new color(s).
-          </Alert>
+          </div>
         )}
 
         {colorUploadSummary && hasColorUploadErrors && !dismissColorUploadErrors && (
-          <Alert variant="danger" className="mt-3">
+          <div className="alert alert-danger mt-3" role="alert">
             <strong>Upload completed with issues:</strong>
-            <ul className="mb-0">
+            <ul className="pt-list-compact">
               {colorUploadErrors.slice(0, 6).map((error) => (
                 <li key={error}>{error}</li>
               ))}
@@ -466,25 +491,26 @@ export default function ItemUploadActions({
                 {colorUploadErrors.length - 6} more issue(s) not shown.
               </div>
             )}
-            <div className="text-end mt-2">
-              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissColorUploadErrors(true)}>
+            <div className="pt-block-action-end">
+              <Button type="button" className="btn-neutral btn-outlined" onClick={() => setDismissColorUploadErrors(true)} unstyled>
                 <i className="pi pi-check" aria-hidden="true" />
                 OK
               </Button>
             </div>
-          </Alert>
+          </div>
         )}
 
         {colorUploadRows.length > 0 && (
-          <div className="text-muted mt-2">Rows ready to upload: {colorUploadRows.length}</div>
+          <div className="pt-form-hint">Rows ready to upload: {colorUploadRows.length}</div>
         )}
 
-        <div className="text-end mt-3">
+        <div className="pt-block-action-end">
           <Button
             type="button"
             className="btn-success"
             onClick={handlePrepareColorUpload}
             disabled={colorUploadRows.length === 0 || colorParseErrors.length > 0 || colorUploading}
+            unstyled
           >
             <i className="pi pi-upload" aria-hidden="true" />
             {colorUploading ? "Uploading..." : "Upload item colors"}

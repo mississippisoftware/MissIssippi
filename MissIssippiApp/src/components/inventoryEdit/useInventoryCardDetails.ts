@@ -96,7 +96,7 @@ export const useInventoryCardDetails = ({
     [styleColors]
   );
 
-  const handleToggleColorActive = async (itemColorId: number, nextActive: boolean) => {
+  const handleToggleColorActive = useCallback(async (itemColorId: number, nextActive: boolean) => {
     if (!isEditable) {
       return;
     }
@@ -115,7 +115,7 @@ export const useInventoryCardDetails = ({
     } catch (err: unknown) {
       notify?.("error", "Update failed", getErrorMessage(err, "Unable to update color status."));
     }
-  };
+  }, [isEditable, notify]);
 
   return {
     detailsLoading,

@@ -233,7 +233,6 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
             header={size.sizeName}
             body={(row) => row.sizes[size.sizeName]?.qty ?? 0}
             editor={editable ? (options) => renderSizeEditor(options, size.sizeName) : undefined}
-            style={{ textAlign: "center" }}
             className="col-size"
           />
         ))}
@@ -243,7 +242,6 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
             key="rowTotal"
             header={rowTotalHeader}
             body={(row) => getRowTotal(row)}
-            style={{ textAlign: "center" }}
             className="col-total"
           />
         )}
@@ -251,8 +249,8 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
         {editable && (
           <Column
             rowEditor
-            headerStyle={{ width: "10%", minWidth: "8rem" }}
-            bodyStyle={{ textAlign: "center" }}
+            headerClassName="col-row-editor"
+            bodyClassName="col-center"
           />
         )}
       </DataTable>
@@ -262,7 +260,7 @@ const InventoryTable = forwardRef<InventoryTableHandle, InventoryTableProps>(fun
   return embedded ? (
     table
   ) : (
-    <div className="container">
+    <div className="page-container">
       <div className="content-card">{table}</div>
     </div>
   );

@@ -14,6 +14,11 @@ import { useXlsxUploadParser } from "../../hooks/useXlsxUpload";
 import { getErrorMessage } from "../../utils/errors";
 import { appendSheet, createWorkbook, saveWorkbook, sheetFromAoa } from "../../utils/xlsxUtils";
 import { findHeaderIndex, normalizeHeaders } from "../../utils/xlsxParse";
+import {
+  buildCompositeColorGroups,
+  pickExistingColor,
+  resolveUploadColorId,
+} from "../../utils/colorLinking";
 
 type UseColorUploadParams = {
   seasons: SeasonOption[];
@@ -80,34 +85,6 @@ export function useColorUpload({
   const [colorUploading, setColorUploading] = useState(false);
   const [colorUploadSummary, setColorUploadSummary] = useState<ColorUploadSummary | null>(null);
   const replaceExistingColors = true;
-  const getConflictName = (message: string) => {
-    const match = /Color '(.+?)' already exists/i.exec(message);
-    return match?.[1] ?? null;
-  };
-  const pickExistingColor = (args: {
-    matches: ColorOption[];
-    normalizedColorName: string;
-    seasonId: number;
-    collection?: string | null;
-  }): ColorOption | undefined => {
-    const { matches, normalizedColorName, seasonId, collection } = args;
-    const normalizedCollection = normalizeName(collection ?? "");
-    return (
-      matches.find(
-        (entry) =>
-          normalizeName(entry.colorName) === normalizedColorName &&
-          (entry.seasonId ?? null) === seasonId &&
-          (!normalizedCollection || normalizeName(entry.collection ?? "") === normalizedCollection)
-      ) ??
-      matches.find(
-        (entry) =>
-          normalizeName(entry.colorName) === normalizedColorName &&
-          (entry.seasonId ?? null) === seasonId
-      ) ??
-      matches.find((entry) => normalizeName(entry.colorName) === normalizedColorName)
-    );
-  };
-
   const { parseFile: parseColorUploadFile } = useXlsxUploadParser<UploadColorRow, ColorUploadParseContext>({
     buildParseContext: (headerRow) => {
       const normalizedHeaders = normalizeHeaders(headerRow);
@@ -306,129 +283,6 @@ export function useColorUpload({
       seasons.map((season) => [normalizeName(season.seasonName), season.seasonId])
     );
 
-    const resolveComponentColorId = async (
-      componentName: string,
-      componentNormalized: string,
-      seasonId: number,
-      itemNumber: string
-    ) => {
-      const resolution = resolutionMap[componentNormalized];
-      if (!resolution) {
-        summary.errors.push(`Style '${itemNumber}': Color '${componentName}' has no resolution.`);
-        return undefined;
-      }
-
-      let colorId = resolution.colorId;
-      const cached = createdColorIds.get(componentNormalized);
-      if (!colorId && cached) {
-        colorId = cached;
-      }
-      if (!colorId && resolution.action === "existing") {
-        const exact = normalizedColors.find((match) => match.normalized === componentNormalized);
-        colorId = exact?.colorId;
-      }
-
-      if (!colorId) {
-        try {
-          await CatalogService.addOrUpdateColor({
-            colorName: resolution.resolvedName,
-            seasonId,
-            collection: resolution.collection ?? undefined,
-          });
-          const matches = await CatalogService.getColors({ colorName: resolution.resolvedName });
-          const match = pickExistingColor({
-            matches,
-            normalizedColorName: componentNormalized,
-            seasonId,
-            collection: resolution.collection,
-          });
-          if (!match) {
-            summary.errors.push(`Color '${resolution.resolvedName}' could not be created.`);
-            return undefined;
-          }
-          colorId = match.colorId;
-          createdColorIds.set(componentNormalized, colorId);
-          newColors.push(match);
-          createdColorNames.add(componentNormalized);
-          return colorId;
-        } catch (err: unknown) {
-          const message = getErrorMessage(err, "Upload failed.");
-          const conflictName = getConflictName(message);
-          if (conflictName || /already exists|conflict/i.test(message)) {
-            try {
-              const matches = await CatalogService.getColors({ colorName: resolution.resolvedName });
-              const existing = pickExistingColor({
-                matches,
-                normalizedColorName: componentNormalized,
-                seasonId,
-                collection: resolution.collection,
-              });
-              if (existing) {
-                existingColorNames.add(componentNormalized);
-                return existing.colorId;
-              }
-            } catch (lookupErr: unknown) {
-              const lookupMessage = getErrorMessage(lookupErr, "");
-              if (lookupMessage) {
-                summary.errors.push(lookupMessage);
-              }
-            }
-          }
-          summary.errors.push(message);
-          return undefined;
-        }
-      }
-
-      if (!createdColorIds.has(componentNormalized) && !createdColorNames.has(componentNormalized)) {
-        existingColorNames.add(componentNormalized);
-      }
-
-      return colorId;
-    };
-
-    const buildColorGroups = (colors: string[]) => {
-      const groups = new Map<string, { primaryName: string; secondaryNames: string[] }>();
-      const secondarySeen = new Map<string, Set<string>>();
-
-      colors.forEach((rawColor) => {
-        const parts = splitCompositeColorName(rawColor);
-        if (parts.length === 0) {
-          return;
-        }
-
-        const primaryName = parts[0];
-        const primaryNormalized = normalizeName(primaryName);
-        if (!primaryNormalized) {
-          return;
-        }
-
-        if (!groups.has(primaryNormalized)) {
-          groups.set(primaryNormalized, { primaryName, secondaryNames: [] });
-          secondarySeen.set(primaryNormalized, new Set());
-        }
-
-        const group = groups.get(primaryNormalized);
-        const seen = secondarySeen.get(primaryNormalized);
-        if (!group || !seen) {
-          return;
-        }
-
-        parts.slice(1).forEach((secondaryName) => {
-          const secondaryNormalized = normalizeName(secondaryName);
-          if (!secondaryNormalized || secondaryNormalized === primaryNormalized) {
-            return;
-          }
-          if (seen.has(secondaryNormalized)) {
-            return;
-          }
-          seen.add(secondaryNormalized);
-          group.secondaryNames.push(secondaryName);
-        });
-      });
-
-      return groups;
-    };
-
     try {
       const groupedRows = new Map<
         string,
@@ -487,15 +341,23 @@ export function useColorUpload({
         }
         const existingColorIds = new Set(itemColors.keys());
 
-        const colorGroups = buildColorGroups(Array.from(entry.colorNames));
+        const colorGroups = buildCompositeColorGroups(entry.colorNames);
         const desiredPrimaryIds = new Set<number>();
         for (const [primaryNormalized, group] of colorGroups) {
-          const primaryId = await resolveComponentColorId(
-            group.primaryName,
-            primaryNormalized,
-            entry.seasonId,
-            entry.itemNumber
-          );
+          const primaryId = await resolveUploadColorId({
+            componentName: group.primaryName,
+            componentNormalized: primaryNormalized,
+            seasonId: entry.seasonId,
+            itemNumber: entry.itemNumber,
+            resolutionMap,
+            normalizedColors,
+            createdColorIds,
+            createdColorNames,
+            existingColorNames,
+            nextColors: newColors,
+            pickExistingColor,
+            addError: (message) => summary.errors.push(message),
+          });
           if (!primaryId) {
             continue;
           }
@@ -508,12 +370,20 @@ export function useColorUpload({
             if (!secondaryNormalized || secondaryNormalized === primaryNormalized) {
               continue;
             }
-            const secondaryId = await resolveComponentColorId(
-              secondaryName,
-              secondaryNormalized,
-              entry.seasonId,
-              entry.itemNumber
-            );
+            const secondaryId = await resolveUploadColorId({
+              componentName: secondaryName,
+              componentNormalized: secondaryNormalized,
+              seasonId: entry.seasonId,
+              itemNumber: entry.itemNumber,
+              resolutionMap,
+              normalizedColors,
+              createdColorIds,
+              createdColorNames,
+              existingColorNames,
+              nextColors: newColors,
+              pickExistingColor,
+              addError: (message) => summary.errors.push(message),
+            });
             if (!secondaryId || secondarySet.has(secondaryId)) {
               continue;
             }

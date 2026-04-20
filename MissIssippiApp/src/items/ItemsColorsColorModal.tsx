@@ -1,5 +1,7 @@
 import type { KeyboardEvent } from "react";
-import { Button, Col, Form, Modal, Row } from "react-bootstrap";
+import { Button } from "primereact/button";
+import { Dialog } from "primereact/dialog";
+import { InputSwitch } from "primereact/inputswitch";
 import type { PendingColor } from "./itemsColorsTypes";
 import type { CollectionOption } from "../service/CatalogService";
 import { shouldSubmitOnEnter } from "../utils/modalKeyHandlers";
@@ -88,159 +90,164 @@ export default function ItemsColorsColorModal({
   };
 
   return (
-    <Modal
-      show={show}
+    <Dialog
+      visible={show}
       onHide={onClose}
-      centered
-      size="lg"
+      header={activeItemLabel}
+      footer={
+        <>
+          <Button type="button" className="btn-neutral btn-outlined" onClick={onClose} unstyled>
+            <i className="pi pi-times" aria-hidden="true" />
+            Close
+          </Button>
+          <Button
+            type="button"
+            className="btn-success"
+            onClick={onSave}
+            disabled={saveDisabled}
+            unstyled
+          >
+            <i className="pi pi-save" aria-hidden="true" />
+            {saving ? "Saving..." : "Save Colors"}
+          </Button>
+        </>
+      }
+      modal
+      closable
+      draggable={false}
+      resizable={false}
       className="items-colors-modal"
       onKeyDown={handleKeyDown}
     >
-      <Modal.Header closeButton>
-        <Modal.Title>{activeItemLabel}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <div className="text-muted mb-3">
-          {isLocked ? "Save the style before adding colors." : "Add colors and save to link them to this style."}
+      <div className="pt-text-desc">
+        {isLocked ? "Save the style before adding colors." : "Add colors and save to link them to this style."}
+      </div>
+      <div className="item-color-form-row">
+        <div>
+          <label className="pt-text-label">Color name</label>
+          <input
+            className="pt-form-input"
+            value={colorInput}
+            onChange={(e) => onColorInputChange(e.target.value)}
+            disabled={isLocked}
+            placeholder={isLocked ? "Save a style first" : "Enter color name"}
+          />
         </div>
-        <Row className="gy-3 align-items-end">
-          <Col md={3}>
-            <Form.Label>Color name</Form.Label>
-            <Form.Control
-              value={colorInput}
-              onChange={(e) => onColorInputChange(e.target.value)}
-              disabled={isLocked}
-              placeholder={isLocked ? "Save a style first" : "Enter color name"}
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Label>Collection</Form.Label>
-            <Form.Select
-              value={colorCollectionInput}
-              onChange={(e) => onCollectionChange(e.target.value)}
-              disabled={isLocked}
-            >
-              <option value="">{isLocked ? "Save a style first" : "Select collection"}</option>
-              {collectionOptions.map((collection) => (
-                <option key={collection.collectionId} value={collection.collectionName}>
-                  {collection.collectionName}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-          <Col md={2}>
-            <Form.Label>Pantone</Form.Label>
-            <Form.Control
-              value={colorPantoneInput}
-              onChange={(e) => onPantoneChange(e.target.value)}
-              disabled={isLocked}
-              placeholder="Optional"
-            />
-          </Col>
-          <Col md={2}>
-            <Form.Label>Hex</Form.Label>
-            <Form.Control
-              value={colorHexInput}
-              onChange={(e) => onHexChange(e.target.value)}
-              disabled={isLocked}
-              placeholder="#1A2B3C"
-            />
-          </Col>
-          <Col md={2} className="d-grid">
-            <Button
-              type="button"
-              className="btn-primary btn-outlined"
-              onClick={onAddColor}
-              disabled={!canAdd}
-            >
-              <i className="pi pi-plus" aria-hidden="true" />
-              Add
-            </Button>
-          </Col>
-        </Row>
+        <div>
+          <label className="pt-text-label">Collection</label>
+          <select
+            className="pt-form-select"
+            value={colorCollectionInput}
+            onChange={(e) => onCollectionChange(e.target.value)}
+            disabled={isLocked}
+          >
+            <option value="">{isLocked ? "Save a style first" : "Select collection"}</option>
+            {collectionOptions.map((collection) => (
+              <option key={collection.collectionId} value={collection.collectionName}>
+                {collection.collectionName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="pt-text-label">Pantone</label>
+          <input
+            className="pt-form-input"
+            value={colorPantoneInput}
+            onChange={(e) => onPantoneChange(e.target.value)}
+            disabled={isLocked}
+            placeholder="Optional"
+          />
+        </div>
+        <div>
+          <label className="pt-text-label">Hex</label>
+          <input
+            className="pt-form-input"
+            value={colorHexInput}
+            onChange={(e) => onHexChange(e.target.value)}
+            disabled={isLocked}
+            placeholder="#1A2B3C"
+          />
+        </div>
+        <div>
+          <Button
+            type="button"
+            className="btn-primary btn-outlined"
+            onClick={onAddColor}
+            disabled={!canAdd}
+            unstyled
+          >
+            <i className="pi pi-plus" aria-hidden="true" />
+            Add
+          </Button>
+        </div>
+      </div>
 
-        {pendingColors.length === 0 ? (
-          <div className="text-muted mt-3">No colors added yet.</div>
-        ) : (
-          <div className="mt-3">
-            <div className="text-muted mb-2">Colors queued for this style:</div>
-            <div className="d-flex flex-wrap gap-2">
-              {pendingColors.map((color) => (
-                <span
-                  key={color.normalized}
-                  className="badge bg-light text-dark border d-inline-flex align-items-center gap-2"
+      {pendingColors.length === 0 ? (
+        <div className="pt-text-desc">No colors added yet.</div>
+      ) : (
+        <div className="color-modal-pending-section">
+          <div className="pt-form-hint">Colors queued for this style:</div>
+          <div className="pt-action-row">
+            {pendingColors.map((color) => (
+              <span
+                key={color.normalized}
+                className="badge bg-light text-dark border d-inline-flex align-items-center gap-2"
+              >
+                {color.name}
+                {color.pantoneColor ? ` - ${color.pantoneColor}` : ""}
+                {color.hexValue ? ` - ${color.hexValue}` : ""}
+                <button
+                  type="button"
+                  className="btn-danger btn-text"
+                  onClick={() => onRemovePending(color.normalized)}
                 >
-                  {color.name}
-                  {color.pantoneColor ? ` - ${color.pantoneColor}` : ""}
-                  {color.hexValue ? ` - ${color.hexValue}` : ""}
-                  <button
-                    type="button"
-                    className="btn-danger btn-text"
-                    onClick={() => onRemovePending(color.normalized)}
-                  >
-                    <i className="pi pi-trash" aria-hidden="true" />
-                    Remove
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-4">
-          <div className="text-muted mb-2">Current colors:</div>
-          <div className="d-flex flex-column gap-2">
-            {currentColors.length === 0 ? (
-              <span className="text-muted">No colors linked yet.</span>
-            ) : (
-              <>
-                <div className="d-flex align-items-center text-muted small">
-                  <span className="flex-grow-1">Color</span>
-                  <span>Active</span>
-                </div>
-                {currentColors.map((color) => (
-                  <div key={`current-${color.itemColorId}`} className="d-flex align-items-center gap-2 flex-wrap">
-                    <span
-                      className={`item-color-rect${color.hexValue ? " has-hex" : ""}${
-                        color.itemColorActive === false ? " opacity-50" : ""
-                      }`}
-                      style={
-                        color.hexValue
-                          ? { backgroundColor: color.hexValue, color: getReadableTextColor(color.hexValue) }
-                          : undefined
-                      }
-                    >
-                      {color.colorName}
-                    </span>
-                    <Form.Check
-                      type="switch"
-                      id={`color-active-${color.itemColorId}`}
-                      label="Active"
-                      checked={color.itemColorActive !== false}
-                      onChange={(e) => onToggleActive(color.itemColorId, e.target.checked)}
-                    />
-                  </div>
-                ))}
-              </>
-            )}
+                  <i className="pi pi-trash" aria-hidden="true" />
+                  Remove
+                </button>
+              </span>
+            ))}
           </div>
         </div>
-      </Modal.Body>
-      <Modal.Footer className="justify-content-between">
-        <Button type="button" className="btn-neutral btn-outlined" onClick={onClose}>
-          <i className="pi pi-times" aria-hidden="true" />
-          Close
-        </Button>
-        <Button
-          type="button"
-          className="btn-success"
-          onClick={onSave}
-          disabled={saveDisabled}
-        >
-          <i className="pi pi-save" aria-hidden="true" />
-          {saving ? "Saving..." : "Save Colors"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+      )}
+
+      <div className="color-modal-current-section">
+        <div className="pt-form-hint">Current colors:</div>
+        <div className="pt-flex-column">
+          {currentColors.length === 0 ? (
+            <span className="text-muted">No colors linked yet.</span>
+          ) : (
+            <>
+              <div className="pt-flex-row text-muted small">
+                <span className="flex-grow-1">Color</span>
+                <span>Active</span>
+              </div>
+              {currentColors.map((color) => (
+                <div key={`current-${color.itemColorId}`} className="pt-flex-row">
+                  <span
+                    className={`item-color-rect${color.hexValue ? " has-hex" : ""}${
+                      color.itemColorActive === false ? " opacity-50" : ""
+                    }`}
+                    style={
+                      color.hexValue
+                        ? { backgroundColor: color.hexValue, color: getReadableTextColor(color.hexValue) }
+                        : undefined
+                    }
+                  >
+                    {color.colorName}
+                  </span>
+                  <InputSwitch
+                    inputId={`color-active-${color.itemColorId}`}
+                    checked={color.itemColorActive !== false}
+                    onChange={(e) => onToggleActive(color.itemColorId, e.value)}
+                  />
+                  <label htmlFor={`color-active-${color.itemColorId}`}>Active</label>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    </Dialog>
   );
 }

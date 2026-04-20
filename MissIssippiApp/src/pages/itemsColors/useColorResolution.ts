@@ -1,4 +1,4 @@
-import { type Dispatch, type RefObject, type SetStateAction, useEffect, useMemo, useState } from "react";
+import { type Dispatch, type RefObject, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 import { Toast } from "primereact/toast";
 import CatalogService, { type ColorOption } from "../../service/CatalogService";
 import type {
@@ -12,6 +12,11 @@ import type {
 } from "../../items/itemsColorsTypes";
 import { isSimilarName, normalizeName, splitCompositeColorName } from "../../items/itemsColorsUtils";
 import { useNotifier } from "../../hooks/useNotifier";
+import {
+  mergeColorOptions,
+  normalizeColorOptions,
+} from "../../utils/colorLinking";
+import { buildColorWorkflowMeta, resolveOrCreateColor } from "../../utils/colorResolutionWorkflow";
 
 const COLOR_RESOLUTION_MEMORY_KEY = "mississippi.colorResolutionMemory";
 
@@ -62,11 +67,7 @@ export function useColorResolution({
   const [savedResolutions, setSavedResolutions] = useState<SavedColorResolutionMap>({});
 
   const normalizedColors = useMemo(
-    () =>
-      colors.map((color) => ({
-        ...color,
-        normalized: normalizeName(color.colorName),
-      })),
+    () => normalizeColorOptions(colors),
     [colors]
   );
 
@@ -296,7 +297,7 @@ export function useColorResolution({
     resetColorInputs();
   };
 
-  const handleAddColor = () => {
+  const handleAddColor = useCallback(() => {
     if (!activeColorItem || activeColorItem.itemId <= 0) {
       notify("warn", "Save the style first", "Save the style before adding colors.");
       return;
@@ -311,34 +312,30 @@ export function useColorResolution({
       return;
     }
 
-    const rawCollection = colorCollectionInput.trim();
-    if (!rawCollection) {
-      notify("warn", "Collection required", "Select a collection for this color.");
-      return;
-    }
-
-    const rawPantone = colorPantoneInput.trim();
-    const rawHex = colorHexInput.trim();
-    const normalizedHex =
-      rawHex.length === 0
-        ? ""
-        : rawHex.startsWith("#")
-          ? rawHex.toUpperCase()
-          : `#${rawHex.toUpperCase()}`;
-    if (normalizedHex && normalizedHex.length !== 7) {
-      notify("warn", "Hex format", "Hex should be 6 characters (for example, #1A2B3C).");
+    let workflowMeta: ReturnType<typeof buildColorWorkflowMeta>;
+    try {
+      workflowMeta = buildColorWorkflowMeta({
+        collection: colorCollectionInput,
+        pantone: colorPantoneInput,
+        hex: colorHexInput,
+        requireCollection: true,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Color metadata is invalid.";
+      const title = message.toLowerCase().includes("collection") ? "Collection required" : "Hex format";
+      notify("warn", title, message);
       return;
     }
 
     const meta = {
       seasonId: activeColorItem.seasonId,
-      collection: rawCollection || null,
-      pantoneColor: rawPantone || null,
-      hexValue: normalizedHex || null,
+      collection: workflowMeta.collection,
+      pantoneColor: workflowMeta.pantoneColor,
+      hexValue: workflowMeta.hexValue,
     };
 
     const { nextMap, reviewItems } = buildColorResolutions([name], colorResolutionMap, {
-      defaultCollection: rawCollection,
+      defaultCollection: workflowMeta.collection ?? "",
     });
     const mergedMap = { ...colorResolutionMap, ...nextMap };
 
@@ -351,114 +348,10 @@ export function useColorResolution({
 
     setColorResolutionMap(mergedMap);
     addPendingColor(name, meta);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeColorItem, colorInput, pendingColors, colorCollectionInput, colorPantoneInput, colorHexInput, colorResolutionMap, notify, buildColorResolutions, addPendingColor]);
 
-  const maybeUpdateColorMetadata = async (
-    colorId: number,
-    fallbackName: string,
-    meta: {
-      seasonId?: number | null;
-      pantoneColor?: string | null;
-      hexValue?: string | null;
-      collection?: string | null;
-    } | null,
-    nextColors: ColorOption[]
-  ) => {
-    if (!meta) return;
-    const desiredSeasonId = meta.seasonId ?? null;
-    const desiredPantone = meta.pantoneColor?.trim() || null;
-    const desiredHex = meta.hexValue?.trim() || null;
-    const desiredCollection = meta.collection?.trim() || null;
-    if (!desiredSeasonId && !desiredPantone && !desiredHex && !desiredCollection) {
-      return;
-    }
-
-    const existing = normalizedColors.find((item) => item.colorId === colorId);
-    const shouldUpdate =
-      (desiredSeasonId && existing?.seasonId == null) ||
-      (desiredPantone && !existing?.pantoneColor) ||
-      (desiredHex && !existing?.hexValue) ||
-      (desiredCollection && !existing?.collection);
-
-    if (!shouldUpdate) {
-      return;
-    }
-
-    const nextSeasonId = existing?.seasonId ?? desiredSeasonId ?? null;
-    const nextPantone = existing?.pantoneColor ?? desiredPantone ?? null;
-    const nextHex = existing?.hexValue ?? desiredHex ?? null;
-    const nextCollection = existing?.collection ?? desiredCollection ?? null;
-
-    await CatalogService.addOrUpdateColor({
-      colorId,
-      colorName: existing?.colorName ?? fallbackName,
-      seasonId: nextSeasonId ?? undefined,
-      collection: nextCollection ?? undefined,
-      pantoneColor: nextPantone ?? undefined,
-      hexValue: nextHex ?? undefined,
-    });
-    const refreshed = await CatalogService.getColors({ colorId });
-    if (refreshed[0]) {
-      nextColors.push(refreshed[0]);
-    }
-  };
-
-  const resolveComponentColorId = async (
-    componentName: string,
-    componentNormalized: string,
-    meta: {
-      seasonId?: number | null;
-      pantoneColor?: string | null;
-      hexValue?: string | null;
-      collection?: string | null;
-    } | null,
-    createdColorIds: Map<string, number>,
-    nextColors: ColorOption[]
-  ) => {
-    const resolution = colorResolutionMap[componentNormalized];
-    const resolvedName = resolution?.resolvedName ?? componentName;
-
-    let colorId = resolution?.colorId;
-    if (!colorId) {
-      const cached = createdColorIds.get(componentNormalized);
-      if (cached) {
-        colorId = cached;
-      }
-    }
-    const wasCreated = createdColorIds.has(componentNormalized);
-    if (!colorId && resolution?.action === "existing") {
-      const exact = normalizedColors.find((item) => item.normalized === componentNormalized);
-      colorId = exact?.colorId;
-    }
-    if (!colorId && !resolution) {
-      const exact = normalizedColors.find((item) => item.normalized === componentNormalized);
-      colorId = exact?.colorId;
-    }
-
-    if (colorId) {
-      if (!wasCreated) {
-        await maybeUpdateColorMetadata(colorId, resolvedName, meta, nextColors);
-      }
-      return colorId;
-    }
-
-    await CatalogService.addOrUpdateColor({
-      colorName: resolvedName,
-      seasonId: meta?.seasonId ?? undefined,
-      pantoneColor: meta?.pantoneColor ?? undefined,
-      hexValue: meta?.hexValue ?? undefined,
-      collection: resolution?.collection ?? meta?.collection ?? undefined,
-    });
-    const matches = await CatalogService.getColors({ colorName: resolvedName });
-    const match = matches.find((item) => normalizeName(item.colorName) === componentNormalized);
-    if (!match) return undefined;
-
-    createdColorIds.set(componentNormalized, match.colorId);
-    nextColors.push(match);
-    return match.colorId;
-  };
-
-  const handleSaveColors = async () => {
+  const handleSaveColors = useCallback(async () => {
     if (!activeColorItem || activeColorItem.itemId <= 0) {
       notify("warn", "Save the style first", "Save the style before adding colors.");
       return;
@@ -496,13 +389,24 @@ export function useColorResolution({
           hexValue: color.hexValue ?? null,
         };
 
-        const primaryId = await resolveComponentColorId(
-          primaryName,
-          primaryNormalized,
-          primaryMeta,
-          createdColorIds,
-          newColors
-        );
+        let primaryId: number | null = null;
+        try {
+          primaryId = (
+            await resolveOrCreateColor({
+              name: primaryName,
+              collection: primaryMeta.collection,
+              pantone: primaryMeta.pantoneColor,
+              hex: primaryMeta.hexValue,
+              normalizedColors,
+              resolutionMap: colorResolutionMap,
+              createdColorIds,
+              nextColors: newColors,
+              requireCollection: true,
+            })
+          ).colorId;
+        } catch {
+          continue;
+        }
         if (!primaryId) {
           continue;
         }
@@ -520,13 +424,24 @@ export function useColorResolution({
             pantoneColor: null,
             hexValue: null,
           };
-          const secondaryId = await resolveComponentColorId(
-            secondaryName,
-            secondaryNormalized,
-            secondaryMeta,
-            createdColorIds,
-            newColors
-          );
+          let secondaryId: number | null = null;
+          try {
+            secondaryId = (
+              await resolveOrCreateColor({
+                name: secondaryName,
+                collection: secondaryMeta.collection,
+                pantone: secondaryMeta.pantoneColor,
+                hex: secondaryMeta.hexValue,
+                normalizedColors,
+                resolutionMap: colorResolutionMap,
+                createdColorIds,
+                nextColors: newColors,
+                requireCollection: true,
+              })
+            ).colorId;
+          } catch {
+            continue;
+          }
           if (!secondaryId || secondarySet.has(secondaryId)) {
             continue;
           }
@@ -550,18 +465,7 @@ export function useColorResolution({
       }
 
       if (newColors.length) {
-        setColors((prev) => {
-          const next = [...prev];
-          newColors.forEach((color) => {
-            const index = next.findIndex((item) => item.colorId === color.colorId);
-            if (index >= 0) {
-              next[index] = color;
-            } else {
-              next.push(color);
-            }
-          });
-          return next;
-        });
+        setColors((prev) => mergeColorOptions(prev, newColors));
       }
 
       setPendingColors([]);
@@ -579,7 +483,8 @@ export function useColorResolution({
     } finally {
       setSavingColors(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeColorItem, pendingColors, colorResolutionMap, normalizedColors, notify, loadItemList, closeColorModal, setColors]);
 
   const clearReviewState = () => {
     setColorReviewItems([]);
@@ -587,10 +492,11 @@ export function useColorResolution({
     setShowColorReview(false);
   };
 
-  const handleReviewConfirm = async (handlers: ReviewHandlers = {}) => {
+  const handleReviewConfirm = useCallback(async (handlers: ReviewHandlers = {}) => {
     if (!reviewContext) return;
 
     const resolvedSelections: ColorResolutionMap = {};
+    const remembered: SavedColorResolutionMap = {};
     const skipped = new Set<string>();
     colorReviewItems.forEach((item) => {
       if (item.choice === "skip") {
@@ -598,13 +504,18 @@ export function useColorResolution({
         return;
       }
       if (item.choice === "new") {
+        const resolvedName = item.resolvedName.trim() || item.inputName;
+        const collection = item.collection.trim() || null;
         resolvedSelections[item.normalized] = {
           normalized: item.normalized,
           inputName: item.inputName,
           action: "new",
-          resolvedName: item.resolvedName.trim() || item.inputName,
-          collection: item.collection.trim() || null,
+          resolvedName,
+          collection,
         };
+        if (item.remember && resolvedName) {
+          remembered[item.normalized] = { action: "new", resolvedName, collection };
+        }
       } else {
         const match =
           item.suggestions.find((suggestion) => suggestion.colorId === item.choice) ??
@@ -617,33 +528,14 @@ export function useColorResolution({
           colorId: match.colorId,
           resolvedName: match.colorName,
         };
+        if (item.remember) {
+          remembered[item.normalized] = {
+            action: "existing",
+            colorId: match.colorId,
+            resolvedName: match.colorName,
+          };
+        }
       }
-    });
-
-    const remembered: SavedColorResolutionMap = {};
-    colorReviewItems.forEach((item) => {
-      if (!item.remember || item.choice === "skip") {
-        return;
-      }
-      if (item.choice === "new") {
-        const resolvedName = item.resolvedName.trim() || item.inputName;
-        if (!resolvedName) return;
-        remembered[item.normalized] = {
-          action: "new",
-          resolvedName,
-          collection: item.collection.trim() || null,
-        };
-        return;
-      }
-      const match =
-        item.suggestions.find((suggestion) => suggestion.colorId === item.choice) ??
-        normalizedColors.find((color) => color.colorId === item.choice);
-      if (!match) return;
-      remembered[item.normalized] = {
-        action: "existing",
-        colorId: match.colorId,
-        resolvedName: match.colorName,
-      };
     });
     persistSavedResolutions(remembered);
 
@@ -688,11 +580,13 @@ export function useColorResolution({
     const filteredRows = applySkip(reviewContext.rows);
     await handlers.onUploadResolve?.(filteredRows, mergedMap);
     clearReviewState();
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewContext, colorReviewItems, colorResolutionMap, normalizedColors, addPendingColor, clearReviewState, persistSavedResolutions]);
 
-  const handleReviewClose = () => {
+  const handleReviewClose = useCallback(() => {
     clearReviewState();
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearReviewState]);
 
   return {
     normalizedColors,

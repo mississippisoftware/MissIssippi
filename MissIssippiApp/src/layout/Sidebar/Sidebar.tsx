@@ -2,7 +2,7 @@ import { PanelMenu } from "primereact/panelmenu";
 import type { MenuItem } from "primereact/menuitem";
 import { useLocation, useNavigate } from "react-router-dom";
 import { menuItems } from "./menuItems";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export interface SidebarMenuItem {
   label: string;
@@ -13,18 +13,35 @@ export interface SidebarMenuItem {
 
 type PanelMenuItem = MenuItem & { key: string };
 
-function isPathActive(pathname: string, to?: string) {
-  if (!to) return false;
-  return pathname === to || pathname.startsWith(to + "/");
+function getPathMatchScore(pathname: string, to?: string) {
+  if (!to) return -1;
+  if (pathname === to) return to.length + 1000;
+  if (pathname.startsWith(to + "/")) return to.length;
+  return -1;
 }
 
 function getItemKey(item: SidebarMenuItem) {
   return item.to ?? item.label;
 }
 
+function getBestDirectMatchKey(pathname: string, items: SidebarMenuItem[]): string | null {
+  let bestKey: string | null = null;
+  let bestScore = -1;
+
+  items.forEach((item) => {
+    const score = getPathMatchScore(pathname, item.to);
+    if (score > bestScore) {
+      bestScore = score;
+      bestKey = getItemKey(item);
+    }
+  });
+
+  return bestScore >= 0 ? bestKey : null;
+}
+
 function hasActiveChild(pathname: string, item: SidebarMenuItem): boolean {
   if (!item.items?.length) return false;
-  return item.items.some((child) => isPathActive(pathname, child.to) || hasActiveChild(pathname, child));
+  return item.items.some((child) => getPathMatchScore(pathname, child.to) >= 0 || hasActiveChild(pathname, child));
 }
 
 function toPanelMenuModel(
@@ -32,8 +49,15 @@ function toPanelMenuModel(
   pathname: string,
   onNavigate: (to: string) => void
 ): PanelMenuItem[] {
-  const convert = (i: SidebarMenuItem): PanelMenuItem => {
-    const active = isPathActive(pathname, i.to) || hasActiveChild(pathname, i);
+  const convertList = (list: SidebarMenuItem[]): PanelMenuItem[] => {
+    const bestDirectKey = getBestDirectMatchKey(pathname, list);
+    return list.map((item) => convert(item, bestDirectKey));
+  };
+
+  const convert = (i: SidebarMenuItem, bestDirectKey: string | null): PanelMenuItem => {
+    const children = i.items?.length ? convertList(i.items) : undefined;
+    const hasActiveDescendant = children?.some((child) => child.className === "active-menuitem") ?? false;
+    const active = bestDirectKey === getItemKey(i) || hasActiveDescendant || hasActiveChild(pathname, i);
     const key = getItemKey(i);
 
     return {
@@ -43,11 +67,11 @@ function toPanelMenuModel(
       icon: i.icon,
       className: active ? "active-menuitem" : undefined,
       command: i.to ? () => onNavigate(i.to!) : undefined,
-      items: i.items?.map(convert),
+      items: children,
     };
   };
 
-  return items.map(convert);
+  return convertList(items);
 }
 
 type SidebarProps = {
@@ -59,15 +83,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
-  const [flyoutKey, setFlyoutKey] = useState<string | null>(null);
-  const sidebarRef = useRef<HTMLElement | null>(null);
 
   const handleNavigate = useCallback(
     (to: string) => {
       if (!isOpen) {
         onToggle();
         setExpandedKeys({});
-        setFlyoutKey(null);
       }
       navigate(to);
     },
@@ -104,46 +125,20 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     [autoExpandedKeys, expandedKeys, isOpen]
   );
 
-  useEffect(() => {
-    if (isOpen || !flyoutKey) {
-      return;
-    }
-
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!sidebarRef.current || sidebarRef.current.contains(target)) {
-        return;
-      }
-      setExpandedKeys({});
-      setFlyoutKey(null);
-    };
-
-    document.addEventListener("mousedown", handleClick);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-    };
-  }, [isOpen, flyoutKey]);
-
-  const flyoutItem = useMemo(() => {
-    if (isOpen || !flyoutKey) return null;
-    return menuItems.find((item) => getItemKey(item) === flyoutKey) ?? null;
-  }, [flyoutKey, isOpen]);
-
   return (
-    <aside ref={sidebarRef} className={`app-sidebar${isOpen ? "" : " is-collapsed"}`}>
-      <div className="sidebar-header">
-        <span className="sidebar-brand">
-          <span className="sidebar-brand-text"></span>
+    <aside className={`portal-sidebar${isOpen ? "" : " portal-sidebar--collapsed"}`}>
+      <div className="portal-sidebar__brand">
+        <span className="portal-sidebar__brand-name">
+          <span className="portal-sidebar__brand-text"></span>
         </span>
         <button
           type="button"
-          className="sidebar-toggle"
+          className="portal-sidebar__toggle"
           aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
           onClick={() => {
             if (isOpen) {
               setExpandedKeys({});
             }
-            setFlyoutKey(null);
             onToggle();
           }}
         >
@@ -151,7 +146,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         </button>
       </div>
 
-      <nav className="sidebar-menu">
+      <nav className="portal-sidebar__nav">
         <PanelMenu
           model={model}
           expandedKeys={resolvedExpandedKeys}
@@ -160,40 +155,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             if (!isOpen) {
               onToggle();
               setExpandedKeys(next ?? {});
-              setFlyoutKey(null);
               return;
             }
             setExpandedKeys(next);
           }}
         />
       </nav>
-
-      {!isOpen && flyoutItem?.items?.length ? (
-        <div className="sidebar-flyout" role="menu" aria-label={`${flyoutItem.label} submenu`}>
-          <div className="sidebar-flyout-header">{flyoutItem.label}</div>
-          <ul className="sidebar-flyout-list">
-            {flyoutItem.items.map((item) => {
-              const active = isPathActive(pathname, item.to);
-              return (
-                <li key={getItemKey(item)}>
-                  <button
-                    type="button"
-                    className={`sidebar-flyout-link${active ? " is-active" : ""}`}
-                    onClick={() => {
-                      if (item.to) {
-                        handleNavigate(item.to);
-                      }
-                    }}
-                  >
-                    {item.icon ? <i className={item.icon} aria-hidden="true" /> : null}
-                    <span>{item.label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
     </aside>
   );
 }

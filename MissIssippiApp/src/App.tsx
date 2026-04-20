@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
+import { PrimeReactProvider } from "primereact/api";
 import Sidebar from "./layout/Sidebar/Sidebar";
 import Topbar from "./layout/Topbar";
-import { Container } from "react-bootstrap";
+import pt from "./styles/portal-passthrough";
 
 export default function App() {
   const mobileQuery = "(max-width: 991.98px)";
@@ -35,14 +36,16 @@ export default function App() {
   }, []);
 
   return (
-    <div className={`app-layout${isSidebarOpen ? "" : " sidebar-collapsed"}`}>
-      <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((prev) => !prev)} />
-      <Topbar />
-      <div className="content-wrapper">
-        <Container fluid className="content-container">
-          <Outlet />
-        </Container>
+    <PrimeReactProvider value={{ unstyled: true, pt }}>
+      <div className={`portal-theme app-layout${isSidebarOpen ? "" : " sidebar-collapsed"}`}>
+        <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((prev) => !prev)} />
+        <Topbar />
+        <div className="content-wrapper">
+          <div className="content-container">
+            <Outlet />
+          </div>
+        </div>
       </div>
-    </div>
+    </PrimeReactProvider>
   );
 }

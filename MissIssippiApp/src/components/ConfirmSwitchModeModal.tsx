@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from "react";
-import { Button, Modal } from "react-bootstrap";
+import { Button } from "primereact/button";
+import { Dialog } from "primereact/dialog";
 import { shouldSubmitOnEnter } from "../utils/modalKeyHandlers";
 
 type ConfirmSwitchModeModalProps = {
@@ -17,35 +18,44 @@ export default function ConfirmSwitchModeModal({
   onKeepAndSwitch,
   onClearAndSwitch,
 }: ConfirmSwitchModeModalProps) {
-  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!shouldSubmitOnEnter(event)) return;
     event.preventDefault();
     onKeepAndSwitch();
   };
 
+  const footer = (
+    <>
+      <Button className="btn-neutral btn-outlined" onClick={onCancel} unstyled>
+        <i className="pi pi-times" aria-hidden="true" />
+        Cancel
+      </Button>
+      <Button className="btn-neutral btn-outlined" onClick={onKeepAndSwitch} unstyled>
+        <i className="pi pi-refresh" aria-hidden="true" />
+        Keep List &amp; Switch
+      </Button>
+      <Button className="btn-danger" onClick={onClearAndSwitch} unstyled>
+        <i className="pi pi-trash" aria-hidden="true" />
+        Clear List &amp; Switch
+      </Button>
+    </>
+  );
+
   return (
-    <Modal show={show} onHide={onCancel} centered onKeyDown={handleKeyDown}>
-      <Modal.Header closeButton>
-        <Modal.Title>Switch mode?</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Dialog
+      visible={show}
+      onHide={onCancel}
+      header="Switch mode?"
+      footer={footer}
+      modal
+      closable
+      draggable={false}
+      resizable={false}
+    >
+      <div onKeyDown={handleKeyDown}>
         You have scanned items. Do you want to clear the list before switching to{" "}
         <strong>{pendingMode === "remove" ? "Remove Inventory" : "Add Inventory"}</strong>?
-      </Modal.Body>
-      <Modal.Footer>
-        <Button className="btn-neutral btn-outlined" onClick={onCancel}>
-          <i className="pi pi-times" aria-hidden="true" />
-          Cancel
-        </Button>
-        <Button className="btn-neutral btn-outlined" onClick={onKeepAndSwitch}>
-          <i className="pi pi-refresh" aria-hidden="true" />
-          Keep List & Switch
-        </Button>
-        <Button className="btn-danger" onClick={onClearAndSwitch}>
-          <i className="pi pi-trash" aria-hidden="true" />
-          Clear List & Switch
-        </Button>
-      </Modal.Footer>
-    </Modal>
+      </div>
+    </Dialog>
   );
 }

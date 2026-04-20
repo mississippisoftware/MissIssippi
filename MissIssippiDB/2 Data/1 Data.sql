@@ -1,3 +1,12 @@
+use MissIssippiDB
+go
+delete Season
+go
+delete Sizes
+go
+delete ImageType
+go
+
 insert Sizes(SizeName, SizeSequence)
         select '8', 1
 union select '10', 2

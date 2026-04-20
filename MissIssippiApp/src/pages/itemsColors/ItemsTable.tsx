@@ -1,15 +1,12 @@
 import { type Dispatch, type SetStateAction } from "react";
-import { Button, Card, Col, Form, Row } from "react-bootstrap";
 import { DataTable, type DataTableRowEditCompleteEvent, type DataTableRowClickEvent } from "primereact/datatable";
 import { Column } from "primereact/column";
-import PageActionsRow from "../../components/PageActionsRow";
 import type { ItemListRow, SeasonOption } from "../../items/itemsColorsTypes";
 import type { ItemColorView } from "../../service/CatalogService";
 import type { EditorOptions } from "../../types/editor";
 
 type ItemsTableProps = {
   seasons: SeasonOption[];
-  loadingLookups: boolean;
   itemListLoading: boolean;
   filteredItems: ItemListRow[];
   selectedItem: ItemListRow | null;
@@ -22,12 +19,6 @@ type ItemsTableProps = {
   setExpandedRows: Dispatch<SetStateAction<Record<string, boolean>>>;
   normalizeExpandedRows: (expanded: unknown) => Record<string, boolean>;
   onRowClick: (event: DataTableRowClickEvent) => void;
-  handleAddItemRow: () => void;
-  loadItemList: () => void;
-  handleExpandAll: () => void;
-  handleCollapseAll: () => void;
-  activeFilter: string;
-  setActiveFilter: (value: string) => void;
   resolveSeasonName: (seasonId: number | string) => string;
   formatPrice: (value?: number | null) => string;
   openColorModal: (row: ItemListRow) => void;
@@ -38,7 +29,6 @@ type ItemsTableProps = {
 
 export default function ItemsTable({
   seasons,
-  loadingLookups,
   itemListLoading,
   filteredItems,
   selectedItem,
@@ -51,12 +41,6 @@ export default function ItemsTable({
   setExpandedRows,
   normalizeExpandedRows,
   onRowClick,
-  handleAddItemRow,
-  loadItemList,
-  handleExpandAll,
-  handleCollapseAll,
-  activeFilter,
-  setActiveFilter,
   resolveSeasonName,
   formatPrice,
   openColorModal,
@@ -65,7 +49,8 @@ export default function ItemsTable({
   onCopyColorName,
 }: ItemsTableProps) {
   const renderSeasonEditor = (options: EditorOptions<ItemListRow>) => (
-    <Form.Select
+    <select
+      className="pt-form-select"
       value={options.rowData.seasonId ?? 0}
       onChange={(e) => {
         const nextId = Number(e.target.value);
@@ -81,12 +66,13 @@ export default function ItemsTable({
           {season.seasonName}
         </option>
       ))}
-    </Form.Select>
+    </select>
   );
 
   const renderTextEditor = (options: EditorOptions<ItemListRow>) => (
-    <Form.Control
-      value={typeof options.value === "string" || typeof options.value === "number" ? options.value : ""}
+    <input
+      className="pt-form-input"
+      value={typeof options.value === "string" || typeof options.value === "number" ? String(options.value) : ""}
       onChange={(e) => options.editorCallback?.(e.target.value)}
     />
   );
@@ -104,7 +90,8 @@ export default function ItemsTable({
 
   const renderPricePairEditor = (options: EditorOptions<ItemListRow>) => (
     <div className="item-price-editor">
-      <Form.Control
+      <input
+        className="pt-form-input"
         type="number"
         step="0.01"
         value={options.rowData.wholesalePrice ?? ""}
@@ -116,7 +103,8 @@ export default function ItemsTable({
           options.editorCallback?.(nextValue);
         }}
       />
-      <Form.Control
+      <input
+        className="pt-form-input"
         type="number"
         step="0.01"
         value={options.rowData.costPrice ?? ""}
@@ -133,7 +121,7 @@ export default function ItemsTable({
   );
 
   const renderProductionEditor = (options: EditorOptions<ItemListRow>) => (
-    <Form.Check
+    <input
       type="checkbox"
       checked={Boolean(options.value)}
       onChange={(e) => options.editorCallback?.(e.target.checked)}
@@ -141,7 +129,7 @@ export default function ItemsTable({
   );
 
   const renderInProduction = (row: ItemListRow) => (
-    <Form.Check type="checkbox" className="item-production-check" checked={row.inProduction} readOnly disabled />
+    <input type="checkbox" className="item-production-check" checked={row.inProduction} readOnly disabled />
   );
 
   const renderColorSummary = (row: ItemListRow) => {
@@ -229,65 +217,9 @@ export default function ItemsTable({
   };
 
   return (
-    <Card className="portal-content-card items-colors-main">
-      <Card.Body>
-        <Row className="items-actions-row align-items-center gy-2">
-          <Col>
-            <PageActionsRow justifyClassName="justify-content-md-end" className="flex-wrap">
-              <Button
-                type="button"
-                className="btn-primary btn-outlined"
-                onClick={handleAddItemRow}
-                disabled={loadingLookups}
-              >
-                <i className="pi pi-plus" aria-hidden="true" />
-                Add Item
-              </Button>
-              <Button
-                type="button"
-                className="btn-neutral btn-outlined"
-                onClick={loadItemList}
-                disabled={itemListLoading}
-              >
-                <i className="pi pi-refresh" aria-hidden="true" />
-                {itemListLoading ? "Refreshing..." : "Refresh list"}
-              </Button>
-            </PageActionsRow>
-          </Col>
-        </Row>
-        <Row className="items-filter-row mt-3 gy-2 align-items-end">
-          <Col md={3}>
-            <Form.Label>Active</Form.Label>
-            <Form.Select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
-              <option value="">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </Form.Select>
-          </Col>
-          <Col md="auto" className="items-filter-actions ms-md-auto">
-            <div className="d-flex gap-2 justify-content-md-end">
-              <Button
-                type="button"
-                className="btn-neutral btn-outlined btn-icon"
-                onClick={handleExpandAll}
-                aria-label="Expand all"
-                title="Expand all"
-              >
-                <i className="pi pi-plus" aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                className="btn-neutral btn-outlined btn-icon"
-                onClick={handleCollapseAll}
-                aria-label="Collapse all"
-                title="Collapse all"
-              >
-                <i className="pi pi-minus" aria-hidden="true" />
-              </Button>
-            </div>
-          </Col>
-        </Row>
-        <div className="items-table-wrapper mt-3">
+    <div className="portal-content-card items-colors-main">
+      <div>
+        <div className="items-table-wrapper">
           <DataTable
             value={filteredItems}
             dataKey="itemId"
@@ -310,14 +242,13 @@ export default function ItemsTable({
             sortMode="single"
             className="p-datatable-gridlines items-colors-table"
           >
-            <Column expander style={{ width: "2.25rem" }} />
+            <Column expander className="col-expander" />
             <Column
               field="inProduction"
               header="Active"
               body={renderInProduction}
               editor={renderProductionEditor}
               className="col-active"
-              style={{ width: "4.5rem" }}
             />
             <Column
               field="seasonId"
@@ -343,10 +274,10 @@ export default function ItemsTable({
               editor={renderPricePairEditor}
               className="col-price"
             />
-            <Column rowEditor header="Save" headerStyle={{ width: "6rem" }} bodyStyle={{ textAlign: "center" }} />
+            <Column rowEditor header="Save" headerClassName="col-actions" bodyClassName="col-center" />
           </DataTable>
         </div>
-      </Card.Body>
-    </Card>
+      </div>
+    </div>
   );
 }

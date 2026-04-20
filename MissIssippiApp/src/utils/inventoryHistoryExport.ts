@@ -14,27 +14,6 @@ export const exportInventoryHistory = ({
 
   const workbook = createWorkbook();
 
-  const batchRows = batches.map((batch) => ({
-    "Batch Timestamp": batch.batchTimestamp,
-    Source: batch.source,
-    "Total Lines": batch.totalLines,
-    "Total QtyChange": batch.totalDelta,
-    "Batch Id": batch.batchId,
-    Notes: batch.notes ?? "",
-  }));
-
-  const batchSheet = sheetFromJson(batchRows, {
-    header: [
-      "Batch Timestamp",
-      "Source",
-      "Total Lines",
-      "Total QtyChange",
-      "Batch Id",
-      "Notes",
-    ],
-  });
-  appendSheet(workbook, batchSheet, "Batches");
-
   const lineRows = batches.flatMap((batch) =>
     batch.lines.map((line) => ({
       "Batch Timestamp": batch.batchTimestamp,
@@ -67,6 +46,27 @@ export const exportInventoryHistory = ({
     ],
   });
   appendSheet(workbook, lineSheet, "Lines");
+
+  const batchRows = batches.map((batch) => ({
+    "Batch Timestamp": batch.batchTimestamp,
+    Source: batch.source,
+    "Total Lines": batch.totalLines,
+    "Total QtyChange": batch.totalDelta,
+    "Batch Id": batch.batchId,
+    Notes: batch.notes ?? "",
+  }));
+
+  const batchSheet = sheetFromJson(batchRows, {
+    header: [
+      "Batch Timestamp",
+      "Source",
+      "Total Lines",
+      "Total QtyChange",
+      "Batch Id",
+      "Notes",
+    ],
+  });
+  appendSheet(workbook, batchSheet, "Batches");
 
   saveWorkbook(workbook, baseName);
 };

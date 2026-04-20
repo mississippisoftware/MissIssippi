@@ -1,5 +1,6 @@
 import type { KeyboardEvent, ReactNode } from "react";
-import { Button, Modal } from "react-bootstrap";
+import { Button } from "primereact/button";
+import { Dialog } from "primereact/dialog";
 import { shouldSubmitOnEnter } from "../utils/modalKeyHandlers";
 
 type UploadModalProps = {
@@ -27,19 +28,32 @@ export default function UploadModal({
   onEnterKey,
   enterDisabled = false,
 }: UploadModalProps) {
-  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!onEnterKey || enterDisabled) return;
     if (!shouldSubmitOnEnter(event)) return;
     event.preventDefault();
     onEnterKey();
   };
 
+  const footer = (
+    <Button type="button" className="btn-neutral btn-outlined" onClick={onClose} disabled={closeDisabled} unstyled>
+      <i className="pi pi-times" aria-hidden="true" />
+      {closeLabel}
+    </Button>
+  );
+
   return (
-    <Modal show={show} onHide={onClose} centered onKeyDown={handleKeyDown}>
-      <Modal.Header closeButton>
-        <Modal.Title>{title}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Dialog
+      visible={show}
+      onHide={onClose}
+      header={title}
+      footer={footer}
+      modal
+      closable
+      draggable={false}
+      resizable={false}
+    >
+      <div onKeyDown={handleKeyDown}>
         <div className="upload-section">
           <div className="upload-section-header">
             <div>{headerContent}</div>
@@ -47,13 +61,7 @@ export default function UploadModal({
           </div>
           {children}
         </div>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button type="button" className="btn-neutral btn-outlined" onClick={onClose} disabled={closeDisabled}>
-          <i className="pi pi-times" aria-hidden="true" />
-          {closeLabel}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+      </div>
+    </Dialog>
   );
 }
