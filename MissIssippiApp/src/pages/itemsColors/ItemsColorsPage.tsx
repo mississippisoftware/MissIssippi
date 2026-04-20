@@ -63,6 +63,7 @@ export default function ItemsColors() {
     handleToggleColorActive,
   } = useItemList({ toastRef });
 
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showColorModal, setShowColorModal] = useState(false);
   const [showAdminDeleteModal, setShowAdminDeleteModal] = useState(false);
   const [adminDeleteMode, setAdminDeleteMode] = useState<"selected" | "filtered" | null>(null);
@@ -632,7 +633,8 @@ export default function ItemsColors() {
         <InventorySearchFiltersForm
           filters={searchForm}
           seasons={seasons}
-          searching={itemListLoading || loadingLookups}
+          showAdvanced={showAdvancedFilters}
+          onToggleAdvanced={() => setShowAdvancedFilters((prev) => !prev)}
           onChange={setSearchForm}
           onSubmit={applySearchFilters}
           onClear={handleClearFilters}

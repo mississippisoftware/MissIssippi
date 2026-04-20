@@ -288,7 +288,6 @@ export default function InventoryHistory() {
           onSearchChange={setSearchText}
           onApply={handleSearch}
           applyLabel="Search"
-          applying={loading}
           showAdvanced={showAdvancedFilters}
           onToggleAdvanced={() => setShowAdvancedFilters((prev) => !prev)}
           advancedFilters={

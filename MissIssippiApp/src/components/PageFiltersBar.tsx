@@ -8,7 +8,6 @@ type PageFiltersBarProps = {
   searchLabel?: string;
   onApply?: () => void;
   applyLabel?: string;
-  applying?: boolean;
   quickFilters?: ReactNode;
   showAdvanced?: boolean;
   onToggleAdvanced?: () => void;
@@ -26,7 +25,6 @@ export default function PageFiltersBar({
   searchPlaceholder = "Search",
   searchLabel = "Search",
   onApply,
-  applying = false,
   quickFilters,
   showAdvanced = false,
   onToggleAdvanced,

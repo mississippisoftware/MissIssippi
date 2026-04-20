@@ -69,12 +69,13 @@ export default function ColorListDialogs({
         closable
         draggable={false}
         resizable={false}
-        onKeyDown={onMigrateKeyDown}
       >
-        <p className="pt-text-desc">
-          Move <strong>{colorName}</strong> to{" "}
-          <strong>{targetColorName}</strong>? This will update all related records.
-        </p>
+        <div onKeyDown={onMigrateKeyDown}>
+          <p className="pt-text-desc">
+            Move <strong>{colorName}</strong> to{" "}
+            <strong>{targetColorName}</strong>? This will update all related records.
+          </p>
+        </div>
       </Dialog>
 
       <Dialog
@@ -97,17 +98,18 @@ export default function ColorListDialogs({
         closable
         draggable={false}
         resizable={false}
-        onKeyDown={onCollectionKeyDown}
       >
-        <label className="page-filters-label">Collection name</label>
-        <input
-          type="text"
-          value={collectionInput}
-          onChange={(event) => onCollectionInputChange(event.target.value)}
-          placeholder="Enter collection name"
-          disabled={collectionSaving}
-          className="pt-form-input"
-        />
+        <div onKeyDown={onCollectionKeyDown}>
+          <label className="page-filters-label">Collection name</label>
+          <input
+            type="text"
+            value={collectionInput}
+            onChange={(event) => onCollectionInputChange(event.target.value)}
+            placeholder="Enter collection name"
+            disabled={collectionSaving}
+            className="pt-form-input"
+          />
+        </div>
       </Dialog>
 
       <Dialog
@@ -130,11 +132,12 @@ export default function ColorListDialogs({
         closable
         draggable={false}
         resizable={false}
-        onKeyDown={onDeleteKeyDown}
       >
-        <p className="pt-text-desc">
-          Delete <strong>{deleteColorName}</strong>? This action cannot be undone.
-        </p>
+        <div onKeyDown={onDeleteKeyDown}>
+          <p className="pt-text-desc">
+            Delete <strong>{deleteColorName}</strong>? This action cannot be undone.
+          </p>
+        </div>
       </Dialog>
     </>
   );

@@ -422,7 +422,6 @@ export default function SkuList() {
           onSearchChange={setSearchInput}
           onApply={applySearch}
           applyLabel="Search"
-          applying={loading}
           showAdvanced={showAdvancedFilters}
           onToggleAdvanced={() => setShowAdvancedFilters((prev) => !prev)}
           advancedFilters={

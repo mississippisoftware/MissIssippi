@@ -1,7 +1,6 @@
 import { type ChangeEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import { InputSwitch } from 'primereact/inputswitch';
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import CatalogPageLayout from "../components/CatalogPageLayout";
@@ -495,25 +494,26 @@ export default function PriceList() {
         closable
         draggable={false}
         resizable={false}
-        onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+      >
+        <div onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
           if (!shouldSubmitOnEnter(event)) return;
           event.preventDefault();
           setShowMissingModal(false);
-        }}
-      >
-        <p className="mb-2">
-          These styles were not updated because they were not found in the item list.
-        </p>
-        <ul className="pt-list-compact">
-          {missingItems.slice(0, 10).map((row) => (
-            <li key={`${row.seasonName}-${row.itemNumber}-${row.rowNumber}`}>
-              {row.seasonName} — {row.itemNumber}
-            </li>
-          ))}
-        </ul>
-        {missingItems.length > 10 && (
-          <div className="pt-form-hint">{missingItems.length - 10} more item(s) not shown.</div>
-        )}
+        }}>
+          <p className="mb-2">
+            These styles were not updated because they were not found in the item list.
+          </p>
+          <ul className="pt-list-compact">
+            {missingItems.slice(0, 10).map((row) => (
+              <li key={`${row.seasonName}-${row.itemNumber}-${row.rowNumber}`}>
+                {row.seasonName} — {row.itemNumber}
+              </li>
+            ))}
+          </ul>
+          {missingItems.length > 10 && (
+            <div className="pt-form-hint">{missingItems.length - 10} more item(s) not shown.</div>
+          )}
+        </div>
       </Dialog>
     </CatalogPageLayout>
   );

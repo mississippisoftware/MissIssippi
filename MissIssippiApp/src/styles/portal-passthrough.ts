@@ -9,6 +9,7 @@
  */
 
 import type { PrimeReactPTOptions } from "primereact/api";
+import type { TabPanelPassThroughMethodOptions } from "primereact/tabview";
 
 const pt: PrimeReactPTOptions = {
   // ── BUTTON ──────────────────────────────────────────────────────────────────
@@ -35,12 +36,12 @@ const pt: PrimeReactPTOptions = {
     trigger: { className: "pt-dropdown__trigger" },
     panel: { className: "pt-dropdown__panel" },
     list: { className: "pt-dropdown__list" },
-    item: ({ context }) => ({
+    item: (options) => ({
       className: [
         "pt-dropdown__item",
-        context.selected && "pt-dropdown__item--selected",
-        context.focused && "pt-dropdown__item--focused",
-        context.disabled && "pt-dropdown__item--disabled",
+        options?.context.selected && "pt-dropdown__item--selected",
+        options?.context.focused && "pt-dropdown__item--focused",
+        options?.context.disabled && "pt-dropdown__item--disabled",
       ]
         .filter(Boolean)
         .join(" "),
@@ -48,7 +49,6 @@ const pt: PrimeReactPTOptions = {
     emptyMessage: { className: "pt-dropdown__empty" },
     filterInput: { root: { className: "pt-input pt-dropdown__filter" } },
     clearIcon: { className: "pt-dropdown__clear-icon" },
-    loadingIcon: { className: "pt-dropdown__loading-icon" },
   },
 
   // ── AUTOCOMPLETE ────────────────────────────────────────────────────────────
@@ -57,11 +57,11 @@ const pt: PrimeReactPTOptions = {
     input: { root: { className: "pt-input" } },
     panel: { className: "pt-autocomplete__panel" },
     list: { className: "pt-autocomplete__list" },
-    item: ({ context }) => ({
+    item: (options) => ({
       className: [
         "pt-autocomplete__item",
-        context.selected && "pt-autocomplete__item--selected",
-        context.focused && "pt-autocomplete__item--focused",
+        options?.context.selected && "pt-autocomplete__item--selected",
+        options?.context.disabled && "pt-autocomplete__item--disabled",
       ]
         .filter(Boolean)
         .join(" "),
@@ -71,11 +71,11 @@ const pt: PrimeReactPTOptions = {
 
   // ── INPUT SWITCH ────────────────────────────────────────────────────────────
   inputswitch: {
-    root: ({ props }) => ({
+    root: (options) => ({
       className: [
         "pt-switch",
-        props.checked && "pt-switch--checked",
-        props.disabled && "pt-switch--disabled",
+        options?.props.checked && "pt-switch--checked",
+        options?.props.disabled && "pt-switch--disabled",
       ]
         .filter(Boolean)
         .join(" "),
@@ -126,11 +126,12 @@ const pt: PrimeReactPTOptions = {
     thead: { className: "pt-datatable__thead" },
     headerRow: { className: "pt-datatable__header-row" },
     tbody: { className: "pt-datatable__tbody" },
-    bodyRow: ({ context }) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    bodyRow: (options: any) => ({
       className: [
         "pt-datatable__body-row",
-        context.selected && "pt-datatable__body-row--selected",
-        context.editing && "pt-datatable__body-row--editing",
+        options?.context?.selected && "pt-datatable__body-row--selected",
+        options?.state?.editing && "pt-datatable__body-row--editing",
       ]
         .filter(Boolean)
         .join(" "),
@@ -158,10 +159,10 @@ const pt: PrimeReactPTOptions = {
       nextPageButton: { className: "pt-paginator__btn pt-paginator__btn--next" },
       lastPageButton: { className: "pt-paginator__btn pt-paginator__btn--last" },
       pages: { className: "pt-paginator__pages" },
-      pageButton: ({ context }) => ({
+      pageButton: (options) => ({
         className: [
           "pt-paginator__btn",
-          context.active && "pt-paginator__btn--active",
+          options?.context.active && "pt-paginator__btn--active",
         ]
           .filter(Boolean)
           .join(" "),
@@ -178,10 +179,10 @@ const pt: PrimeReactPTOptions = {
     nextPageButton: { className: "pt-paginator__btn pt-paginator__btn--next" },
     lastPageButton: { className: "pt-paginator__btn pt-paginator__btn--last" },
     pages: { className: "pt-paginator__pages" },
-    pageButton: ({ context }) => ({
+    pageButton: (options) => ({
       className: [
         "pt-paginator__btn",
-        context.active && "pt-paginator__btn--active",
+        options?.context.active && "pt-paginator__btn--active",
       ]
         .filter(Boolean)
         .join(" "),
@@ -200,11 +201,11 @@ const pt: PrimeReactPTOptions = {
     nextButton: { className: "pt-tabview__nav-btn" },
     panelContainer: { className: "pt-tabview__panels" },
     tab: {
-      header: ({ context }) => ({
+      header: (options: TabPanelPassThroughMethodOptions | undefined) => ({
         className: [
           "pt-tabview__tab",
-          context.selected && "pt-tabview__tab--active",
-          context.disabled && "pt-tabview__tab--disabled",
+          options?.context?.selected && "pt-tabview__tab--active",
+          options?.context?.disabled && "pt-tabview__tab--disabled",
         ]
           .filter(Boolean)
           .join(" "),
@@ -231,13 +232,14 @@ const pt: PrimeReactPTOptions = {
   // ── TOAST ────────────────────────────────────────────────────────────────────
   toast: {
     root: { className: "pt-toast" },
-    message: ({ message }) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    message: (options: any) => ({
       className: [
         "pt-toast__message",
-        message?.severity === "success" && "pt-toast__message--success",
-        message?.severity === "error" && "pt-toast__message--error",
-        message?.severity === "warn" && "pt-toast__message--warn",
-        message?.severity === "info" && "pt-toast__message--info",
+        options?.message?.severity === "success" && "pt-toast__message--success",
+        options?.message?.severity === "error" && "pt-toast__message--error",
+        options?.message?.severity === "warn" && "pt-toast__message--warn",
+        options?.message?.severity === "info" && "pt-toast__message--info",
       ]
         .filter(Boolean)
         .join(" "),

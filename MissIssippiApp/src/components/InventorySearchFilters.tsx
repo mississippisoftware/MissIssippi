@@ -13,7 +13,6 @@ const filterFields: Array<{ key: SearchFieldKey; label: string }> = [
 interface InventorySearchFiltersProps {
   filters: InventorySearchFilters;
   seasons: Array<{ seasonId: number; seasonName: string }>;
-  searching: boolean;
   showAdvanced: boolean;
   onChange: (filters: InventorySearchFilters) => void;
   onSubmit: (filters: InventorySearchFilters) => void;
@@ -27,7 +26,6 @@ interface InventorySearchFiltersProps {
 export default function InventorySearchFiltersForm({
   filters,
   seasons,
-  searching,
   showAdvanced,
   onChange,
   onSubmit,
@@ -47,7 +45,6 @@ export default function InventorySearchFiltersForm({
       searchValue={filters.itemNumber ?? ""}
       onSearchChange={(value) => onChange({ ...filters, itemNumber: value })}
       onApply={() => onSubmit(filters)}
-      applying={searching}
       onClearFilters={onClear}
       clearLabel="Clear Filters"
       showAdvanced={showAdvanced}

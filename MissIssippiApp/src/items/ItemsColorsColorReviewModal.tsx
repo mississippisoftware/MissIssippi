@@ -92,12 +92,12 @@ export default function ItemsColorsColorReviewModal({
       draggable={false}
       resizable={false}
       className="items-colors-modal"
-      onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+    >
+      <div onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
         if (!shouldSubmitOnEnter(event)) return;
         event.preventDefault();
         handleContinue();
-      }}
-    >
+      }}>
       <p className="text-muted">Review the colors below, choose existing matches, or create new ones.</p>
       {items.map((item) => (
         <div className="color-review-item" key={item.normalized}>
@@ -219,6 +219,7 @@ export default function ItemsColorsColorReviewModal({
           </div>
         </div>
       )}
+      </div>
     </Dialog>
   );
 }

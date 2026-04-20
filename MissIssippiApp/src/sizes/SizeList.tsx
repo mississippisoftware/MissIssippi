@@ -336,16 +336,17 @@ export default function SizeList() {
         closable
         draggable={false}
         resizable={false}
-        onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+      >
+        <div onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
           if (deletingSizeId !== null) return;
           if (!shouldSubmitOnEnter(event)) return;
           event.preventDefault();
           void handleDeleteSize();
-        }}
-      >
-        <p className="pt-text-desc">
-          Delete <strong>{sizeToDelete?.sizeName}</strong>? This action cannot be undone.
-        </p>
+        }}>
+          <p className="pt-text-desc">
+            Delete <strong>{sizeToDelete?.sizeName}</strong>? This action cannot be undone.
+          </p>
+        </div>
       </Dialog>
     </CatalogPageLayout>
   );

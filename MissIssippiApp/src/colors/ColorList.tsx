@@ -1,7 +1,6 @@
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import { InputSwitch } from 'primereact/inputswitch';
 import {
   DataTable,
   type DataTableRowEditCompleteEvent,
@@ -1224,8 +1223,8 @@ export default function ColorList() {
         closable
         draggable={false}
         resizable={false}
-        onKeyDown={handleModalEnter(handleModalSave, colorSaving)}
       >
+        <div onKeyDown={handleModalEnter(handleModalSave, colorSaving)}>
           <div className="pt-form-grid-2">
             <div>
               <label>Color name</label>
@@ -1333,6 +1332,7 @@ export default function ColorList() {
               </Button>
             </div>
           </div>
+        </div>
       </Dialog>
 
       <ColorListDialogs

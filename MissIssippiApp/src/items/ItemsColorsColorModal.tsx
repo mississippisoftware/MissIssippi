@@ -117,8 +117,8 @@ export default function ItemsColorsColorModal({
       draggable={false}
       resizable={false}
       className="items-colors-modal"
-      onKeyDown={handleKeyDown}
     >
+      <div onKeyDown={handleKeyDown}>
       <div className="pt-text-desc">
         {isLocked ? "Save the style before adding colors." : "Add colors and save to link them to this style."}
       </div>
@@ -247,6 +247,7 @@ export default function ItemsColorsColorModal({
             </>
           )}
         </div>
+      </div>
       </div>
     </Dialog>
   );

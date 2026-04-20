@@ -309,16 +309,17 @@ export default function SeasonList() {
         closable
         draggable={false}
         resizable={false}
-        onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+      >
+        <div onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
           if (deletingSeasonId !== null) return;
           if (!shouldSubmitOnEnter(event)) return;
           event.preventDefault();
           void handleDeleteSeason();
-        }}
-      >
-        <p className="pt-text-desc">
-          Delete <strong>{seasonToDelete?.seasonName}</strong>? This action cannot be undone.
-        </p>
+        }}>
+          <p className="pt-text-desc">
+            Delete <strong>{seasonToDelete?.seasonName}</strong>? This action cannot be undone.
+          </p>
+        </div>
       </Dialog>
     </CatalogPageLayout>
   );

@@ -166,30 +166,31 @@ export function ItemsColorsDuplicateModal({
       closable
       draggable={false}
       resizable={false}
-      onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
+    >
+      <div onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
         if (!shouldSubmitOnEnter(event)) return;
         event.preventDefault();
         onUpdateDetails();
-      }}
-    >
-      <p className="pt-text-body">
-        Some styles in this upload already exist. Do you want to update their details with the uploaded data?
-      </p>
-      <p className="pt-text-desc">
-        InProduction status will still sync from the upload file when that column is present.
-      </p>
-      <ul>
-        {rows.slice(0, 6).map((row) => (
-          <li key={`${row.seasonName}-${row.itemNumber}-${row.rowNumber}`}>
-            {row.seasonName} - {row.itemNumber}
-          </li>
-        ))}
-      </ul>
-      {rows.length > 6 && (
-        <div className="pt-text-desc">
-          {rows.length - 6} more style(s) not shown.
-        </div>
-      )}
+      }}>
+        <p className="pt-text-body">
+          Some styles in this upload already exist. Do you want to update their details with the uploaded data?
+        </p>
+        <p className="pt-text-desc">
+          InProduction status will still sync from the upload file when that column is present.
+        </p>
+        <ul>
+          {rows.slice(0, 6).map((row) => (
+            <li key={`${row.seasonName}-${row.itemNumber}-${row.rowNumber}`}>
+              {row.seasonName} - {row.itemNumber}
+            </li>
+          ))}
+        </ul>
+        {rows.length > 6 && (
+          <div className="pt-text-desc">
+            {rows.length - 6} more style(s) not shown.
+          </div>
+        )}
+      </div>
     </Dialog>
   );
 }
