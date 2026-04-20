@@ -96,8 +96,9 @@ const ScannerPanel = ({
               minLength={2}
               delay={250}
               scrollHeight="320px"
-              className="flex-1"
+              className="flex-1 scan-sku-autocomplete"
               inputClassName="scan-sku-input"
+              appendTo="self"
             />
           ) : (
             <input

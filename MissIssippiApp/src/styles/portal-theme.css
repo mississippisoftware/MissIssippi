@@ -151,9 +151,9 @@
   --pt-font-size-brand:       1.25rem;    /* Portal exact: .app-branding .logo-text { font-size:1.25rem } */
   --pt-font-size-page-title:  1.0625rem;  /* ~17px — H1, ceiling of scale */
   --pt-font-size-section:     0.9375rem;  /* ~15px — card/panel headings */
-  --pt-font-size-body:        0.875rem;   /* ~14px — body text, table cells. Portal: .app-nav, buttons */
-  --pt-font-size-label:       0.8125rem;  /* ~13px — form labels, nav items, buttons */
-  --pt-font-size-meta:        0.75rem;    /* ~12px — timestamps, IDs, counts */
+  --pt-font-size-body:        14px;       /* body text, table cells */
+  --pt-font-size-label:       11px;       /* form labels, nav items, buttons */
+  --pt-font-size-meta:        12px;       /* timestamps, IDs, counts */
   --pt-font-size-badge:       0.6875rem;  /* ~11px — badges, chips, col headers */
 
   /* Weights */
@@ -3750,6 +3750,7 @@ body {
     padding: 0;
     height: 100%;
     overflow: hidden;
+    font-size: 14px;
 }
 
 :root {
@@ -5593,6 +5594,20 @@ textarea::placeholder {
 .scan-sku-input-row .scan-sku-input {
     flex: 1;
     min-width: 0;
+}
+
+/* Constrain the AutoComplete suggestion panel to the input width */
+.scan-sku-autocomplete {
+    position: relative;
+    width: 100%;
+}
+.scan-sku-autocomplete .pt-autocomplete__panel {
+    position: absolute;
+    width: 100% !important;
+    max-width: 100%;
+    left: 0;
+    top: 100%;
+    z-index: 1000;
 }
 
 /* ── Scanned items step content ──────────────────────────────────────────── */
