@@ -8,6 +8,7 @@ import type { InventorySearchFilters } from "../../utils/InventorySearchFilters"
 import { getErrorMessage } from "../../utils/errors";
 import { useNotifier } from "../../hooks/useNotifier";
 import { useCatalogLookups } from "../../hooks/useCatalogLookups";
+import { useTableSearch } from "../../hooks/useTableSearch";
 
 type UseItemListParams = {
   toastRef: RefObject<Toast | null>;
@@ -59,32 +60,37 @@ export function useItemList({ toastRef }: UseItemListParams) {
     [seasons]
   );
 
+  const activeSeasonRows = useMemo(() => {
+    const baseRows = filterSeasonActiveRows(itemList, { activeFilter });
+    return baseRows.filter((row) => !row.seasonId || activeSeasonIds.has(row.seasonId));
+  }, [itemList, activeFilter, activeSeasonIds]);
+
+  const { filtered: quickSearchRows, setQuery: setQuickSearchQuery, clear: clearQuickSearch } =
+    useTableSearch(activeSeasonRows, {
+      fields: ["itemNumber", "description", "colors[].colorName"],
+    });
+
   const applySearchFilters = useCallback((filters: InventorySearchFilters) => {
+    setQuickSearchQuery(filters.itemNumber ?? "");
     setSearchFilters(filters);
-  }, []);
+  }, [setQuickSearchQuery]);
 
   const clearSearchFilters = useCallback(() => {
     setSearchForm(EMPTY_SEARCH_FILTERS);
     setSearchFilters(EMPTY_SEARCH_FILTERS);
-  }, []);
+    clearQuickSearch();
+  }, [clearQuickSearch]);
 
   const filteredItems = useMemo(() => {
-    const baseRows = filterSeasonActiveRows(itemList, { activeFilter });
-    const activeSeasonRows = baseRows.filter((row) => !row.seasonId || activeSeasonIds.has(row.seasonId));
-
-    const itemQuery = normalizeName(searchFilters.itemNumber ?? "");
     const colorQuery = normalizeName(searchFilters.colorName ?? "");
     const seasonQuery = normalizeName(searchFilters.seasonName ?? "");
     const descriptionQuery = (searchFilters.description ?? "").trim().toLowerCase();
 
-    if (!itemQuery && !colorQuery && !seasonQuery && !descriptionQuery) {
-      return activeSeasonRows;
+    if (!colorQuery && !seasonQuery && !descriptionQuery) {
+      return quickSearchRows;
     }
 
-    return activeSeasonRows.filter((row) => {
-      if (itemQuery && !normalizeName(row.itemNumber ?? "").includes(itemQuery)) {
-        return false;
-      }
+    return quickSearchRows.filter((row) => {
       if (seasonQuery && !normalizeName(row.seasonName ?? "").includes(seasonQuery)) {
         return false;
       }
@@ -99,7 +105,7 @@ export function useItemList({ toastRef }: UseItemListParams) {
       }
       return true;
     });
-  }, [itemList, activeFilter, activeSeasonIds, searchFilters]);
+  }, [quickSearchRows, searchFilters]);
 
   const handleToggleColorActive = useCallback(
     async (itemColorId: number, nextActive: boolean) => {

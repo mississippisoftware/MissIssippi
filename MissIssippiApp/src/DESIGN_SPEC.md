@@ -796,5 +796,33 @@ Every other inline style is a violation. If you find yourself needing an inline 
 
 ---
 
+## 32. SEARCH AND FILTER PATTERN
+
+All pages with searchable tables must use the shared `useTableSearch` hook.
+Location: `src/hooks/useTableSearch.ts`
+
+Never write inline filter logic in a page component or hook.
+The hook handles: state, debouncing, multi-field search, case-insensitive matching, array field traversal.
+
+Usage:
+```typescript
+const { filtered, query, setQuery, clear, resultCount } = useTableSearch(items, {
+  fields: ['fieldName', 'nested.field', 'arrayField[].subField']
+})
+```
+
+Field path syntax:
+- `'itemNumber'` — top level field
+- `'address.city'` — nested field
+- `'colors[].colorName'` — array field, searches all elements
+
+Current usage:
+- ItemList: fields: ['itemNumber', 'description', 'colors[].colorName']
+- ColorList: fields: ['colorName', 'colorCode']
+- SKUList: fields: ['skuCode', 'itemNumber', 'colorName']
+- Inventory: handled separately via API — does not use this hook
+
+---
+
 *End of specification — v1.0*
 *Reference: https://themes.3rdwavemedia.com/demo/portal/ (all pages) + Upload Inventory screenshot*
