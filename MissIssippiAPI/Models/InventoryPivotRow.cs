@@ -6,6 +6,8 @@ namespace MissIssippiAPI.Models
 
         public string ColorName { get; set; } = string.Empty;
 
+        public string? HexValue { get; set; }
+
         public string Description { get; set; } = string.Empty;
 
         public int ItemId { get; set; }

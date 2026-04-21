@@ -222,6 +222,7 @@ namespace MissIssippiAPI.Services
                     {
                         ItemNumber = group.Key.ItemNumber,
                         ColorName = group.Key.ColorName,
+                        HexValue = first.HexValue,
                         Description = first.Description ?? string.Empty,
                         ItemId = first.ItemId,
                         ColorId = first.ColorId,
