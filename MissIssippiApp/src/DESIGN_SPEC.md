@@ -767,14 +767,16 @@ When designing any new inventory sub-page, follow this checklist:
 
 ## 31. PERMITTED INLINE STYLES (complete list)
 
-Only these two inline styles are permitted anywhere in the codebase:
+Only these inline styles are permitted anywhere in the codebase:
 
-1. **Color swatch backgrounds:**
+1. **Color dot background:**
    ```tsx
    style={{ backgroundColor: getSwatchColor(colorName) }}
    ```
    Reason: runtime-computed color value, cannot be a CSS class
-   Locations: `InventoryCardTable.tsx` swatch chip elements; `InventoryEditCard.tsx` color chip row in card header
+   Location: `src/components/ColorDot.tsx` ONLY
+   Usage: `<ColorDot colorName="GREEN" size="md" />`
+   All other color dot rendering must use this component — never inline style directly
 
 2. **PrimeReact Dialog sizing:**
    ```tsx

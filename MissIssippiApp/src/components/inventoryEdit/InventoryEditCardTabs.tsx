@@ -4,6 +4,7 @@ import { DataTable, type DataTableRowEditCompleteEvent } from "primereact/datata
 import { ProgressSpinner } from "primereact/progressspinner";
 import type { SkuListItem } from "../../service/SkuService";
 import type { ItemColorView } from "../../service/CatalogService";
+import ColorDot from "../ColorDot";
 
 type SkuListTabProps = {
   skuError: string | null;
@@ -122,11 +123,7 @@ export function InventoryEditCardDetailsTab({
                 {visibleColors.map((color) => (
                   <div key={color.itemColorId} className="inventory-card-color-chip">
                     <div className="inventory-card-color-chip-main">
-                      <span
-                        className={`inventory-card-color-tile${color.hexValue ? " has-hex" : ""}`}
-                        style={color.hexValue ? { backgroundColor: color.hexValue } : undefined}
-                        aria-hidden="true"
-                      />
+                      <ColorDot colorName={color.colorName} size="md" />
                       <span className="inventory-card-color-chip-name">{color.colorName}</span>
                       {color.hexValue ? (
                         <span className="inventory-card-color-chip-hex">{color.hexValue.toUpperCase()}</span>

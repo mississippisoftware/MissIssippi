@@ -4,6 +4,7 @@ import { Column } from "primereact/column";
 import type { ItemListRow, SeasonOption } from "../../items/itemsColorsTypes";
 import type { ItemColorView } from "../../service/CatalogService";
 import type { EditorOptions } from "../../types/editor";
+import ColorDot from "../../components/ColorDot";
 
 type ItemsTableProps = {
   seasons: SeasonOption[];
@@ -154,11 +155,10 @@ export default function ItemsTable({
     const summary = (
       <div className="item-color-summary">
         {preview.map((color) => (
-          <span
+          <ColorDot
             key={`${row.itemId}-${color.colorId}`}
-            className={`item-color-dot${color.hexValue ? " has-hex" : ""}`}
-            style={color.hexValue ? { backgroundColor: color.hexValue } : undefined}
-            title={color.colorName}
+            colorName={color.colorName}
+            size="lg"
           />
         ))}
         {remaining > 0 && <span className="item-color-count">+{remaining}</span>}

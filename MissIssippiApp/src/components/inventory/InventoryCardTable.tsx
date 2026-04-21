@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { InputNumber } from "primereact/inputnumber";
 import type { iInventoryDisplayRow, iSize } from "../../utils/DataInterfaces";
-import { getSwatchColor } from "../../utils/swatchColor";
+import ColorDot from "../ColorDot";
 
 type InventoryCardTableProps = {
   rows: iInventoryDisplayRow[];
@@ -75,11 +75,7 @@ const InventoryCardTable = ({
                 ) : null}
                 <td className="inventory-color-col">
                   <span className="inventory-color-chip" title={row.colorName}>
-                    <span
-                      className="inventory-color-swatch-chip"
-                      style={{ backgroundColor: getSwatchColor(row.colorName) }}
-                      aria-hidden="true"
-                    />
+                    <ColorDot colorName={row.colorName} size="sm" />
                     <span className="inventory-color-name">{row.colorName}</span>
                   </span>
                 </td>

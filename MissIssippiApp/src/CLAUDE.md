@@ -155,3 +155,11 @@ Hooks = logic + shaping
 Services = business logic
 Controllers = routing only
 Data layer = persistence only
+
+## Shared Components Registry
+
+- `ColorDot` — shared color dot component
+  Location: src/components/ColorDot.tsx
+  Usage: `<ColorDot colorName="GREEN" size="sm|md|lg" />`
+  This is the ONLY permitted location for getSwatchColor() inline style
+  Never render color dots with inline styles anywhere else

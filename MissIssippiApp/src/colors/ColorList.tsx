@@ -1,4 +1,5 @@
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ColorDot from "../components/ColorDot";
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import {
@@ -867,10 +868,7 @@ export default function ColorList() {
 
   const renderColorName = (row: ColorListRow) => (
     <div className="color-name-cell">
-      <span
-        className={`color-swatch${row.hexValue ? " has-hex" : ""}`}
-        style={row.hexValue ? { backgroundColor: row.hexValue } : undefined}
-      />
+      <ColorDot colorName={row.colorName} size="lg" />
       <span className="color-name-value">{row.colorName}</span>
     </div>
   );

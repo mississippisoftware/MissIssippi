@@ -98,7 +98,12 @@ const pt: PrimeReactPTOptions = {
     toggleableContent: { className: "pt-panelmenu__toggleable-content" },
     menuContent: { className: "pt-panelmenu__menu-content" },
     menu: { className: "pt-panelmenu__menu" },
-    menuitem: { className: "pt-panelmenu__item" },
+    menuitem: (options: any) => ({
+      className: [
+        "pt-panelmenu__item",
+        options?.context?.item?.item?.className,
+      ].filter(Boolean).join(" "),
+    }),
     action: { className: "pt-panelmenu__item-link" },
     icon: { className: "pt-panelmenu__item-icon" },
     label: { className: "pt-panelmenu__item-label" },
