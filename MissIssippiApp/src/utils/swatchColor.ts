@@ -18,6 +18,13 @@ const supportsCssColor = (candidate: string) => {
   return window.CSS.supports("color", candidate);
 };
 
+/**
+ * Resolve the display color for any swatch or dot.
+ * Prefers the stored hexColor when available; falls back to getSwatchColor.
+ */
+export const resolveSwatchColor = (colorName: string, hexColor?: string | null): string =>
+  hexColor || getSwatchColor(colorName);
+
 export const getSwatchColor = (colorName: string): string => {
   const cacheKey = colorName.trim().toLowerCase();
   const cached = swatchColorCache.get(cacheKey);

@@ -101,7 +101,7 @@ const pt: PrimeReactPTOptions = {
     menuitem: (options: any) => ({
       className: [
         "pt-panelmenu__item",
-        options?.context?.item?.item?.className,
+        options?.context?.item?.className,
       ].filter(Boolean).join(" "),
     }),
     action: { className: "pt-panelmenu__item-link" },

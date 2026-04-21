@@ -158,6 +158,7 @@ export default function ItemsTable({
           <ColorDot
             key={`${row.itemId}-${color.colorId}`}
             colorName={color.colorName}
+            hexColor={color.hexValue}
             size="lg"
           />
         ))}

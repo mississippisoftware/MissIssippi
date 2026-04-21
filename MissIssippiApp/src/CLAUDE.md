@@ -160,6 +160,12 @@ Data layer = persistence only
 
 - `ColorDot` — shared color dot component
   Location: src/components/ColorDot.tsx
-  Usage: `<ColorDot colorName="GREEN" size="sm|md|lg" />`
-  This is the ONLY permitted location for getSwatchColor() inline style
-  Never render color dots with inline styles anywhere else
+  Usage: `<ColorDot colorName="GREEN" hexColor={row.hexValue} size="sm|md|lg" />`
+  Always pass `hexColor` when the data object has a `hexValue` field
+  ColorDot calls `resolveSwatchColor` internally — never call getSwatchColor directly in UI
+
+- `resolveSwatchColor(colorName, hexColor?)` — canonical color value resolver
+  Location: src/utils/swatchColor.ts
+  Priority: stored hexColor → CSS named color → hash-based HSL fallback
+  Use this wherever a CSS color string is needed (inline styles for swatches, pills, etc.)
+  Never inline the hex-or-fallback logic elsewhere

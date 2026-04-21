@@ -123,7 +123,7 @@ export function InventoryEditCardDetailsTab({
                 {visibleColors.map((color) => (
                   <div key={color.itemColorId} className="inventory-card-color-chip">
                     <div className="inventory-card-color-chip-main">
-                      <ColorDot colorName={color.colorName} size="md" />
+                      <ColorDot colorName={color.colorName} hexColor={color.hexValue} size="md" />
                       <span className="inventory-card-color-chip-name">{color.colorName}</span>
                       {color.hexValue ? (
                         <span className="inventory-card-color-chip-hex">{color.hexValue.toUpperCase()}</span>

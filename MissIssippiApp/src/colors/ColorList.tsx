@@ -868,7 +868,7 @@ export default function ColorList() {
 
   const renderColorName = (row: ColorListRow) => (
     <div className="color-name-cell">
-      <ColorDot colorName={row.colorName} size="lg" />
+      <ColorDot colorName={row.colorName} hexColor={row.hexValue} size="lg" />
       <span className="color-name-value">{row.colorName}</span>
     </div>
   );
