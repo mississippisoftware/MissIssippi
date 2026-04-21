@@ -8,6 +8,8 @@ public class InventoryRowDto
 
     public string ColorName { get; set; } = null!;
 
+    public string? HexValue { get; set; }
+
     public string SizeName { get; set; } = null!;
 
     public int Qty { get; set; }

@@ -75,7 +75,7 @@ const InventoryCardTable = ({
                 ) : null}
                 <td className="inventory-color-col">
                   <span className="inventory-color-chip" title={row.colorName}>
-                    <ColorDot colorName={row.colorName} size="sm" />
+                    <ColorDot colorName={row.colorName} hexColor={row.hexValue} size="sm" />
                     <span className="inventory-color-name">{row.colorName}</span>
                   </span>
                 </td>

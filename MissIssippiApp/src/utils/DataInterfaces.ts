@@ -8,6 +8,7 @@ export interface iInventoryDisplayRow {
   id: string;
   itemNumber: string;
   colorName: string;
+  hexValue?: string | null;
   itemId?: number;
   colorId?: number | string;
   itemColorId?: number | string;
