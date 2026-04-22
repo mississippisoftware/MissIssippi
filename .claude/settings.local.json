@@ -27,7 +27,11 @@
       "Bash(npm run *)",
       "Bash(sed -n '216,235p' node_modules/primereact/autocomplete/autocomplete.d.ts)",
       "Bash(sed -n '884,910p' node_modules/primereact/datatable/datatable.d.ts)",
-      "Bash(gh run *)"
+      "Bash(gh run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'fix: set no-cache on index.html, long-term cache on hashed assets *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
