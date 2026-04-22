@@ -293,15 +293,15 @@
 .app-layout .sidebar,
 .portal-sidebar {
   position: fixed;
-  top: 0;
+  top: var(--pt-topbar-height);
   left: 0;
   bottom: 0;
-  height: 100vh;
-  width: var(--pt-sidebar-width);              /* Portal: 250px */
+  height: calc(100vh - var(--pt-topbar-height));
+  width: var(--pt-sidebar-width);
   z-index: 90;
   background: #ffffff;
   border-right: 1px solid #e9ecef;
-  box-shadow: var(--pt-shadow-3);              /* Portal: rgba(0,0,0,.05) 0px 8px 15px */
+  box-shadow: var(--pt-shadow-3);
   display: flex;
   flex-direction: column;
   font-family: var(--pt-font-family);
@@ -369,7 +369,15 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--pt-space-2) 0;
+  padding: 0;
+}
+
+.portal-sidebar__nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--pt-border-subtle);
 }
 
 .portal-sidebar__group-label {

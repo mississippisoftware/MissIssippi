@@ -127,26 +127,22 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
   return (
     <aside className={`portal-sidebar${isOpen ? "" : " portal-sidebar--collapsed"}`}>
-      <div className="portal-sidebar__brand">
-        <span className="portal-sidebar__brand-name">
-          <span className="portal-sidebar__brand-text"></span>
-        </span>
-        <button
-          type="button"
-          className="portal-sidebar__toggle"
-          aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
-          onClick={() => {
-            if (isOpen) {
-              setExpandedKeys({});
-            }
-            onToggle();
-          }}
-        >
-          <i className="pi pi-bars" aria-hidden="true" />
-        </button>
-      </div>
-
       <nav className="portal-sidebar__nav">
+        {isOpen && (
+          <div className="portal-sidebar__nav-header">
+            <button
+              type="button"
+              className="portal-sidebar__toggle"
+              aria-label="Collapse sidebar"
+              onClick={() => {
+                setExpandedKeys({});
+                onToggle();
+              }}
+            >
+              <i className="pi pi-chevron-left" aria-hidden="true" />
+            </button>
+          </div>
+        )}
         <PanelMenu
           model={model}
           expandedKeys={resolvedExpandedKeys}
