@@ -138,6 +138,11 @@
   --pt-card-gap:             24px;
   --pt-card-padding:         20px;
 
+  /* Cell & header spacing — change here to affect ALL tables and card headers */
+  --pt-cell-py:              12px;   /* Table row vertical padding */
+  --pt-card-header-py:       16px;   /* Card header top/bottom padding */
+  --pt-card-header-px:       20px;   /* Card header left/right padding */
+
 
   /* ---------------------------------------------------------------------------
      TYPOGRAPHY
@@ -2928,7 +2933,7 @@ a[class*="btn-"] {
   border-top: none;
   border-left: none;
   border-right: none;
-  padding: 10px 14px;
+  padding: var(--pt-cell-py) var(--pt-space-4);
   white-space: nowrap;
   vertical-align: middle;
   cursor: default;
@@ -2986,8 +2991,8 @@ a[class*="btn-"] {
 }
 
 .pt-datatable__body-cell {
-  padding: 0 var(--pt-space-3);
-  height: 44px;
+  padding: var(--pt-cell-py) var(--pt-space-3);
+  height: auto;
   vertical-align: middle;
   border: none;
   color: var(--pt-text-body);
@@ -3581,7 +3586,7 @@ a[class*="btn-"] {
   background: var(--pt-bg-surface);
   border: 1px solid var(--pt-border-default);
   border-radius: var(--pt-radius-lg);
-  padding: 12px 16px;
+  padding: var(--pt-cell-py) var(--pt-card-header-px);
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -4486,7 +4491,7 @@ textarea::placeholder {
 .inventory-edit-table th,
 .inventory-edit-table td {
     text-align: right;
-    padding: 10px 0;
+    padding: var(--pt-cell-py) 0;
     font-size: var(--pt-font-size-meta);
     white-space: nowrap;
     overflow: hidden;
@@ -4659,7 +4664,7 @@ textarea::placeholder {
 .inventory-card-header-main {
     background: var(--pt-bg-surface-muted);
     border-bottom: 1px solid var(--pt-border-subtle);
-    padding: 14px 16px;
+    padding: var(--pt-card-header-py) var(--pt-card-header-px);
     margin-bottom: 0;
 }
 
@@ -4686,7 +4691,7 @@ textarea::placeholder {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: var(--pt-card-header-py) var(--pt-card-header-px);
     border-top: 1px solid var(--pt-border-subtle);
     background: #fafbfc !important;
 }
@@ -4877,7 +4882,7 @@ textarea::placeholder {
 .inventory-edit-card-header {
     background: var(--pt-bg-surface-muted) !important;
     border-bottom: 1px solid var(--pt-border-subtle);
-    padding: 14px 20px;
+    padding: var(--pt-card-header-py) var(--pt-card-header-px);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -5407,7 +5412,7 @@ textarea::placeholder {
 .inventory-style-group-header {
     background: #fafbfc !important;
     border-bottom: 1px solid var(--pt-border-subtle);
-    padding: 12px 16px;
+    padding: var(--pt-card-header-py) var(--pt-card-header-px);
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
