@@ -86,7 +86,12 @@ const pt: PrimeReactPTOptions = {
   // ── PANEL MENU (sidebar navigation) ────────────────────────────────────────
   panelmenu: {
     root: { className: "pt-panelmenu" },
-    panel: { className: "pt-panelmenu__panel" },
+    panel: (options: any) => ({
+      className: [
+        "pt-panelmenu__panel",
+        options?.props?.model?.[options?.context?.index]?.className,
+      ].filter(Boolean).join(" "),
+    }),
     header: { className: "pt-panelmenu__header" },
     headerContent: { className: "pt-panelmenu__header-content" },
     headerAction: { className: "pt-panelmenu__header-link" },
@@ -101,7 +106,7 @@ const pt: PrimeReactPTOptions = {
     menuitem: (options: any) => ({
       className: [
         "pt-panelmenu__item",
-        options?.context?.item?.className,
+        options?.context?.item?.item?.className,
       ].filter(Boolean).join(" "),
     }),
     action: { className: "pt-panelmenu__item-link" },
