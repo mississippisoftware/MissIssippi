@@ -3796,8 +3796,8 @@ body {
     overflow: visible;
     max-width: 100vw;
     overflow-x: hidden;
-    --sidebar-width: 260px;
-    --sidebar-collapsed-width: 84px;
+    --sidebar-width: var(--pt-sidebar-width);
+    --sidebar-collapsed-width: var(--pt-sidebar-collapsed);
 }
 
 .app-layout.sidebar-collapsed {
