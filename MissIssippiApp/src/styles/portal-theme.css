@@ -149,12 +149,12 @@
 
   /* Sizes */
   --pt-font-size-brand:       1.25rem;    /* Portal exact: .app-branding .logo-text { font-size:1.25rem } */
-  --pt-font-size-page-title:  1.0625rem;  /* ~17px — H1, ceiling of scale */
-  --pt-font-size-section:     0.9375rem;  /* ~15px — card/panel headings */
-  --pt-font-size-body:        14px;       /* body text, table cells */
-  --pt-font-size-label:       11px;       /* form labels, nav items, buttons */
-  --pt-font-size-meta:        12px;       /* timestamps, IDs, counts */
-  --pt-font-size-badge:       0.6875rem;  /* ~11px — badges, chips, col headers */
+  --pt-font-size-page-title:  1.1875rem;  /* ~19px — H1, ceiling of scale */
+  --pt-font-size-section:     1.0625rem;  /* ~17px — card/panel headings */
+  --pt-font-size-body:        16px;       /* body text, table cells */
+  --pt-font-size-label:       13px;       /* form labels, nav items, buttons */
+  --pt-font-size-meta:        14px;       /* timestamps, IDs, counts */
+  --pt-font-size-badge:       0.8125rem;  /* ~13px — badges, chips, col headers */
 
   /* Weights */
   --pt-font-weight-regular:   400;
@@ -277,7 +277,7 @@
 }
 
 .portal-topbar__brand {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: #343a40;
   letter-spacing: 0;
@@ -374,7 +374,7 @@
 
 .portal-sidebar__group-label {
   padding: 20px 20px 6px;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 600;
   color: #6c7a9c;
   text-transform: uppercase;
@@ -390,7 +390,7 @@
   padding: 0 16px;
   height: 40px;
   color: #6c757d;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
@@ -423,7 +423,7 @@
 
 .portal-sidebar__item--child {
   height: 34px;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 400;
   color: #6c757d;
   padding-left: 44px;
@@ -512,7 +512,7 @@
 
 .portal-page-header__subtitle,
 .portal-page-subtitle {
-  font-size: 13px;
+  font-size: 16px;
   color: #6c757d;
   margin: 0;
   margin-top: 2px;
@@ -692,7 +692,7 @@
 }
 
 .portal-card__title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: #343a40;
   margin: 0;
@@ -702,7 +702,7 @@
 }
 
 .portal-card__meta {
-  font-size: 12px;
+  font-size: 16px;
   color: #6c757d;
   line-height: 1.4;
   margin: 0;
@@ -1643,27 +1643,27 @@ a[class*="btn-"] {
   letter-spacing: -0.01em;
 }
 .pt-text-page-sub {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 400;
   color: #6c757d;
   line-height: 1.4;
   margin-top: 3px;
 }
 .pt-text-card-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #343a40;
   line-height: 1.3;
 }
 .pt-text-card-sub {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 400;
   color: #6c757d;
   line-height: 1.4;
   margin-top: 2px;
 }
 .pt-text-label {
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1671,33 +1671,33 @@ a[class*="btn-"] {
   margin-bottom: 5px;
 }
 .pt-text-body {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 400;
   color: #495057;
   line-height: 1.5;
 }
 .pt-text-body-strong {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: #343a40;
   line-height: 1.5;
 }
 .pt-text-meta {
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 400;
   color: #adb5bd;
   line-height: 1.4;
 }
 .pt-text-code {
   font-family: monospace;
-  font-size: 11px;
+  font-size: 16px;
   color: #3ac47d;
   background: #f0fdf6;
   padding: 2px 6px;
   border-radius: 3px;
 }
 .pt-text-step-tab {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 600;
   color: #adb5bd;
   line-height: 1;
@@ -1709,18 +1709,18 @@ a[class*="btn-"] {
   color: #3ac47d;
 }
 .pt-text-section {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: #343a40;
   line-height: 1.3;
 }
 .pt-text-mono {
   font-family: monospace;
-  font-size: 12px;
+  font-size: 16px;
   color: #495057;
 }
 .pt-text-col-header {
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 600;
   color: #6c757d;
   text-transform: uppercase;
@@ -1784,7 +1784,7 @@ a[class*="btn-"] {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -1881,7 +1881,7 @@ a[class*="btn-"] {
   flex-shrink: 0;
 }
 .pt-mode-btn .pt-mode-label {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: #343a40;
   display: block;
@@ -1889,7 +1889,7 @@ a[class*="btn-"] {
 }
 .pt-mode-btn .pt-mode-desc,
 .pt-mode-btn__desc {
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 400;
   color: #adb5bd;
   display: block;
@@ -1994,7 +1994,7 @@ a[class*="btn-"] {
   flex-shrink: 0;
 }
 .pt-hint-icon i {
-  font-size: 13px;
+  font-size: 16px;
   color: #3ac47d;
 }
 
@@ -2056,7 +2056,7 @@ a[class*="btn-"] {
   border: 1px solid #dee2e6;
   border-radius: 5px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 400;
   color: #343a40;
   outline: none;
@@ -2078,7 +2078,7 @@ a[class*="btn-"] {
   border: 1px solid #dee2e6;
   border-radius: 5px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 400;
   color: #343a40;
   outline: none;
@@ -2102,7 +2102,7 @@ a[class*="btn-"] {
 
 /* Replaces Bootstrap form-check-label */
 .pt-form-checkbox-label {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 400;
   color: #495057;
   cursor: pointer;
@@ -2125,7 +2125,7 @@ a[class*="btn-"] {
 
 /* Replaces text-muted mb-0 / text-muted small — descriptive subtitle text */
 .pt-text-desc {
-  font-size: 13px;
+  font-size: 16px;
   color: #6c757d;
   line-height: 1.5;
   margin: 0;
@@ -2133,7 +2133,7 @@ a[class*="btn-"] {
 
 /* Replaces text-muted mt-2 below form fields or sections */
 .pt-form-hint {
-  font-size: 12px;
+  font-size: 16px;
   color: #6c757d;
   margin-top: 4px;
   line-height: 1.4;
@@ -2144,7 +2144,7 @@ a[class*="btn-"] {
   text-align: center;
   color: #6c757d;
   padding: 32px 0;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 /* Replaces mb-0 on ul inside alert/error blocks */
@@ -2162,7 +2162,7 @@ a[class*="btn-"] {
 /* Replaces text-danger mb-3 — inline error/warning notice */
 .pt-error-notice {
   color: #dc3545;
-  font-size: 13px;
+  font-size: 16px;
   margin-bottom: 12px;
 }
 
@@ -2214,7 +2214,7 @@ a[class*="btn-"] {
   border: 1px solid #dee2e6;
   border-radius: 3px;
   padding: 1px 6px;
-  font-size: 10px;
+  font-size: 16px;
   font-family: monospace;
   color: #495057;
   margin: 2px 2px 0 0;
@@ -2285,7 +2285,7 @@ a[class*="btn-"] {
   padding: 0 4px;
   background: #dc3545;
   color: #ffffff;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 700;
   border-radius: 999px;
   display: inline-flex;
@@ -2306,7 +2306,7 @@ a[class*="btn-"] {
 }
 
 .portal-topbar__avatar-initials {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   color: #ffffff;
   letter-spacing: 0;
@@ -2389,7 +2389,7 @@ a[class*="btn-"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .pt-input-number__btn:last-child {
@@ -2652,7 +2652,7 @@ a[class*="btn-"] {
   border: none;
   border-left: 3px solid transparent;
   color: #6c757d;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   font-family: var(--pt-font-family);
   text-decoration: none;
@@ -2675,7 +2675,7 @@ a[class*="btn-"] {
 .pt-panelmenu__collapse-icon,
 .pt-panelmenu__submenu-icon {
   color: var(--pt-sidebar-group-label);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   flex-shrink: 0;
   transition: color var(--pt-transition-micro);
 }
@@ -2734,7 +2734,7 @@ a[class*="btn-"] {
   padding: 0 16px 0 44px;
   height: 34px;
   color: #6c757d;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 400;
   font-family: var(--pt-font-family);
   text-decoration: none;
@@ -2758,7 +2758,7 @@ a[class*="btn-"] {
 }
 
 .pt-panelmenu__item-icon {
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   flex-shrink: 0;
 }
 
@@ -2841,7 +2841,7 @@ a[class*="btn-"] {
 }
 
 .pt-menu__item-icon {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--pt-text-secondary);
   width: 16px;
   flex-shrink: 0;
@@ -2931,7 +2931,7 @@ a[class*="btn-"] {
 }
 
 .pt-datatable__header-title {
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 600;
   color: #6c757d;
   text-transform: uppercase;
@@ -2939,7 +2939,7 @@ a[class*="btn-"] {
 }
 
 .pt-datatable__sort-icon {
-  font-size: 11px;
+  font-size: 16px;
   color: var(--pt-text-muted);
   margin-left: var(--pt-space-1);
 }
@@ -3156,7 +3156,7 @@ a[class*="btn-"] {
   border-radius: 0;
   color: #6c757d;
   font-family: var(--pt-font-family);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
@@ -3287,7 +3287,7 @@ a[class*="btn-"] {
 }
 
 .pt-dialog__close-icon {
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .pt-dialog__content {
@@ -3391,7 +3391,7 @@ a[class*="btn-"] {
 }
 
 .pt-toast__close-icon {
-  font-size: 11px;
+  font-size: 16px;
 }
 
 
@@ -3597,7 +3597,7 @@ a[class*="btn-"] {
   top: 50%;
   transform: translateY(-50%);
   color: var(--pt-text-secondary);
-  font-size: 13px;
+  font-size: 16px;
   pointer-events: none;
 }
 .pt-search-input {
@@ -3632,7 +3632,7 @@ a[class*="btn-"] {
   background: var(--pt-bg-surface-muted)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236c757d'/%3E%3C/svg%3E")
     no-repeat right 8px center;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-family: inherit;
   color: var(--pt-text-primary);
   cursor: pointer;
@@ -3649,7 +3649,7 @@ a[class*="btn-"] {
   justify-content: space-between;
   max-width: 1100px;
   margin-bottom: 10px;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: var(--pt-text-secondary);
 }
 
@@ -3676,7 +3676,7 @@ a[class*="btn-"] {
   border-right: 1px solid var(--pt-border-default);
   background: var(--pt-bg-surface);
   color: var(--pt-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -3712,7 +3712,7 @@ a[class*="btn-"] {
 /* == SCAN PAGE STEP LABELS (.portal-step-label) ============================= */
 
 .portal-step-label {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #343a40;
   display: flex;
@@ -3722,13 +3722,13 @@ a[class*="btn-"] {
 }
 
 .portal-step-description {
-  font-size: 12px;
+  font-size: 16px;
   color: #6c757d;
   line-height: 1.5;
 }
 
 /* == PORTAL ALERT SYSTEM — Bootstrap alert replacement ====================== */
-.pt-alert { padding: 12px 16px; border-radius: 5px; font-size: 13px; margin-bottom: 12px; }
+.pt-alert { padding: 12px 16px; border-radius: 5px; font-size: 16px; margin-bottom: 12px; }
 .pt-alert-danger { background: #f8d7da; border: 1px solid #f5c2c7; color: #842029; }
 .pt-alert-success { background: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; }
 .pt-alert-warning { background: #fff3cd; border: 1px solid #ffecb5; color: #664d03; }
@@ -3762,7 +3762,7 @@ body {
     padding: 0;
     height: 100%;
     overflow: hidden;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 :root {
@@ -3805,7 +3805,7 @@ h2 {
 }
 
 h3 {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     line-height: 1.3;
     margin: 0 0 0.4rem 0;
@@ -3823,7 +3823,7 @@ h4 {
 }
 
 h5 {
-    font-size: 0.92rem;
+    font-size: 1rem;
     font-weight: 500;
     line-height: 1.2rem;
     margin: 0 0 0.5rem 0;
@@ -3844,7 +3844,7 @@ h6 {
     --app-ui-font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     --app-ui-font-size: var(--pt-font-size-body);
     --app-ui-line-height: 1.3;
-    --app-button-font-size: 0.88rem;
+    --app-button-font-size: 1rem;
     --app-button-font-size-sm: 0.84rem;
     --app-button-icon-size: 0.88rem;
     --app-title-page-size: 1.05rem;
@@ -4331,7 +4331,7 @@ textarea::placeholder {
 }
 
 .active-filter-chip-remove .pi {
-    font-size: 0.62rem;
+    font-size: 0.875rem;
 }
 
 .catalog-page .page-filters-shell .form-control,
@@ -4562,14 +4562,14 @@ textarea::placeholder {
 .inventory-edit-table--compact th,
 .inventory-edit-table--compact td {
     padding: 5px 4px;
-    font-size: 0.75rem;
+    font-size: 0.875rem;
 }
 
 .inventory-edit-table--compact thead th {
     background: var(--pt-bg-surface-muted);
     font-weight: 500;
     color: var(--pt-text-secondary);
-    font-size: 11px;
+    font-size: 16px;
     border-bottom: 1px solid var(--pt-border-default);
 }
 
@@ -4681,19 +4681,19 @@ textarea::placeholder {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
-    font-size: 12px;
+    font-size: 16px;
     color: var(--pt-text-secondary);
     margin-top: 4px;
 }
 .inventory-card-meta-row .meta-label {
     color: var(--pt-text-muted);
     font-weight: 400;
-    font-size: 11px;
+    font-size: 16px;
 }
 .inventory-card-meta-row .meta-value {
     color: var(--pt-text-primary);
     font-weight: 600;
-    font-size: 12px;
+    font-size: 16px;
 }
 
 .inventory-card-active-line {
@@ -4899,7 +4899,7 @@ textarea::placeholder {
 
 /* ── Image column content ────────────────────────────────────────────────── */
 .inventory-card-image-label {
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--pt-text-muted);
     text-transform: uppercase;
@@ -4936,7 +4936,7 @@ textarea::placeholder {
     opacity: 0.6;
 }
 .inventory-card-image-caption {
-    font-size: 11px;
+    font-size: 16px;
     color: var(--pt-text-muted);
     text-align: center;
 }
@@ -4990,7 +4990,7 @@ textarea::placeholder {
     justify-content: center;
     color: var(--pt-text-secondary);
     transition: border-color 0.12s, color 0.12s, background 0.12s;
-    font-size: 13px;
+    font-size: 16px;
     outline: none;
 }
 .inventory-card-edit-btn:hover {
@@ -5181,7 +5181,7 @@ textarea::placeholder {
 }
 
 .inventory-style-group-style {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--pt-text-primary);
     line-height: 1.2;
@@ -5194,7 +5194,7 @@ textarea::placeholder {
 }
 
 .inventory-style-group-description {
-    font-size: 0.75rem;
+    font-size: 0.875rem;
     color: var(--pt-text-secondary);
     line-height: 1.25;
     font-weight: 400;
@@ -5203,7 +5203,7 @@ textarea::placeholder {
 .inventory-style-group-status {
     display: inline-flex;
     align-items: center;
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 999px;
@@ -5216,7 +5216,7 @@ textarea::placeholder {
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 0.75rem;
+    font-size: 0.875rem;
     color: var(--pt-text-secondary);
     margin-top: 2px;
 }
@@ -5361,7 +5361,7 @@ textarea::placeholder {
     border-bottom: 1px solid var(--pt-border-default);
     border-top: none;
     color: var(--pt-text-secondary);
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 500;
 }
 
@@ -5457,15 +5457,15 @@ textarea::placeholder {
     flex-shrink: 0;
     margin-bottom: 4px;
     color: var(--pt-accent);
-    font-size: 14px;
+    font-size: 16px;
 }
 .scan-step__title {
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--pt-text-primary);
 }
 .scan-step__desc {
-    font-size: 11px;
+    font-size: 16px;
     color: var(--pt-text-muted);
     line-height: 1.5;
 }
@@ -5483,7 +5483,7 @@ textarea::placeholder {
 .scan-mode-btn {
     height: 36px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
@@ -5527,7 +5527,7 @@ textarea::placeholder {
     border: 1px solid var(--pt-border-default);
     border-radius: 6px;
     padding: 0 12px;
-    font-size: 13px;
+    font-size: 16px;
     color: var(--pt-text-primary);
     font-family: inherit;
     outline: none;
@@ -5556,7 +5556,7 @@ textarea::placeholder {
 }
 .scan-status-row {
     margin-top: 10px;
-    font-size: 12px;
+    font-size: 16px;
 }
 .scan-status-row.recognized {
     color: var(--pt-accent);
@@ -5584,7 +5584,7 @@ textarea::placeholder {
     background: var(--pt-accent-soft);
     color: var(--pt-accent);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     display: inline-flex;
@@ -5640,7 +5640,7 @@ textarea::placeholder {
     border: 1px solid var(--pt-border-default);
     border-radius: 5px;
     padding: 0 10px;
-    font-size: 12px;
+    font-size: 16px;
     color: var(--pt-text-primary);
     font-family: inherit;
     outline: none;
@@ -5656,7 +5656,7 @@ textarea::placeholder {
     color: var(--pt-text-muted);
 }
 .scan-net-change {
-    font-size: 12px;
+    font-size: 16px;
     color: var(--pt-text-secondary);
 }
 .scan-net-change strong {
@@ -5694,7 +5694,7 @@ textarea::placeholder {
     margin-bottom: 12px;
 }
 .scan-refresh-btn {
-    font-size: 11px;
+    font-size: 16px;
     color: var(--pt-text-secondary);
     background: none;
     border: none;
@@ -5719,7 +5719,7 @@ textarea::placeholder {
     border-collapse: collapse;
 }
 .scan-batch-table th {
-    font-size: 10px;
+    font-size: 16px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -5733,7 +5733,7 @@ textarea::placeholder {
     text-align: right;
 }
 .scan-batch-table td {
-    font-size: 12px;
+    font-size: 16px;
     color: var(--pt-text-primary);
     padding: 9px 0;
     border-bottom: 1px solid #f8f9fa;
@@ -5753,7 +5753,7 @@ textarea::placeholder {
     font-weight: 600;
 }
 .scan-view-btn {
-    font-size: 11px;
+    font-size: 16px;
     color: var(--pt-accent);
     font-weight: 600;
     background: none;
@@ -7179,7 +7179,7 @@ textarea::placeholder {
 }
 .inventory-view-switch-track {
     padding: 5px 14px;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 500;
     color: var(--pt-text-secondary);
     cursor: pointer;
@@ -7487,7 +7487,7 @@ hr {
 thead.table-light > tr > th {
     background-color: var(--pt-bg-surface-muted);
     color: var(--pt-text-secondary);
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 500;
     border-bottom: 1px solid var(--pt-border-default);
 }
@@ -7496,7 +7496,7 @@ thead.table-light > tr > th {
 .badge {
     display: inline-flex;
     align-items: center;
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 999px;
