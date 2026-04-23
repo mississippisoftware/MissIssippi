@@ -5441,7 +5441,7 @@ textarea::placeholder {
     width: 100%;
     box-sizing: border-box;
     align-items: flex-start;
-    overflow-x: hidden;
+    overflow-x: visible;
 }
 
 /* ── Scan step card (shared two-column structure) ────────────────────────── */
@@ -5451,7 +5451,7 @@ textarea::placeholder {
     background: var(--pt-bg-surface);
     border: 1px solid var(--pt-border-default);
     border-radius: var(--pt-radius-lg);
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     width: 100%;
     max-width: 900px;
@@ -5490,6 +5490,12 @@ textarea::placeholder {
 }
 .scan-step__content {
     padding: 20px 24px;
+    min-width: 0;
+}
+
+.sku-scan-table-view {
+    overflow-x: auto;
+    width: 100%;
 }
 
 /* ── Scanner step content ────────────────────────────────────────────────── */
