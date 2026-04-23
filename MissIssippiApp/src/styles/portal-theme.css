@@ -5446,7 +5446,7 @@ textarea::placeholder {
     gap: 12px;
     width: 100%;
     box-sizing: border-box;
-    align-items: flex-start;
+    align-items: stretch;
     overflow-x: visible;
 }
 

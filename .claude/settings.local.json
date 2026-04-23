@@ -31,7 +31,14 @@
       "Bash(git add *)",
       "Bash(git commit -m 'fix: set no-cache on index.html, long-term cache on hashed assets *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git -C c:/Users/zissy/source/repos/MissIssippi status)",
+      "Bash(git -C c:/Users/zissy/source/repos/MissIssippi log --oneline -3)",
+      "Bash(git -C c:/Users/zissy/source/repos/MissIssippi show HEAD --name-only --stat)",
+      "Bash(git -C c:/Users/zissy/source/repos/MissIssippi diff HEAD -- MissIssippiApp/src/layout/Sidebar/Sidebar.tsx MissIssippiApp/src/styles/portal-theme.css)",
+      "Bash(git -C c:/Users/zissy/source/repos/MissIssippi show HEAD:MissIssippiApp/src/layout/Sidebar/Sidebar.tsx)",
+      "Bash(git -C c:/Users/zissy/source/repos/MissIssippi push)",
+      "Bash(git -C c:/Users/zissy/source/repos/MissIssippi show a67ca7a:MissIssippiApp/src/styles/portal-theme.css)"
     ]
   }
 }
