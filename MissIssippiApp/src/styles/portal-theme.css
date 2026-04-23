@@ -5454,7 +5454,6 @@ textarea::placeholder {
     overflow: visible;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     width: 100%;
-    max-width: 900px;
     box-sizing: border-box;
 }
 .scan-step__label {
