@@ -1826,6 +1826,12 @@ a[class*="btn-"] {
   flex: 1;
 }
 
+/* Scan page needs more horizontal room for the wide size-column table */
+.pt-page-canvas:has(.scan-page) {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
 /* ---------------------------------------------------------------------------
    Page header tabs — step-tab strip below the page header
 --------------------------------------------------------------------------- */
@@ -5447,7 +5453,7 @@ textarea::placeholder {
 /* ── Scan step card (shared two-column structure) ────────────────────────── */
 .scan-step {
     display: grid;
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 160px 1fr;
     background: var(--pt-bg-surface);
     border: 1px solid var(--pt-border-default);
     border-radius: var(--pt-radius-lg);
@@ -6781,7 +6787,7 @@ textarea::placeholder {
 .col-expander { width: 2.25rem; }
 .col-actions  { width: 6rem; }
 .col-sequence { width: 9rem; }
-.col-row-editor { width: 10%; min-width: 8rem; }
+.col-row-editor { width: 5%; min-width: 5rem; }
 .col-center { text-align: center; }
 
 .items-colors-table .col-active { width: 4.5rem; }
