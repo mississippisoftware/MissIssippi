@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  api-ci:
+    name: Build & Test API
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Restore dependencies
+        working-directory: MissIssippiAPI
+        run: dotnet restore
+
+      - name: Build
+        working-directory: MissIssippiAPI
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        working-directory: MissIssippiAPI
+        run: dotnet test --configuration Release --no-build --verbosity normal
+        # No test projects yet; this step exits 0 cleanly until Phase 2 tests land.
+
+  web-ci:
+    name: Build & Lint Web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: MissIssippiApp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: MissIssippiApp
+        run: npm ci
+
+      - name: Lint
+        working-directory: MissIssippiApp
+        run: npm run lint
+        continue-on-error: true   # Don't fail the build on lint warnings until codebase is clean
+
+      - name: Build
+        working-directory: MissIssippiApp
+        run: npm run build
