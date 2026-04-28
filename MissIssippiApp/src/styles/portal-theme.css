@@ -134,7 +134,7 @@
   --pt-sidebar-width:        240px;   /* Portal: 240px wide */
   --pt-sidebar-collapsed:    56px;
   --pt-panel-width:          480px;
-  --pt-page-padding-x:       28px;
+  --pt-page-padding-x:       40px;
   --pt-card-gap:             24px;
   --pt-card-padding:         20px;
 
@@ -493,7 +493,7 @@
 .portal-page-header {
   background: #ffffff !important;
   border-bottom: 1px solid var(--pt-border-default) !important;
-  padding: 16px 24px;
+  padding: 16px var(--pt-page-padding-x);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1768,7 +1768,7 @@ a[class*="btn-"] {
 .pt-page-header {
   background: #ffffff;
   border-bottom: 1px solid #e9ecef;
-  padding: 20px 32px 0;
+  padding: 20px var(--pt-page-padding-x) 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   position: sticky;
   top: 0;
@@ -1820,16 +1820,10 @@ a[class*="btn-"] {
 --------------------------------------------------------------------------- */
 
 .pt-page-canvas {
-  padding: 24px 28px;
+  padding: 24px var(--pt-page-padding-x);
   width: 100%;
   box-sizing: border-box;
   flex: 1;
-}
-
-/* Scan page needs more horizontal room for the wide size-column table */
-.pt-page-canvas:has(.scan-page) {
-  padding-left: 16px;
-  padding-right: 16px;
 }
 
 /* ---------------------------------------------------------------------------
