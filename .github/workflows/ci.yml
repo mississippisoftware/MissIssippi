@@ -34,7 +34,7 @@ jobs:
       - name: Test
         working-directory: MissIssippiAPI
         run: dotnet test --configuration Release --no-build --verbosity normal
- env:
+        env:
           TEST_DB_CONNECTION_STRING: ${{ secrets.TEST_DB_CONNECTION_STRING }}
 
   web-ci:
