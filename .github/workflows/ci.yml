@@ -34,7 +34,8 @@ jobs:
       - name: Test
         working-directory: MissIssippiAPI
         run: dotnet test --configuration Release --no-build --verbosity normal
-        # No test projects yet; this step exits 0 cleanly until Phase 2 tests land.
+ env:
+          TEST_DB_CONNECTION_STRING: ${{ secrets.TEST_DB_CONNECTION_STRING }}
 
   web-ci:
     name: Build & Lint Web
