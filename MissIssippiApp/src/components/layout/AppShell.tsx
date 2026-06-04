@@ -2,7 +2,7 @@ import { type ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Layout, Menu, Avatar, Space, Typography, Dropdown } from 'antd'
 import type { MenuProps } from 'antd'
-import { useMsal } from '@azure/msal-react'
+import { useAuth } from '../../hooks/useAuth'
 import { navigation } from '../../config/navigation'
 import type { NavItem } from '../../config/navigation'
 
@@ -80,14 +80,13 @@ const keyToPath = buildKeyToPath(navigation)
 export default function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { instance, accounts } = useMsal()
-  const account = accounts[0]
+  const { currentUser, logout } = useAuth()
 
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'logout',
       label: 'Sign out',
-      onClick: () => { instance.logoutRedirect() },
+      onClick: () => { logout() },
     },
   ]
 
@@ -149,10 +148,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}
                   className="topbar-user__avatar"
                 >
-                  {getInitials(account?.name, account?.username)}
+                  {getInitials(currentUser?.displayName, currentUser?.email)}
                 </Avatar>
                 <Typography.Text className="topbar-user__name">
-                  {account?.name ?? account?.username ?? ''}
+                  {currentUser?.displayName ?? currentUser?.email ?? ''}
                 </Typography.Text>
               </Space>
             </Dropdown>
