@@ -405,17 +405,20 @@ public partial class MissIssippiContext : DbContext
             modelBuilder.Entity(entityType)
                 .Property("CreatedAtUtc")
                 .HasColumnType("datetime2(3)")
+                .HasDefaultValueSql("getutcdate()")
                 .ValueGeneratedOnAdd();
 
             modelBuilder.Entity(entityType)
                 .Property("ModifiedAtUtc")
                 .HasColumnType("datetime2(3)")
+                .HasDefaultValueSql("getutcdate()")
                 .ValueGeneratedOnAdd();
 
             modelBuilder.Entity(entityType)
                 .Property("CreatedByUserId")
                 .HasMaxLength(128)
                 .IsUnicode(false)
+                .HasDefaultValue("system-bootstrap")
                 .ValueGeneratedOnAdd()
                 .HasSentinel(string.Empty);
 
@@ -423,6 +426,7 @@ public partial class MissIssippiContext : DbContext
                 .Property("ModifiedByUserId")
                 .HasMaxLength(128)
                 .IsUnicode(false)
+                .HasDefaultValue("system-bootstrap")
                 .ValueGeneratedOnAdd()
                 .HasSentinel(string.Empty);
 

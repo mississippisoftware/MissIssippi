@@ -39,165 +39,218 @@ Each decision:
 ### D-001 — Use markdown files in Claude Project for project documents
 
 - **Date:** 2026-01-10
-- **Title:** Use markdown files in Claude Project for project documents
 - **Context:** Needed a way to maintain North Star, Scope, and other living docs across sessions, since Claude has no memory by default.
-- **Options considered:**
-  1. Paste full documents into every new chat
-  2. Use Claude's memory feature
-  3. Use a Claude Project with knowledge documents
+- **Options considered:** (1) Paste into every chat. (2) Use Claude memory. (3) Use a Claude Project with knowledge documents.
 - **Decision:** Claude Project with markdown knowledge documents.
-- **Reasoning:** Project automatically includes context in every chat in the project; markdown is easy to edit and readable; no risk of losing state between sessions.
-- **Revisit when:** If Claude's memory feature becomes more reliable across long time horizons, or if project knowledge file limits become a constraint.
+- **Reasoning:** Project automatically includes context; markdown is editable; no risk of state loss.
+- **Revisit when:** Memory feature improves or project knowledge limits become a constraint.
 
 ---
 
 ### D-002 — Year 1 scope = 5 modules; reporting/accounting/roles/multi-tenancy deferred to Year 2+
 
 - **Date:** 2026-04-20
-- **Title:** Lock Year 1 scope to five modules
-- **Context:** Initial `scope.md` listed 9 in-scope modules across 8 phases. The Year 1 vision (enter orders at show → manufacturing POs → receive inventory → invoices/pick orders → A/R) only requires 5. PM flagged risk of building Year 2 features in Year 1 timeframe.
-- **Options considered:**
-  1. Build all 9 modules in Year 1 as originally sketched
-  2. Lock Year 1 to the 5 that directly serve the Year 1 vision; formally defer the rest
-  3. Leave scope ambiguous and decide module-by-module
-- **Decision:** Option 2. Year 1 = Sales Orders, Customers, Purchasing & Suppliers, Invoicing & Payments, basic A/R. Year 2+ = Reporting/dashboards, full accounting, User roles & permissions (beyond minimal auth), Multi-tenancy.
-- **Reasoning:** Year 1 vision is a linear workflow; the 5 modules are the workflow. Everything else is leverage on top of a working workflow. Building leverage before the workflow exists is wasted work. Also: "build for the operator first, generalize later" from the GTM strategist's guidance.
-- **Revisit when:** End of Phase 3 (Sales Orders + Customers), when we'll have real usage data and can re-evaluate whether the remaining Year 1 modules still look right.
+- **Context:** Initial scope listed 9 modules across 8 phases. Year 1 vision only requires 5.
+- **Options considered:** (1) Build all 9. (2) Lock to 5; defer rest. (3) Decide module-by-module.
+- **Decision:** Option 2. Year 1 = Sales Orders, Customers, Purchasing & Suppliers, Invoicing & Payments, basic A/R.
+- **Reasoning:** The 5 modules ARE the Year 1 workflow; the rest are leverage on a working workflow that doesn't exist yet.
+- **Revisit when:** End of Phase 3, when real usage data exists.
 
 ---
 
 ### D-003 — Phase 2 = foundation only (no business modules)
 
 - **Date:** 2026-04-20
-- **Title:** Phase 2 is foundation-only
-- **Context:** Existing app has no auth, no backups, no staging, no tests, and — by operator's own admission — front-end architecture that makes each new page slow to build. Without addressing these, every Year 1 business module would be built on unstable ground.
-- **Options considered:**
-  1. Start building Sales Orders immediately; fix foundation opportunistically
-  2. Spend Phase 2 entirely on foundation; no business modules shipped
-  3. Parallel tracks: foundation + Sales Orders simultaneously
-- **Decision:** Option 2. Phase 2 is foundation-only: minimal auth, staging, backups, tests, shared front-end primitives, Inventory refactored as reference module, design-spec audit, CI, rule-sheet updates. Show-floor wireframe produced in parallel (design only, no code).
-- **Reasoning:** Foundation debt compounds. Each business module built on shaky foundation costs more later than building foundation first costs now. Operator confirmed the "creating each page takes too long" pain is real. Timebox is 4–6 weeks — bounded.
-- **Revisit when:** If Phase 2 exceeds 6 weeks, revisit scope of Phase 2 itself (cut something) rather than extend indefinitely.
+- **Context:** Existing app has no auth, backups, staging, or tests. Foundation debt would compound across every business module.
+- **Options considered:** (1) Build sales orders immediately. (2) Foundation-only Phase 2. (3) Parallel tracks.
+- **Decision:** Option 2.
+- **Reasoning:** Foundation debt compounds. Bounded 4–6 week timebox (now extended per D-015).
+- **Revisit when:** If Phase 2 exceeds revised 10-week timebox, cut Phase 2 scope rather than extending indefinitely.
 
 ---
 
 ### D-004 — Keep existing schema; build on top, do not rebuild
 
 - **Date:** 2026-04-20
-- **Title:** Existing inventory schema is the foundation
-- **Context:** Apparel Industry Expert reviewed the full schema. Item → ItemColor → Sku model is correct for apparel. Season/Collection structure works. Inventory batch/history/undo mechanism is well-designed. No structural problems found.
-- **Options considered:**
-  1. Rebuild the schema from scratch with "cleaner" choices
-  2. Keep the schema; add new tables (User, Customer, SalesOrder, etc.) alongside
-  3. Partial rewrite of specific tables
-- **Decision:** Option 2. Keep every existing table. Add User table in Phase 2. Add Customer, SalesOrder, SalesOrderLine, PurchaseOrder, Invoice, Payment tables in future phases.
-- **Reasoning:** Schema quality is good. Rebuilding costs weeks with no user-visible improvement. Operator's existing data stays intact. Schema-first approach lets new features accrete.
-- **Revisit when:** If a future business module reveals that the existing schema can't support it without an unreasonable contortion. No change expected in Year 1.
+- **Context:** Apparel Industry Expert reviewed schema. Item → ItemColor → Sku model is correct apparel structure.
+- **Options considered:** (1) Rebuild schema. (2) Keep + add tables. (3) Partial rewrite.
+- **Decision:** Option 2. Keep all 14 existing tables; add User in Phase 2; add Customer/SalesOrder/etc. in future phases.
+- **Reasoning:** Schema quality is good. Rebuilding loses weeks for no user-visible improvement.
+- **Revisit when:** If a future module exposes an unfixable schema constraint. Not expected in Year 1.
 
 ---
 
 ### D-005 — Minimal auth in Phase 2: one role (owner), salesperson seat reserved
 
 - **Date:** 2026-04-20
-- **Title:** Minimal auth scope
-- **Context:** Operator expressed desire to build full roles-and-permissions "at the outset." PM pushed back: operator is the only user in Year 1; salespeople currently write on paper; full RBAC is weeks of work before any business value ships. But: data model can reserve space for salesperson role cheaply.
-- **Options considered:**
-  1. Build full role-based access control in Phase 2 (owner + salesperson + admin, per-resource permissions)
-  2. No auth in Phase 2; add later
-  3. Minimal auth: login required, single role (owner), data model reserves salesperson seat via role column and created_by_user_id FKs
+- **Context:** Operator wanted full RBAC at outset. PM scoped down: solo operator now; salesperson role data-modeled but not built.
+- **Options considered:** (1) Full RBAC now. (2) No auth in Phase 2. (3) Minimal auth + reserved seat.
 - **Decision:** Option 3.
-- **Reasoning:** Every unbuilt feature is fastest to build later when the need is concrete, not speculative. The data-model reservation (role column + FK patterns) costs ~1 day and avoids costly migration later. Permission-check middleware, multi-role UI, invite flows, etc. only get built when a salesperson is actually about to log in.
-- **Revisit when:** When operator is ready to invite first salesperson. At that point, a focused ~1-week sprint adds salesperson role + permission checks + invite flow. Expected Phase 3 or later.
+- **Reasoning:** Speculative features cost weeks before any business value. Reserved seat (role column + `CreatedByUserId` FKs) is ~1 day of work and avoids costly later migration.
+- **Revisit when:** Operator is ready to invite first salesperson.
 
 ---
 
 ### D-006 — Tech stack confirmed: .NET + React/TypeScript + Azure SQL Database + App Service
 
 - **Date:** 2026-04-20
-- **Title:** Confirm existing stack, do not change
-- **Context:** During kickoff, initial description was ambiguous ("Node, customAPI"). Later clarified: backend is .NET (C#), frontend is React with TypeScript built via Vite, database is Azure SQL Database (PaaS), hosted on Azure App Service.
-- **Options considered:**
-  1. Stay on current stack
-  2. Migrate some component (e.g., move to Next.js, Postgres, serverless)
-- **Decision:** Option 1. Full stop.
-- **Reasoning:** Coherent Microsoft-ecosystem stack; operator already productive in it; schema proves solid usage of SQL Server features; no pain signals indicating the stack is wrong for the workload. Year 1 is not the time to change stacks.
-- **Revisit when:** If a specific, concrete scaling or capability need arises that the current stack genuinely cannot meet. None foreseen in Year 1.
+- **Context:** Initial description ambiguous; later clarified.
+- **Decision:** Stay on .NET 8 / React+Vite+TS / Azure SQL DB / App Service. No stack changes for Year 1.
+- **Reasoning:** Coherent Microsoft-ecosystem stack; operator already productive.
+- **Revisit when:** A specific scaling or capability need that the current stack genuinely cannot meet.
 
 ---
 
 ### D-007 — Auth provider: Microsoft Entra ID
 
 - **Date:** 2026-04-20
-- **Title:** Auth via Microsoft Entra ID (Azure AD)
-- **Context:** Need an auth provider for Phase 2. Operator already uses Microsoft/Azure for everything.
-- **Options considered:**
-  1. Microsoft Entra ID (first-party, SSO/MFA included)
-  2. ASP.NET Core Identity with email/password
-  3. Third-party (Auth0, Clerk, Supabase Auth)
+- **Context:** Operator already uses Microsoft/Azure for everything.
+- **Options considered:** (1) Microsoft Entra ID. (2) ASP.NET Core Identity (email/password). (3) Third-party (Auth0, Clerk).
 - **Decision:** Option 1, with Microsoft.Identity.Web on the .NET side.
-- **Reasoning:** First-party integration with existing Azure environment; SSO, MFA, password reset, account recovery all free; reduces "roll your own auth" risk.
-- **Revisit when:** If Entra ID integration turns out to be unworkable for the SPA flow, fallback is ASP.NET Core Identity. Architect will timebox auth to 1 week before calling the fallback.
+- **Reasoning:** First-party integration; SSO/MFA included; no roll-your-own auth risk.
+- **Revisit when:** If Entra ID + SPA flow proves unworkable. Fallback is ASP.NET Core Identity.
+- **Action taken 2026-04-27:** Entra ID app registration `MissIssippi` created. Single tenant, SPA platform, four redirect URIs, scope `access_as_user` enabled.
 
 ---
 
 ### D-008 — DESIGN_SPEC.md and CLAUDE.md are the "foundation constitution"
 
 - **Date:** 2026-04-20
-- **Title:** Adopt existing rule sheets as governing docs; extract primitives that enforce them
-- **Context:** Operator authored DESIGN_SPEC.md (visual) and CLAUDE.md (architecture). UX Designer and Architect both assessed them as genuinely strong. Problem is enforcement, not content.
-- **Options considered:**
-  1. Keep rule sheets as documentation; continue relying on vigilance
-  2. Replace rule sheets with a prebuilt design system (shadcn, MUI)
-  3. Keep rule sheets as source of truth; extract primitives in Phase 2 that encode the rules by construction
-- **Decision:** Option 3.
-- **Reasoning:** Rule sheets reflect operator's actual taste and existing work. Replacing them would throw away good decisions. Extracting primitives that bake rules in is exactly the fix for "rules exist but aren't enforced."
-- **Revisit when:** If rule sheets become contradictory or obstructive during primitive extraction, amendments are logged in the sheets themselves (not this log).
+- **Context:** Existing rule sheets were assessed as good content but inconsistently enforced.
+- **Decision:** Keep rule sheets; extract primitives that encode the rules by construction.
+- **Note:** Per D-012, DESIGN_SPEC.md substantially rewritten. Per D-017 + Phase 2 plan, CLAUDE.md substantially expanded. The principle holds — rule sheets are governing.
+- **Revisit when:** Rule sheets become contradictory or obstructive.
 
 ---
 
 ### D-009 — Target device for Year 1: tablet-landscape and up
 
 - **Date:** 2026-04-20
-- **Title:** Supported devices for Year 1
-- **Context:** Show-floor order entry will happen on a mix of laptops and tablets. Phones are not a realistic target for order entry in Year 1.
-- **Options considered:**
-  1. Responsive design down to phones
-  2. Laptop-only
-  3. Laptop + tablet-landscape (~1024px+) as the supported range
-- **Decision:** Option 3. Touch-friendly tap targets (≥44px) baked into primitives so tablet use is pleasant without a separate mobile track.
-- **Revisit when:** If real Phase 3 usage reveals a concrete phone need.
+- **Context:** Show-floor entry happens on laptops + tablets. Phones not realistic.
+- **Decision:** Laptop + tablet-landscape (~1024px+). Touch-friendly tap targets (≥44px) baked in.
+- **Revisit when:** Real Phase 3 usage reveals a phone need.
 
 ---
 
 ### D-010 — Phase 2 staging environment = separate Azure SQL Database only; App Service slot deferred
 
 - **Date:** 2026-04-27
-- **Title:** Staging DB only for Phase 2; defer App Service slot
-- **Context:** Phase 2 spec called for full staging environment (App Service slot + separate SQL DB). Operator currently runs both `mississippi-api` and `mississippi-web` on the **Free (F1) tier** App Service Plan. Free tier does not support deployment slots; slots require Standard (S1, ~$70/mo). Operator named **cost** as the constraint. Without the slot, you can't dress-rehearse a full deployment in Azure — but you *can* dress-rehearse schema migrations and risky data work against a separate DB at ~$5/month.
-- **Options considered:**
-  1. Upgrade App Service Plan to Standard (S1, ~$70/mo) and create a staging slot — full staging environment
-  2. Stay on Free tier; create staging Azure SQL Database only (~$5/mo); test risky changes from localhost against staging DB before promoting to prod
-  3. No staging at all (test everything against prod)
+- **Context:** Free-tier App Services don't support deployment slots; Standard is $70/mo.
+- **Options considered:** (1) Upgrade to Standard + slot. (2) Stay Free + staging DB only. (3) No staging.
 - **Decision:** Option 2 for Phase 2.
-- **Reasoning:** Cost-effective protection for the highest-risk class of changes (schema migrations, bulk data work) at ~$5/month. Solo operator with no concurrent collaborators means localhost serves as the staging *app*; we just needed a separate staging *database*. The full slot setup adds value once real customer/order data is in production — which is Phase 3.
-- **Action taken 2026-04-27:** Created `MississippiDB-Staging` (Basic tier, same server as production); ran full schema script; verified 14 tables match production.
-- **Revisit when:** Start of Phase 3, when sales-order and customer data start accumulating in production. At that point, upgrade plan to S1, create production+staging slots, formalize the staging deploy step.
+- **Action taken 2026-04-27:** Created `MississippiDB-Staging` (Basic tier, same server). Schema deployed. 14 tables verified.
+- **Revisit when:** Phase 3 start — upgrade to Standard + create slots.
 
 ---
 
 ### D-011 — App Service tier upgrade deferred (Free → Basic/Standard)
 
 - **Date:** 2026-04-27
-- **Title:** Stay on Free tier App Service for Phase 2
-- **Context:** Both `mississippi-api` and `mississippi-web` run on the F1 (Free) App Service Plan. Free tier limits: apps sleep after ~20 minutes of inactivity (5–30s cold-start on next request), no custom domains with SSL, 60 minutes CPU/day quota, no deployment slots, no production SLA. Acceptable for solo Phase 2 development; not acceptable for show-floor use by salespeople.
-- **Options considered:**
-  1. Upgrade to Basic (B1, ~$13/mo) now
-  2. Upgrade to Standard (S1, ~$70/mo) now (would also enable slots → see D-010)
-  3. Stay on Free; revisit before Phase 3 ships
-- **Decision:** Option 3.
-- **Reasoning:** Operator is the only user of the system right now. Cold starts are tolerable when the only user is the developer. Cost matters during pre-revenue Phase 2. The upgrade decision will be much clearer when an actual show-floor usage moment is on the calendar.
-- **Revisit when:** Before Phase 3 ships — at the latest, before a salesperson hits the system at a show. Earlier if the cold-start delay becomes an active annoyance during Phase 2 development.
+- **Context:** Free tier sleeps apps after ~20 minutes idle.
+- **Decision:** Stay Free for Phase 2.
+- **Revisit when:** Before Phase 3 ships, at the latest.
 
 ---
 
-*Last updated: 2026-04-27*
+### D-012 — Adopt Booklytics-style visual identity for MissIssippi UI
+
+- **Date:** 2026-04-27
+- **Context:** Operator shared CSS from a different project ("Booklytics") matching their preference better than the existing DESIGN_SPEC.md.
+- **Options considered:** (1) Keep existing identity. (2) Adopt Booklytics-style. (3) Mix elements.
+- **Decision:** Option 2.
+- **Reasoning:** Operator's own preference; established working CSS provides a concrete starting reference; tokens are semantic and well-organized.
+- **Implication:** DESIGN_SPEC.md substantially rewritten in Phase 2.
+- **Revisit when:** Operator finds the visual system isn't working in real use.
+
+---
+
+### D-013 — Switch frontend framework from PrimeReact to Ant Design; migrate existing pages
+
+- **Date:** 2026-04-27
+- **Context:** PrimeReact style overrides were fragile and inconsistently effective. Ant Design's `ConfigProvider` + design tokens API is more cooperative.
+- **Options considered:** (1) Stay on PrimeReact. (2) Ant for new code only, parallel systems. (3) Full migration, no parallel systems. (4) Raw HTML+CSS.
+- **Decision:** Option 3.
+- **Reasoning:** Operator chose "go forward cleanly." Phase 2 is the cheapest moment — solo operator, only user, no production customer data yet. Parallel systems create forever-debt.
+- **Implication:** Phase 2 timeline extends (D-015). PrimeReact removed after migration. **Migration shipped 2026-05-11.**
+- **Revisit when:** N/A — shipped.
+
+---
+
+### D-014 — Adopt audit/persistence rules from Booklytics CLAUDE.md into MissIssippi CLAUDE.md
+
+- **Date:** 2026-04-27
+- **Context:** Operator shared a different project's CLAUDE.md with good audit/data-access rules.
+- **Decision:** Selectively adopt: audit fields on every custom table, FK delete behavior (`NoAction`), migrations in CI/CD, EF Core+LINQ only.
+- **Rules NOT adopted:** Booklytics' singular-table-name rule (conflicts with existing schema per D-004), specific FK naming, specific UserProfile structure.
+- **Reasoning:** These rules prevent specific known failure modes.
+- **Implication:** CLAUDE.md updated with Audit & Persistence Rules section.
+- **Revisit when:** A specific rule proves unworkable.
+
+---
+
+### D-015 — Phase 2 timeline extends from 4–6 weeks to 6–10 weeks
+
+- **Date:** 2026-04-27
+- **Context:** D-013 added the full PrimeReact → Ant Design migration, which the original estimate didn't include.
+- **Decision:** Phase 2 target extends to 6–10 weeks.
+- **Ship gate, not calendar gate.**
+- **Revisit when:** Mid-phase check at week 4.
+
+---
+
+### D-016 — Claude Code as bounded coding partner; spec-driven, not fire-and-forget
+
+- **Date:** 2026-04-27
+- **Context:** Unsupervised wholesale refactor produces code that compiles but is wrong in subtle ways.
+- **Decision:** Use Claude Code for bounded tasks only — one component or page at a time, with clear spec and acceptance criteria.
+- **Revisit when:** Workflow proves to be a bottleneck.
+
+---
+
+### D-017 — Skinny code is a project-wide principle
+
+- **Date:** 2026-04-27
+- **Context:** Operator stated: *"my goal is skinny, well-organized, clean code."*
+- **Decision:** Adopt "Skinny Code Principle" as the top-level rule in CLAUDE.md, above architecture rules.
+- **Key specifics:** Less code by default; Wrapper Rule; no speculative abstractions; one way to do each thing; deletion is normal workflow; accept framework defaults; ask before adding.
+- **Reasoning:** Most codebase rot is additive. Thin code compounds positively.
+- **Revisit when:** Never. If a specific sub-rule proves wrong, fix that rule; the principle stands.
+
+---
+
+### D-018 — Operating Principles adopted to correct over-cautious Architect default
+
+- **Date:** 2026-05-11
+- **Context:** During Phase 2 migration, the Architect repeatedly bounded sessions to single concerns and parked cross-cutting concerns. Net result: 14+ clean-shipping sessions with real drift accumulating between them — multiple toggle implementations, parallel CSS systems, wrapper proliferation, orphan CSS. Drift discovered only when operator spotted visual inconsistencies. Required a retrospective audit and multi-hour cleanup.
+- **Options considered:** (1) Continue bounded-scope default; address drift reactively. (2) Document failure pattern; keep behavior. (3) Adopt explicit Operating Principles as CLAUDE.md Section 0.
+- **Decision:** Option 3.
+- **Key shifts:** Meta-goal (skinny code, one source of truth, consistency) takes precedence over bounded session scope. Bounded scope is a tool, not a default. Proactive drift detection via mini-audits. Adjacent decisions made explicitly when a foundational decision is made. Trade-offs named to operator; operator decides.
+- **Implementation:** New Section 0 in `CLAUDE.md` (7 sub-sections, 0.1–0.7).
+- **Revisit when:** Never. If a specific sub-principle proves wrong, fix it; the meta-correction stands.
+
+---
+
+### D-019 — Test database for xUnit integration tests: staging Azure SQL
+
+- **Date:** 2026-06-03
+- **Context:** Track F starting. Needed to choose between in-memory EF and staging Azure SQL for the WebApplicationFactory test database.
+- **Options considered:**
+  1. **In-memory EF** — fast, no network dependency, but misses SQL-specific constraints (unique indexes, check constraints, computed columns like `InStock`).
+  2. **Staging Azure SQL (`MississippiDB-Staging`)** — real SQL behavior, validates actual constraints, but requires network + connection string secret in CI.
+- **Decision:** Option 2 — staging Azure SQL.
+- **Reasoning:** The existing schema has real constraints that matter (unique indexes, check constraints, persisted computed columns). In-memory EF would give false confidence on constraint-sensitive operations (duplicate SKU creation, inventory adjustments). The staging DB already exists, CI already has Azure secrets, and at ~10 tests the network overhead is not a concern. Revisit if the test suite grows large enough that latency becomes a bottleneck.
+- **Implication:** CI will need the staging connection string added as a GitHub Actions secret. Tests must clean up after themselves (each test seeds and tears down its own data, or uses transactions rolled back at test end).
+- **Revisit when:** Test suite grows to 100+ tests and network latency is measurably slowing the CI gate. At that point, evaluate a local SQL Server container (e.g., `testcontainers-dotnet`) as a middle path.
+
+---
+
+D-020 — Switch auth provider from Microsoft Entra ID to ASP.NET Core Identity
+
+Date: 2026-06-04
+Context: Entra ID adds frontend complexity (MSAL, redirect flows, app registration management) that isn't justified for a solo operator in Year 1. ASP.NET Core Identity with email + password is simpler to build, simpler to use, and simpler to maintain at this stage.
+Options considered: (1) Keep Entra ID. (2) Switch to ASP.NET Core Identity.
+Decision: Option 2.
+Implications: Microsoft.Identity.Web removed from backend. MSAL removed from frontend plan. Entra ID app registration stays in Azure but goes unused for now. User table stays as-is (no EntraObjectId column needed). Track B respecified around ASP.NET Core Identity.
+Revisit when: Year 2+, if multi-tenancy or SSO for external customers becomes a requirement
+
+*Last updated: 2026-06-03 — D-019 added.*

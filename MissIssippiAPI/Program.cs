@@ -80,15 +80,6 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// When TEST_DB_CONNECTION_STRING is present the process is running under the
-// integration-test harness.  Apply any pending EF migrations so the schema
-// matches the model before tests execute.  Database.Migrate() is idempotent.
-if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING")))
-{
-    using var scope = app.Services.CreateScope();
-    scope.ServiceProvider.GetRequiredService<MissIssippiContext>().Database.Migrate();
-}
-
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
 //{

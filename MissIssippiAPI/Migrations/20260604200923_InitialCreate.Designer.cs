@@ -12,8 +12,8 @@ using MissIssippiAPI.Data;
 namespace MissIssippiAPI.Migrations
 {
     [DbContext(typeof(MissIssippiContext))]
-    [Migration("20260602193825_AddUserTableAndAuditFields")]
-    partial class AddUserTableAndAuditFields
+    [Migration("20260604200923_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,22 +40,30 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("varchar(75)");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.HasKey("CollectionId")
                         .HasName("PK__Collect__D1CCDFE1B35E33F2");
@@ -88,13 +96,17 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("varchar(75)");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<string>("HexValue")
                         .HasMaxLength(7)
@@ -102,13 +114,17 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("varchar(7)");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<string>("PantoneColor")
                         .HasMaxLength(50)
@@ -145,22 +161,30 @@ namespace MissIssippiAPI.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImageTypeId"));
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("Sequence")
                         .HasColumnType("int");
@@ -196,13 +220,17 @@ namespace MissIssippiAPI.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryId"));
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("InStock")
                         .ValueGeneratedOnAddOrUpdate()
@@ -213,13 +241,17 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("Qty")
                         .HasColumnType("int");
@@ -259,13 +291,17 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("Delta")
                         .ValueGeneratedOnAdd()
@@ -284,13 +320,17 @@ namespace MissIssippiAPI.Migrations
                         .HasDefaultValueSql("sysutcdatetime()");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("NewQty")
                         .ValueGeneratedOnAdd()
@@ -337,22 +377,30 @@ namespace MissIssippiAPI.Migrations
                         .HasDefaultValueSql("sysutcdatetime()");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(200)
@@ -388,13 +436,17 @@ namespace MissIssippiAPI.Migrations
                         .HasDefaultValueSql("sysutcdatetime()");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("CreatedInventory")
                         .HasColumnType("int");
@@ -442,13 +494,17 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("varchar(20)");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("ProcessedRows")
                         .HasColumnType("int");
@@ -507,13 +563,17 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("decimal(18, 0)");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -534,13 +594,17 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("varchar(75)");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("SeasonId")
                         .HasColumnType("int");
@@ -590,25 +654,33 @@ namespace MissIssippiAPI.Migrations
                         .HasDefaultValue("");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("ItemId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.HasKey("ItemColorId")
                         .HasName("PK__ItemCol__D60ED5767E9873B1");
@@ -634,22 +706,30 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("SortOrder")
                         .ValueGeneratedOnAdd()
@@ -677,13 +757,17 @@ namespace MissIssippiAPI.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ItemImageId"));
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("ImageSequence")
                         .HasColumnType("int");
@@ -703,13 +787,17 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.HasKey("ItemImageId")
                         .HasName("PK__ItemImag__7FBDF9E4A9A8D9E8");
@@ -737,22 +825,30 @@ namespace MissIssippiAPI.Migrations
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<DateTime>("SeasonDateCreated")
                         .HasColumnType("datetime");
@@ -785,22 +881,30 @@ namespace MissIssippiAPI.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SizeId"));
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<string>("SizeName")
                         .IsRequired()
@@ -836,25 +940,33 @@ namespace MissIssippiAPI.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SkuId"));
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("ItemColorId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("ModifiedAtUtc")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("getutcdate()");
 
                     b.Property<string>("ModifiedByUserId")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("varchar(128)")
+                        .HasDefaultValue("system-bootstrap");
 
                     b.Property<int>("SizeId")
                         .HasColumnType("int");
