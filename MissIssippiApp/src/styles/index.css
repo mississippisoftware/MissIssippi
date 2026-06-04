@@ -1,0 +1,132 @@
+/* src/styles/index.css */
+/* Design tokens — see DESIGN_SPEC.md §2 for the full token system.
+ * These tokens drive original components (AppShell, PageLayout, FilterBar)
+ * and any custom CSS. Ant Design components are themed via antd-theme.ts.
+ */
+
+:root {
+  /* === Primary (accent green) === */
+  --color-primary:           #15a362;
+  --color-primary-hover:     #0f8a52;
+  --color-primary-light:     #edfdf6;
+
+  /* === Backgrounds === */
+  --color-bg-app:            #f5f6fe;
+  --color-bg-white:          #ffffff;
+  --color-bg-sidebar:        #ffffff;
+  --color-bg-sidebar-hover:  #f5f6fe;
+  --color-bg-sidebar-active: #edfdf6;
+
+  /* Surface variants */
+  --color-bg-surface-muted:  #fafbfc;
+  --color-bg-surface-sunken: #f1f3f5;
+  --color-bg-overlay-scrim:  rgba(0, 0, 0, 0.35);
+
+  /* === Text === */
+  --color-text-primary:        #252930;
+  --color-text-secondary:      #5d6778;
+  --color-text-muted:          #828d9f;
+  --color-text-disabled:       #bcc1cb;
+  --color-text-on-accent:      #ffffff;
+  --color-text-sidebar:        #5d6778;
+  --color-text-sidebar-active: #15a362;
+
+  /* === Borders === */
+  --color-border:       #e7e9ed;
+  --color-border-light: #f5f6fe;
+
+  /* === Semantic === */
+  --color-success:        #10b981;
+  --color-success-soft:   #d1e7dd;
+  --color-success-subtle: #edfdf6;
+  --color-success-border: #a3e6c7;
+
+  --color-warning:        #f59e0b;
+  --color-warning-soft:   #fff3cd;
+  --color-warning-subtle: #fffbeb;
+  --color-warning-border: #fde68a;
+
+  --color-error:        #ef4444;
+  --color-error-soft:   #f8d7da;
+  --color-error-subtle: #fef2f2;
+  --color-error-border: #fecaca;
+
+  --color-info:        #2563eb;
+  --color-info-soft:   #e7f1ff;
+  --color-info-subtle: #eff6ff;
+  --color-info-border: #bfdbfe;
+
+  --color-neutral:        #6b7280;
+  --color-neutral-subtle: #f3f4f6;
+  --color-neutral-border: #e5e7eb;
+
+  /* === Spacing === */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+
+  /* === Structural dimensions === */
+  --topbar-height:           56px;
+  --sidebar-width:           250px;
+  --sidebar-collapsed:       56px;
+  --panel-width:             480px;
+  --page-padding-x:          40px;
+  --card-gap:                24px;
+  --card-padding:            20px;
+  --cell-padding-y:          12px;
+  --card-header-padding-y:   16px;
+  --card-header-padding-x:   20px;
+
+  /* === Typography === */
+  --font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono:   "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+
+  --font-size-xs:         11px;
+  --font-size-sm:         12px;
+  --font-size-md:         14px;
+  --font-size-brand:      1.25rem;
+  --font-size-page-title: 1.0625rem;
+  --font-size-section:    0.9375rem;
+  --font-size-body:       14px;
+  --font-size-label:      11px;
+  --font-size-meta:       12px;
+  --font-size-badge:      0.6875rem;
+
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+
+  --line-height-heading: 1.3;
+  --line-height-body:    1.5;
+  --line-height-compact: 1.2;
+
+  --letter-spacing-heading:   -0.01em;
+  --letter-spacing-uppercase: 0.05em;
+
+  /* === Border radius === */
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   10px;
+  --radius-pill: 999px;
+
+  /* === Transitions === */
+  --transition-micro:   0.15s ease;
+  --transition-action:  0.2s ease;
+  --transition-drawer:  0.25s ease;
+  --transition-sidebar: 0.3s ease;
+
+  /* === Shadows === */
+  --shadow-0: none;
+  --shadow-1: 0 1px 4px 0 rgba(0, 0, 0, 0.1);
+  --shadow-2: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  --shadow-3: rgba(0, 0, 0, 0.05) 0px 8px 15px;
+  --shadow-4: 0 8px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-5: 0 4px 20px rgba(0, 0, 0, 0.16);
+}

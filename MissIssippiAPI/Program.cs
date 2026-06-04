@@ -57,7 +57,9 @@ else
 }
 builder.Services.AddScoped<InventoryAiService>();
 
-string? defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+string? defaultConnection =
+    Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(defaultConnection))
 {
     string message = builder.Environment.IsProduction()
