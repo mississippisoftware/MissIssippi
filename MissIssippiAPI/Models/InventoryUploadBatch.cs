@@ -2,7 +2,7 @@ using System;
 
 namespace MissIssippiAPI.Models;
 
-public partial class InventoryUploadBatch
+public partial class InventoryUploadBatch : AuditableEntity
 {
     public Guid UploadBatchId { get; set; }
 

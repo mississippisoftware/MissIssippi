@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MissIssippiAPI.Models;
 
-public partial class InventoryActivityLog
+public partial class InventoryActivityLog : AuditableEntity
 {
     public int InventoryActivityLogId { get; set; }
 

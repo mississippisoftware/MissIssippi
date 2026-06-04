@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Path \"C:\\\\Users\\\\zissy\\\\source\\\\repos\\\\MissIssippi\\\\MissIssippiAPI\\\\docs\" -Force)",
+      "PowerShell(cd \"C:\\\\Users\\\\zissy\\\\source\\\\repos\\\\MissIssippi\\\\MissIssippiAPI\"; dotnet build --no-restore 2>&1 | Where-Object { $_ -match \"error|warning CS|Build succeeded|failed\" } | Select-Object -First 30)",
+      "PowerShell(cd \"C:\\\\Users\\\\zissy\\\\source\\\\repos\\\\MissIssippi\\\\MissIssippiAPI\"; dotnet build --no-restore 2>&1 | Where-Object { $_ -match \"error CS|warning CS\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5139/swagger/index.html\" -UseBasicParsing -TimeoutSec 3; \"API is UP - status $\\($r.StatusCode\\)\" } catch { \"API is DOWN or not reachable: $_\" })",
+      "PowerShell(cd \"C:\\\\Users\\\\zissy\\\\source\\\\repos\\\\MissIssippi\\\\MissIssippiAPI\"; dotnet build --no-restore 2>&1 | Select-String \"error\" | Where-Object { $_ -notmatch \"MSB302|MSB3027|MSB3021|MSB3026\" } | Select-Object -First 10)",
+      "PowerShell(cd \"C:\\\\Users\\\\zissy\\\\source\\\\repos\\\\MissIssippi\\\\MissIssippiAPI\"; dotnet build --no-restore 2>&1 | Where-Object { $_ -match \"error\" -and $_ -notmatch \"MSB30\" })"
+    ]
+  }
+}

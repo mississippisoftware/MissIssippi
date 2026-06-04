@@ -1,6 +1,11 @@
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
-using MissIssippiAPI.Data;  // your context namespace
+using Microsoft.Identity.Web;
+using MissIssippiAPI.Data;
+using MissIssippiAPI.Services;
+using MissIssippiAPI.Services.AI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,19 +15,47 @@ if (builder.Environment.IsProduction())
     builder.Configuration.AddUserSecrets<Program>(optional: true);
 }
 
+builder.Services.AddAuthentication()
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
 // Add services to the container.
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins",
-        builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+        policy => policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyMethod()
+            .AllowAnyHeader());
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(opts =>
+    opts.Filters.Add(new AuthorizeFilter(
+        new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())));
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<MissIssippiAPI.Services.InventoryService>();
 builder.Services.AddScoped<MissIssippiAPI.Services.SkuService>();
 builder.Services.AddScoped<MissIssippiAPI.Services.InventoryUploadService>();
 builder.Services.AddScoped<MissIssippiAPI.Services.InventoryHistoryLogger>();
+
+// AI layer — provider selected by Ai:Provider in configuration
+// "Mock" (default): no API key required, keyword-based routing for testing
+// Future: "Anthropic" — requires Ai:ApiKey and the Anthropic.SDK package
+var aiProvider = builder.Configuration["Ai:Provider"] ?? "Mock";
+if (aiProvider.Equals("Anthropic", StringComparison.OrdinalIgnoreCase))
+{
+    // Placeholder: AnthropicAiChatService not yet implemented
+    // builder.Services.AddScoped<IAiChatService, AnthropicAiChatService>();
+    throw new InvalidOperationException(
+        "Anthropic provider is not yet implemented. Set Ai:Provider to 'Mock' in appsettings.");
+}
+else
+{
+    builder.Services.AddScoped<IAiChatService, MockAiChatService>();
+}
+builder.Services.AddScoped<InventoryAiService>();
 
 string? defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(defaultConnection))
@@ -36,13 +69,23 @@ if (string.IsNullOrWhiteSpace(defaultConnection))
 }
 
 builder.Services.AddDbContext<MissIssippiContext>(options =>
-    options.UseSqlServer(defaultConnection));
+    options.UseSqlServer(defaultConnection)
+           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// When TEST_DB_CONNECTION_STRING is present the process is running under the
+// integration-test harness.  Apply any pending EF migrations so the schema
+// matches the model before tests execute.  Database.Migrate() is idempotent.
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING")))
+{
+    using var scope = app.Services.CreateScope();
+    scope.ServiceProvider.GetRequiredService<MissIssippiContext>().Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
@@ -53,10 +96,14 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAllOrigins");
+app.UseAuthentication();
 app.UseAuthorization();
 
 
 
 app.MapControllers();
 app.Run();
+
+// Expose the implicit Program class so WebApplicationFactory<Program> can reference it.
+public partial class Program { }
 

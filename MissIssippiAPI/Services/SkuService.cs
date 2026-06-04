@@ -10,11 +10,13 @@ namespace MissIssippiAPI.Services
         private const int SkuMaxLength = 25;
         private readonly MissIssippiContext _context;
         private readonly InventoryHistoryLogger _historyLogger;
+        private readonly ICurrentUserService _currentUser;
 
-        public SkuService(MissIssippiContext context, InventoryHistoryLogger historyLogger)
+        public SkuService(MissIssippiContext context, InventoryHistoryLogger historyLogger, ICurrentUserService currentUser)
         {
             _context = context;
             _historyLogger = historyLogger;
+            _currentUser = currentUser;
         }
 
         public async Task<int> EnsureSkusForItemColorAsync(int itemColorId)
@@ -94,11 +96,16 @@ namespace MissIssippiAPI.Services
                     continue;
                 }
 
+                var skuNow = DateTime.UtcNow;
                 newSkus.Add(new Sku
                 {
                     ItemColorId = itemColorId,
                     SizeId = size.SizeId,
-                    SkuValue = skuValue
+                    SkuValue = skuValue,
+                    CreatedAtUtc = skuNow,
+                    ModifiedAtUtc = skuNow,
+                    CreatedByUserId = _currentUser.UserId,
+                    ModifiedByUserId = _currentUser.UserId
                 });
                 existingSkuValues.Add(skuValue);
             }
@@ -222,11 +229,16 @@ namespace MissIssippiAPI.Services
                 {
                     var oldQty = 0;
                     var newQty = Math.Max(0, group.Delta);
+                    var adjNow = DateTime.UtcNow;
                     inventory = new Inventory
                     {
                         ItemColorId = skuEntity.ItemColorId,
                         SizeId = skuEntity.SizeId,
-                        Qty = newQty
+                        Qty = newQty,
+                        CreatedAtUtc = adjNow,
+                        ModifiedAtUtc = adjNow,
+                        CreatedByUserId = _currentUser.UserId,
+                        ModifiedByUserId = _currentUser.UserId
                     };
                     _context.Inventories.Add(inventory);
                     if (newQty != oldQty)
@@ -245,6 +257,8 @@ namespace MissIssippiAPI.Services
                     var oldQty = inventory.Qty;
                     var newQty = Math.Max(0, inventory.Qty + group.Delta);
                     inventory.Qty = newQty;
+                    inventory.ModifiedAtUtc = DateTime.UtcNow;
+                    inventory.ModifiedByUserId = _currentUser.UserId;
                     if (newQty != oldQty)
                     {
                         changes.Add(new InventoryHistoryChange
@@ -438,6 +452,8 @@ namespace MissIssippiAPI.Services
             }
 
             sku.SkuValue = normalizedSku;
+            sku.ModifiedAtUtc = DateTime.UtcNow;
+            sku.ModifiedByUserId = _currentUser.UserId;
 
             try
             {
@@ -603,12 +619,15 @@ namespace MissIssippiAPI.Services
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
+                var bulkNow = DateTime.UtcNow;
                 foreach (var row in sanitizedRows)
                 {
                     var entity = skuById[row.SkuId];
                     if (!string.Equals(entity.SkuValue, row.SkuValue, StringComparison.OrdinalIgnoreCase))
                     {
                         entity.SkuValue = row.SkuValue;
+                        entity.ModifiedAtUtc = bulkNow;
+                        entity.ModifiedByUserId = _currentUser.UserId;
                         response.Updated += 1;
                     }
                 }

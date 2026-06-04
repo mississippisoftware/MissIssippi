@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MissIssippiAPI.Models;
 
-public partial class Collection
+public partial class Collection : AuditableEntity
 {
     public int CollectionId { get; set; }
 

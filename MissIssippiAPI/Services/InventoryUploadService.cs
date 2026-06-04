@@ -12,6 +12,7 @@ namespace MissIssippiAPI.Services
         private readonly MissIssippiContext _context;
         private readonly SkuService _skuService;
         private readonly InventoryHistoryLogger _historyLogger;
+        private readonly ICurrentUserService _currentUser;
 
         private enum UploadMode
         {
@@ -50,11 +51,13 @@ namespace MissIssippiAPI.Services
         public InventoryUploadService(
             MissIssippiContext context,
             SkuService skuService,
-            InventoryHistoryLogger historyLogger)
+            InventoryHistoryLogger historyLogger,
+            ICurrentUserService currentUser)
         {
             _context = context;
             _skuService = skuService;
             _historyLogger = historyLogger;
+            _currentUser = currentUser;
         }
 
         public async Task<InventoryUploadPreflightResult> PreflightAsync(InventoryUploadRequest? request)
@@ -168,12 +171,18 @@ namespace MissIssippiAPI.Services
 
                     if (itemColor == null)
                     {
+                        var icNow = DateTime.UtcNow;
+                        var icUserId = _currentUser.UserId;
                         itemColor = new ItemColor
                         {
                             ItemId = row.ItemId,
                             ColorId = row.ColorId,
                             Active = true,
-                            CompositeSignature = row.CompositeSignature ?? string.Empty
+                            CompositeSignature = row.CompositeSignature ?? string.Empty,
+                            CreatedAtUtc = icNow,
+                            ModifiedAtUtc = icNow,
+                            CreatedByUserId = icUserId,
+                            ModifiedByUserId = icUserId
                         };
                         _context.ItemColors.Add(itemColor);
                         await _context.SaveChangesAsync();
@@ -186,7 +195,11 @@ namespace MissIssippiAPI.Services
                                 {
                                     ItemColorId = itemColor.ItemColorId,
                                     SecondaryColorId = row.SecondaryColorIds[i],
-                                    SortOrder = i + 1
+                                    SortOrder = i + 1,
+                                    CreatedAtUtc = icNow,
+                                    ModifiedAtUtc = icNow,
+                                    CreatedByUserId = icUserId,
+                                    ModifiedByUserId = icUserId
                                 });
                             }
 
@@ -198,12 +211,16 @@ namespace MissIssippiAPI.Services
                     else if (!itemColor.Active)
                     {
                         itemColor.Active = true;
+                        itemColor.ModifiedAtUtc = DateTime.UtcNow;
+                        itemColor.ModifiedByUserId = _currentUser.UserId;
                     }
 
                     var normalizedRowSignature = row.CompositeSignature ?? string.Empty;
                     if ((itemColor.CompositeSignature ?? string.Empty) != normalizedRowSignature)
                     {
                         itemColor.CompositeSignature = normalizedRowSignature;
+                        itemColor.ModifiedAtUtc = DateTime.UtcNow;
+                        itemColor.ModifiedByUserId = _currentUser.UserId;
                     }
 
                     var item = await _context.Items
@@ -226,11 +243,16 @@ namespace MissIssippiAPI.Services
                         {
                             var oldQty = 0;
                             var newQty = ApplyMode(qty, oldQty, normalized.Mode);
+                            var invNow = DateTime.UtcNow;
                             _context.Inventories.Add(new Inventory
                             {
                                 ItemColorId = itemColor.ItemColorId,
                                 SizeId = sizeId,
-                                Qty = newQty
+                                Qty = newQty,
+                                CreatedAtUtc = invNow,
+                                ModifiedAtUtc = invNow,
+                                CreatedByUserId = _currentUser.UserId,
+                                ModifiedByUserId = _currentUser.UserId
                             });
                             result.CreatedInventory += 1;
 
@@ -250,6 +272,8 @@ namespace MissIssippiAPI.Services
                             var oldQty = inventory.Qty;
                             var newQty = ApplyMode(qty, inventory.Qty, normalized.Mode);
                             inventory.Qty = newQty;
+                            inventory.ModifiedAtUtc = DateTime.UtcNow;
+                            inventory.ModifiedByUserId = _currentUser.UserId;
                             result.UpdatedInventory += 1;
                             if (newQty != oldQty)
                             {
@@ -430,6 +454,8 @@ namespace MissIssippiAPI.Services
             {
                 var changes = new List<InventoryHistoryChange>();
 
+                var undoNow = DateTime.UtcNow;
+                var undoUserId = _currentUser.UserId;
                 foreach (var log in logRows)
                 {
                     var inventory = await _context.Inventories
@@ -441,7 +467,11 @@ namespace MissIssippiAPI.Services
                         {
                             ItemColorId = log.ItemColorId,
                             SizeId = log.SizeId,
-                            Qty = log.OldQty
+                            Qty = log.OldQty,
+                            CreatedAtUtc = undoNow,
+                            ModifiedAtUtc = undoNow,
+                            CreatedByUserId = undoUserId,
+                            ModifiedByUserId = undoUserId
                         });
 
                         if (log.OldQty != 0)
@@ -462,6 +492,8 @@ namespace MissIssippiAPI.Services
                     {
                         var priorQty = inventory.Qty;
                         inventory.Qty = log.OldQty;
+                        inventory.ModifiedAtUtc = undoNow;
+                        inventory.ModifiedByUserId = undoUserId;
                         if (priorQty != log.OldQty)
                         {
                             changes.Add(new InventoryHistoryChange
@@ -493,6 +525,8 @@ namespace MissIssippiAPI.Services
                 uploadBatch.UndoHistoryBatchId = undoHistoryBatchId;
                 uploadBatch.Status = StatusUndone;
                 uploadBatch.Message = $"Undone at {uploadBatch.UndoneAt:O}";
+                uploadBatch.ModifiedAtUtc = undoNow;
+                uploadBatch.ModifiedByUserId = undoUserId;
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
@@ -1142,10 +1176,12 @@ namespace MissIssippiAPI.Services
         {
             try
             {
+                var recordNow = DateTime.UtcNow;
+                var recordUserId = _currentUser.UserId;
                 var batch = new InventoryUploadBatch
                 {
                     UploadBatchId = Guid.NewGuid(),
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = recordNow,
                     Status = status,
                     Mode = request.ModeText,
                     DatasetHash = datasetHash ?? string.Empty,
@@ -1161,7 +1197,11 @@ namespace MissIssippiAPI.Services
                     DuplicateOfUploadBatchId = duplicateOfUploadBatchId,
                     InventoryHistoryBatchId = inventoryHistoryBatchId,
                     Message = Truncate(result.Message, 500),
-                    ResultJson = JsonSerializer.Serialize(result, JsonOptions)
+                    ResultJson = JsonSerializer.Serialize(result, JsonOptions),
+                    CreatedAtUtc = recordNow,
+                    ModifiedAtUtc = recordNow,
+                    CreatedByUserId = recordUserId,
+                    ModifiedByUserId = recordUserId
                 };
 
                 _context.InventoryUploadBatches.Add(batch);

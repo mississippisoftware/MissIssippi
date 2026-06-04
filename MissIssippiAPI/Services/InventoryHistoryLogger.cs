@@ -11,6 +11,7 @@ namespace MissIssippiAPI.Services
     public class InventoryHistoryLogger
     {
         private readonly MissIssippiContext _context;
+        private readonly ICurrentUserService _currentUser;
 
         private static readonly HashSet<string> AllowedSources = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -19,9 +20,10 @@ namespace MissIssippiAPI.Services
             "upload"
         };
 
-        public InventoryHistoryLogger(MissIssippiContext context)
+        public InventoryHistoryLogger(MissIssippiContext context, ICurrentUserService currentUser)
         {
             _context = context;
+            _currentUser = currentUser;
         }
 
         public async Task<Guid?> LogAdjustmentsAsync(
@@ -56,11 +58,18 @@ namespace MissIssippiAPI.Services
             var hasTransaction = _context.Database.CurrentTransaction != null;
             await using var transaction = hasTransaction ? null : await _context.Database.BeginTransactionAsync();
 
+            var now = DateTime.UtcNow;
+            var userId = _currentUser.UserId;
+
             var batch = new InventoryAdjustmentBatch
             {
                 BatchId = Guid.NewGuid(),
                 Source = normalizedSource,
-                Notes = notes
+                Notes = notes,
+                CreatedAtUtc = now,
+                ModifiedAtUtc = now,
+                CreatedByUserId = userId,
+                ModifiedByUserId = userId
             };
 
             _context.InventoryAdjustmentBatches.Add(batch);
@@ -83,7 +92,11 @@ namespace MissIssippiAPI.Services
                     NewQty = change.NewQty,
                     Delta = delta,
                     ActionType = change.ActionType ?? normalizedSource,
-                    InventoryActivityDate = DateTime.UtcNow
+                    InventoryActivityDate = now,
+                    CreatedAtUtc = now,
+                    ModifiedAtUtc = now,
+                    CreatedByUserId = userId,
+                    ModifiedByUserId = userId
                 });
             }
 

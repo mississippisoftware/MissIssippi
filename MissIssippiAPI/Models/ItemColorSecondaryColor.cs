@@ -1,6 +1,6 @@
 namespace MissIssippiAPI.Models;
 
-public partial class ItemColorSecondaryColor
+public partial class ItemColorSecondaryColor : AuditableEntity
 {
     public int ItemColorId { get; set; }
 

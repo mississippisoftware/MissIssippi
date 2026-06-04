@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MissIssippiAPI.Models;
 
-public partial class Size
+public partial class Size : AuditableEntity
 {
     public int SizeId { get; set; }
 

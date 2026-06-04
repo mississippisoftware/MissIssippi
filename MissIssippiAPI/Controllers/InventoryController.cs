@@ -128,5 +128,173 @@ namespace MissIssippiAPI.Controllers
 
             return Ok(true);
         }
+
+        [HttpGet]
+        public async Task<List<SeasonLookupDto>> GetSeasons()
+        {
+            return await _inventoryService.GetSeasonsAsync();
+        }
+
+        [HttpGet]
+        public async Task<List<CollectionLookupDto>> GetCollections()
+        {
+            return await _inventoryService.GetCollectionsAsync();
+        }
+
+        [HttpGet]
+        public async Task<InventorySearchResult> SearchInventory(
+            [FromQuery] int? SeasonId = null,
+            [FromQuery] string? ItemNumber = null,
+            [FromQuery] string? ColorName = null,
+            [FromQuery] string? SizeName = null,
+            [FromQuery] int? CollectionId = null,
+            [FromQuery] bool InStockOnly = false,
+            [FromQuery] bool InProductionOnly = false,
+            [FromQuery] int Page = 1,
+            [FromQuery] int PageSize = 25)
+        {
+            return await _inventoryService.SearchInventoryAsync(new InventorySearchQuery
+            {
+                SeasonId = SeasonId,
+                ItemNumber = ItemNumber,
+                ColorName = ColorName,
+                SizeName = SizeName,
+                CollectionId = CollectionId,
+                InStockOnly = InStockOnly,
+                InProductionOnly = InProductionOnly,
+                Page = Page,
+                PageSize = PageSize
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckAvailability(
+            [FromQuery] List<string>? SkuValues = null,
+            [FromQuery] int? ItemColorId = null,
+            [FromQuery] int? SizeId = null)
+        {
+            if ((SkuValues == null || !SkuValues.Any()) && !ItemColorId.HasValue)
+                return BadRequest("Either SkuValues or ItemColorId is required.");
+
+            return Ok(await _inventoryService.CheckAvailabilityAsync(SkuValues, ItemColorId, SizeId));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetInventoryActivityForVariant(
+            [FromQuery] string? SkuValue = null,
+            [FromQuery] int? ItemColorId = null,
+            [FromQuery] DateTime? FromDate = null,
+            [FromQuery] DateTime? ToDate = null,
+            [FromQuery] int Page = 1,
+            [FromQuery] int PageSize = 50)
+        {
+            if (string.IsNullOrWhiteSpace(SkuValue) && !ItemColorId.HasValue)
+                return BadRequest("Either SkuValue or ItemColorId is required.");
+
+            var result = await _inventoryService.GetInventoryActivityForVariantAsync(new InventoryActivityQuery
+            {
+                SkuValue = SkuValue,
+                ItemColorId = ItemColorId,
+                FromDate = FromDate,
+                ToDate = ToDate,
+                Page = Page,
+                PageSize = PageSize
+            });
+
+            if (result == null)
+                return NotFound($"SKU '{SkuValue}' not found.");
+
+            return Ok(result);
+        }
+
+        [HttpGet]
+        public async Task<LowStockResult> GetLowStockItems(
+            [FromQuery] int MaxQty = 0,
+            [FromQuery] int? SeasonId = null,
+            [FromQuery] bool InProductionOnly = false,
+            [FromQuery] int Page = 1,
+            [FromQuery] int PageSize = 50)
+        {
+            return await _inventoryService.GetLowStockItemsAsync(new LowStockQuery
+            {
+                MaxQty = MaxQty,
+                SeasonId = SeasonId,
+                InProductionOnly = InProductionOnly,
+                Page = Page,
+                PageSize = PageSize
+            });
+        }
+
+        [HttpGet]
+        public async Task<StyleNumberResult> SearchByStyleNumber(
+            [FromQuery] string ItemNumber = "",
+            [FromQuery] int? SeasonId = null,
+            [FromQuery] bool IncludeVariantSummary = false)
+        {
+            return await _inventoryService.SearchByStyleNumberAsync(new StyleNumberQuery
+            {
+                ItemNumber = ItemNumber,
+                SeasonId = SeasonId,
+                IncludeVariantSummary = IncludeVariantSummary
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SearchBySeason(
+            [FromQuery] int SeasonId = 0,
+            [FromQuery] bool InStockOnly = false,
+            [FromQuery] bool InProductionOnly = false,
+            [FromQuery] int Page = 1,
+            [FromQuery] int PageSize = 50)
+        {
+            if (SeasonId <= 0)
+                return BadRequest("SeasonId is required.");
+
+            return Ok(await _inventoryService.SearchBySeasonAsync(new SearchBySeasonQuery
+            {
+                SeasonId = SeasonId,
+                InStockOnly = InStockOnly,
+                InProductionOnly = InProductionOnly,
+                Page = Page,
+                PageSize = PageSize
+            }));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetProductDetails([FromQuery] int ItemId)
+        {
+            if (ItemId <= 0)
+                return BadRequest("ItemId is required.");
+
+            var result = await _inventoryService.GetProductDetailsAsync(ItemId);
+            if (result == null)
+                return NotFound($"Item {ItemId} not found.");
+
+            return Ok(result);
+        }
+
+        [HttpGet]
+        public async Task<SearchByColorResult> SearchByColor(
+            [FromQuery] string? ColorName = null,
+            [FromQuery] int? CollectionId = null,
+            [FromQuery] int? SeasonId = null,
+            [FromQuery] bool InStockOnly = false,
+            [FromQuery] bool IncludePrimary = true,
+            [FromQuery] bool IncludeSecondary = false,
+            [FromQuery] int Page = 1,
+            [FromQuery] int PageSize = 25)
+        {
+            return await _inventoryService.SearchByColorAsync(new SearchByColorQuery
+            {
+                ColorName = ColorName,
+                CollectionId = CollectionId,
+                SeasonId = SeasonId,
+                InStockOnly = InStockOnly,
+                IncludePrimary = IncludePrimary,
+                IncludeSecondary = IncludeSecondary,
+                Page = Page,
+                PageSize = PageSize
+            });
+        }
     }
 }

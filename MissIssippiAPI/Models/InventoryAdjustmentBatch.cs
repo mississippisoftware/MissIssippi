@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MissIssippiAPI.Models;
 
-public partial class InventoryAdjustmentBatch
+public partial class InventoryAdjustmentBatch : AuditableEntity
 {
     public Guid BatchId { get; set; }
 

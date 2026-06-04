@@ -14,7 +14,17 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Identity.Web" Version="4.9.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude the test sub-project; each SDK-style project glob is recursive
+         and would otherwise include MissIssippiAPI.Tests/**/*.cs in this project. -->
+    <Compile Remove="MissIssippiAPI.Tests\**" />
+    <EmbeddedResource Remove="MissIssippiAPI.Tests\**" />
+    <None Remove="MissIssippiAPI.Tests\**" />
+    <Content Remove="MissIssippiAPI.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>

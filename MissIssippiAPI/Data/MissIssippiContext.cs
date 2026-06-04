@@ -44,6 +44,8 @@ public partial class MissIssippiContext : DbContext
 
     public virtual DbSet<ItemColorSecondaryColor> ItemColorSecondaryColors { get; set; }
 
+    public virtual DbSet<User> Users { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Color>(entity =>
@@ -374,6 +376,68 @@ public partial class MissIssippiContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("f_Color_ItemColorSecondaryColor");
         });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.UserId);
+            entity.ToTable("User");
+            entity.Property(e => e.UserId).HasMaxLength(128).IsUnicode(false);
+            entity.Property(e => e.Email).HasMaxLength(256).IsUnicode(false);
+            entity.Property(e => e.DisplayName).HasMaxLength(256);
+            entity.Property(e => e.Role).HasMaxLength(50).IsUnicode(false).HasDefaultValue("owner");
+        });
+
+        // Audit column types and FK constraints for all 14 auditable entities.
+        // ValueGeneratedOnAdd() + HasSentinel lets EF Core omit the column from INSERT
+        // when the property still holds its CLR default, allowing the DB DEFAULT constraint
+        // ('PENDING_SEED' for user IDs, '2026-04-20' for timestamps) to supply the value.
+        // This prevents FK violations in contexts where no user is available (e.g. tests).
+        foreach (var entityType in new[]
+        {
+            typeof(Size), typeof(Season), typeof(Collection), typeof(Color),
+            typeof(Item), typeof(ItemColor), typeof(ItemColorSecondaryColor),
+            typeof(Sku), typeof(ImageType), typeof(ItemImage),
+            typeof(Inventory), typeof(InventoryAdjustmentBatch),
+            typeof(InventoryUploadBatch), typeof(InventoryActivityLog)
+        })
+        {
+            // DateTime.MinValue is the implicit sentinel for DateTime ValueGeneratedOnAdd.
+            modelBuilder.Entity(entityType)
+                .Property("CreatedAtUtc")
+                .HasColumnType("datetime2(3)")
+                .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity(entityType)
+                .Property("ModifiedAtUtc")
+                .HasColumnType("datetime2(3)")
+                .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity(entityType)
+                .Property("CreatedByUserId")
+                .HasMaxLength(128)
+                .IsUnicode(false)
+                .ValueGeneratedOnAdd()
+                .HasSentinel(string.Empty);
+
+            modelBuilder.Entity(entityType)
+                .Property("ModifiedByUserId")
+                .HasMaxLength(128)
+                .IsUnicode(false)
+                .ValueGeneratedOnAdd()
+                .HasSentinel(string.Empty);
+
+            modelBuilder.Entity(entityType)
+                .HasOne(typeof(User))
+                .WithMany()
+                .HasForeignKey("CreatedByUserId")
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity(entityType)
+                .HasOne(typeof(User))
+                .WithMany()
+                .HasForeignKey("ModifiedByUserId")
+                .OnDelete(DeleteBehavior.NoAction);
+        }
 
         OnModelCreatingPartial(modelBuilder);
     }
