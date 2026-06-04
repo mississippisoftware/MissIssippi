@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.0.0",
+    "antd": "^5.0.0",
+    "axios": "^1.7.0",
     "bootswatch": "^5.3.8",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",

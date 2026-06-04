@@ -1,5 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "./App";
+import AuthGate from "./components/auth/AuthGate";
+import LoginPage from "./pages/Auth/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import InventoryView from "./inventory/inventoryView";
 import ScanInventory from "./pages/ScanInventory";
@@ -13,12 +15,11 @@ import SeasonList from "./pages/SeasonList";
 import SizeList from "./pages/SizeList";
 import SkuList from "./pages/SkuList";
 
-
-
 const router = createBrowserRouter([
+  { path: "/login", element: <LoginPage /> },
   {
     path: "/",
-    element: <App />,
+    element: <AuthGate><App /></AuthGate>,
     children: [
       { index: true, element: <Dashboard /> },
       { path: "dashboard", element: <Dashboard /> },

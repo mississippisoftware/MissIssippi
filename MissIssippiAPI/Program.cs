@@ -1,9 +1,13 @@
 
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Tokens;
 using MissIssippiAPI.Data;
+using MissIssippiAPI.Models;
 using MissIssippiAPI.Services;
 using MissIssippiAPI.Services.AI;
 
@@ -15,8 +19,35 @@ if (builder.Environment.IsProduction())
     builder.Configuration.AddUserSecrets<Program>(optional: true);
 }
 
-builder.Services.AddAuthentication()
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+// ASP.NET Core Identity (user store + password management)
+builder.Services.AddIdentity<User, IdentityRole>()
+    .AddEntityFrameworkStores<MissIssippiContext>()
+    .AddDefaultTokenProviders();
+
+// JWT Bearer auth — override Identity's default cookie scheme
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.MapInboundClaims = false;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+        RoleClaimType = "role",
+        NameClaimType = "name",
+    };
+});
 
 // Add services to the container.
 
@@ -35,10 +66,11 @@ builder.Services.AddControllers(opts =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-builder.Services.AddScoped<MissIssippiAPI.Services.InventoryService>();
-builder.Services.AddScoped<MissIssippiAPI.Services.SkuService>();
-builder.Services.AddScoped<MissIssippiAPI.Services.InventoryUploadService>();
-builder.Services.AddScoped<MissIssippiAPI.Services.InventoryHistoryLogger>();
+builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<SkuService>();
+builder.Services.AddScoped<InventoryUploadService>();
+builder.Services.AddScoped<InventoryHistoryLogger>();
 
 // AI layer — provider selected by Ai:Provider in configuration
 // "Mock" (default): no API key required, keyword-based routing for testing
@@ -99,4 +131,3 @@ app.Run();
 
 // Expose the implicit Program class so WebApplicationFactory<Program> can reference it.
 public partial class Program { }
-

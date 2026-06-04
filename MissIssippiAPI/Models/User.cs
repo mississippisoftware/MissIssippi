@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Identity;
+
 namespace MissIssippiAPI.Models;
 
-public class User
+public class User : IdentityUser
 {
-    public string UserId { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    // IdentityUser provides: Id, Email, UserName, PasswordHash, etc.
     public string DisplayName { get; set; } = string.Empty;
     public string Role { get; set; } = "owner";
     public bool Active { get; set; } = true;

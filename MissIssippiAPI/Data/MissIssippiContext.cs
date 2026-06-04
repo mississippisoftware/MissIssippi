@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MissIssippiAPI.Models;
 
 namespace MissIssippiAPI.Data;
 
-public partial class MissIssippiContext : DbContext
+public partial class MissIssippiContext : IdentityDbContext<User>
 {
     public MissIssippiContext()
     {
@@ -44,10 +43,25 @@ public partial class MissIssippiContext : DbContext
 
     public virtual DbSet<ItemColorSecondaryColor> ItemColorSecondaryColors { get; set; }
 
-    public virtual DbSet<User> Users { get; set; }
+    // Users DbSet is provided by IdentityDbContext<User>
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
+        // Map User entity to existing "User" table; remap IdentityUser.Id -> "UserId" column
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("User");
+            entity.Property(u => u.Id).HasColumnName("UserId").HasMaxLength(128).IsUnicode(false);
+            entity.Property(u => u.Email).HasMaxLength(256).IsUnicode(false);
+            entity.Property(u => u.DisplayName).HasMaxLength(256);
+            entity.Property(u => u.Role).HasMaxLength(50).IsUnicode(false).HasDefaultValue("owner");
+            entity.Property(u => u.Active).HasDefaultValue(true);
+            entity.Property(u => u.CreatedAtUtc).HasColumnType("datetime2(3)").HasDefaultValueSql("getutcdate()");
+            entity.Property(u => u.ModifiedAtUtc).HasColumnType("datetime2(3)").HasDefaultValueSql("getutcdate()");
+        });
+
         modelBuilder.Entity<Color>(entity =>
         {
             entity.HasKey(e => e.ColorId).HasName("PK__Color__8DA7674DAF1C0D00");
@@ -375,16 +389,6 @@ public partial class MissIssippiContext : DbContext
                 .HasForeignKey(d => d.SecondaryColorId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("f_Color_ItemColorSecondaryColor");
-        });
-
-        modelBuilder.Entity<User>(entity =>
-        {
-            entity.HasKey(e => e.UserId);
-            entity.ToTable("User");
-            entity.Property(e => e.UserId).HasMaxLength(128).IsUnicode(false);
-            entity.Property(e => e.Email).HasMaxLength(256).IsUnicode(false);
-            entity.Property(e => e.DisplayName).HasMaxLength(256);
-            entity.Property(e => e.Role).HasMaxLength(50).IsUnicode(false).HasDefaultValue("owner");
         });
 
         // Audit column types and FK constraints for all 14 auditable entities.
